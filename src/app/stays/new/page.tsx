@@ -98,20 +98,38 @@ export default function NewStayPage() {
       description="Start with core details. The listing is saved as draft first."
     >
         <section className="tm-panel p-6">
-          <h2 className="text-2xl font-semibold text-slate-900">Core Details</h2>
+          <h2 className="tm-section-title">Core Details</h2>
           <p className="tm-muted mt-1 text-sm">Start with essential stay information. Save as draft automatically.</p>
 
-          <form className="mt-4 space-y-3" onSubmit={onSubmit}>
-            <input className="tm-input" name="propertyType" placeholder="Property type (hotel, apartment, villa...)" required />
-            <input className="tm-input" name="name" placeholder="Stay name" required />
-            <textarea className="tm-input min-h-28" name="description" placeholder="Short description" />
-            <input className="tm-input" name="address" placeholder="Address" required />
+          <form className="tm-field-grid mt-4" onSubmit={onSubmit}>
+            <label className="tm-field">
+              <span className="tm-field-label">Property Type</span>
+              <input className="tm-input" name="propertyType" placeholder="Hotel, apartment, villa..." required />
+            </label>
+            <label className="tm-field">
+              <span className="tm-field-label">Stay Name</span>
+              <input className="tm-input" name="name" placeholder="Enter listing name" required />
+            </label>
+            <label className="tm-field">
+              <span className="tm-field-label">Description</span>
+              <textarea className="tm-input min-h-28" name="description" placeholder="Short description" />
+            </label>
+            <label className="tm-field">
+              <span className="tm-field-label">Address</span>
+              <input className="tm-input" name="address" placeholder="Street address" required />
+            </label>
             <div className="grid gap-3 md:grid-cols-2">
-              <input className="tm-input" name="city" placeholder="City" required />
-              <input className="tm-input" name="country" placeholder="Country" required />
+              <label className="tm-field">
+                <span className="tm-field-label">City</span>
+                <input className="tm-input" name="city" placeholder="City" required />
+              </label>
+              <label className="tm-field">
+                <span className="tm-field-label">Country</span>
+                <input className="tm-input" name="country" placeholder="Country" required />
+              </label>
             </div>
 
-            <div className="flex gap-2">
+            <div className="tm-inline-actions">
               <button className="tm-btn tm-btn-primary" disabled={saving} type="submit">
                 {saving ? "Creating..." : "Create Stay Draft"}
               </button>

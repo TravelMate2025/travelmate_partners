@@ -62,15 +62,15 @@ export default function NewTransferPage() {
       description="Start with core route and vehicle details. Listing is saved as draft."
     >
       <section className="tm-panel p-6">
-        <h2 className="text-2xl font-semibold text-slate-900">Core Details</h2>
-        <form className="mt-4 space-y-3" onSubmit={onSubmit}>
+        <h2 className="tm-section-title">Core Details</h2>
+        <form className="tm-field-grid mt-4" onSubmit={onSubmit}>
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">Name</span>
+            <label className="tm-field">
+              <span className="tm-field-label">Name</span>
               <input className="tm-input" name="name" placeholder="Transfer name" required />
             </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">Base Fare</span>
+            <label className="tm-field">
+              <span className="tm-field-label">Base Fare</span>
               <input
                 className="tm-input"
                 name="baseFare"
@@ -82,46 +82,67 @@ export default function NewTransferPage() {
             </label>
           </div>
 
-          <select className="tm-input" name="transferType" required defaultValue="">
-            <option value="" disabled>
-              Select transfer type
-            </option>
-            <option value="one_way">One-way</option>
-            <option value="return">Return</option>
-            <option value="hourly">Hourly</option>
-            <option value="airport">Airport transfer</option>
-          </select>
+          <label className="tm-field">
+            <span className="tm-field-label">Transfer Type</span>
+            <select className="tm-input" name="transferType" required defaultValue="">
+              <option value="" disabled>
+                Select transfer type
+              </option>
+              <option value="one_way">One-way</option>
+              <option value="return">Return</option>
+              <option value="hourly">Hourly</option>
+              <option value="airport">Airport transfer</option>
+            </select>
+          </label>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <input className="tm-input" name="pickupPoint" placeholder="Pickup point" required />
-            <input className="tm-input" name="dropoffPoint" placeholder="Dropoff point" required />
+            <label className="tm-field">
+              <span className="tm-field-label">Pickup Point</span>
+              <input className="tm-input" name="pickupPoint" placeholder="Pickup point" required />
+            </label>
+            <label className="tm-field">
+              <span className="tm-field-label">Dropoff Point</span>
+              <input className="tm-input" name="dropoffPoint" placeholder="Dropoff point" required />
+            </label>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <input className="tm-input" name="vehicleClass" placeholder="Vehicle class/type" required />
-            <input className="tm-input" name="coverageArea" placeholder="Coverage area" required />
+            <label className="tm-field">
+              <span className="tm-field-label">Vehicle Class</span>
+              <input className="tm-input" name="vehicleClass" placeholder="Vehicle class/type" required />
+            </label>
+            <label className="tm-field">
+              <span className="tm-field-label">Coverage Area</span>
+              <input className="tm-input" name="coverageArea" placeholder="Coverage area" required />
+            </label>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <input
-              className="tm-input"
-              name="passengerCapacity"
-              type="number"
-              min={1}
-              placeholder="Passenger capacity"
-              required
-            />
-            <input
-              className="tm-input"
-              name="luggageCapacity"
-              type="number"
-              min={0}
-              placeholder="Luggage capacity"
-              required
-            />
+            <label className="tm-field">
+              <span className="tm-field-label">Passenger Capacity</span>
+              <input
+                className="tm-input"
+                name="passengerCapacity"
+                type="number"
+                min={1}
+                placeholder="Passenger capacity"
+                required
+              />
+            </label>
+            <label className="tm-field">
+              <span className="tm-field-label">Luggage Capacity</span>
+              <input
+                className="tm-input"
+                name="luggageCapacity"
+                type="number"
+                min={0}
+                placeholder="Luggage capacity"
+                required
+              />
+            </label>
           </div>
 
-          <div className="flex gap-2">
+          <div className="tm-inline-actions">
             <button className="tm-btn tm-btn-primary" disabled={saving} type="submit">
               {saving ? "Creating..." : "Create Transfer Draft"}
             </button>

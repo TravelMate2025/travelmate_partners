@@ -38,11 +38,11 @@ export function FeatureComingSoon({ title, description, highlights }: FeatureCom
           This module is scaffolded in navigation so the product shell is stable while we implement each flow.
         </p>
 
-        <ul className="mt-4 space-y-2">
+        <ul className="tm-highlight-list mt-4 space-y-2">
           {highlights.map((item) => (
             <li
               key={item}
-              className="rounded-xl border border-slate-200/90 bg-white/70 px-3 py-2 text-sm text-slate-700"
+              className="tm-highlight-item rounded-xl border px-3 py-2 text-sm text-slate-700"
             >
               {item}
             </li>

@@ -252,7 +252,9 @@
 - Flow 2.6 Stay Pricing and Availability: `Completed`
 - Flow 2.7 Transfer/Taxi Listing Management: `Completed`
 - Flow 2.8 Transfer Pricing and Scheduling: `Completed`
-- Flow 2.9 and onward: `Not started`
+- Flow 2.9 Media and Document Management: `Completed`
+- Flow 2.10 Data Quality Tools: `Completed`
+- Flow 2.11 and onward: `Not started`
 
 Latest completion notes:
 - Auth flow includes signup OTP, email verification, login/logout, password reset, session management, and logout-all-devices.
@@ -266,6 +268,12 @@ Latest completion notes:
 - Flow 2.6 page is implemented with currency + base/weekday/weekend pricing, min/max stay rules, seasonal override date-range conflict validation, blackout date validation, and persisted module state (mock + real API adapters).
 - Flow 2.7 transfer module is implemented with create/edit flows, route and vehicle metadata, submission and moderation lifecycle transitions, and archive controls (mock + real API adapters).
 - Flow 2.8 transfer pricing and scheduling is implemented with fare model fields, schedule windows, blackout dates, overlap validation by day/time, and persisted module state (mock + real API adapters).
+- Flow 2.9 media/document management is implemented across stay, transfer, and verification editors with shared file validation rules (type/size/count), metadata persistence, replace/remove actions, and image reordering for listing media.
+- Transfer listing detail editor now includes direct image upload, replace, reorder, and remove controls aligned with stay image lifecycle behavior.
+- Strict Flow 2.9 validation coverage is added via dedicated integration test (`flow-2.9-media-docs-strict.integration.test.ts`) aligned to each flow bullet in section 2.9.
+- Flow 2.10 data quality tooling is implemented with listing completeness scoring, required-field submission gates, duplicate listing warnings, and correction prompts on rejected listings for both stays and transfers.
+- Strict Flow 2.10 validation coverage is added via dedicated integration test (`flow-2.10-data-quality-strict.integration.test.ts`) aligned to each flow bullet in section 2.10.
+- AGENTS alignment hardening added middleware-backed protected route checks, verification terminology alignment (`in_review` lifecycle stage), and audit event recording support for critical verification/listing actions.
 
 ## 3. Flow-Based Implementation Plan
 

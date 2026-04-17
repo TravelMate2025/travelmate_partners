@@ -37,7 +37,7 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
 - `NEXT_PUBLIC_USE_MOCK_API=true`: use frontend mock data adapter.
 - `NEXT_PUBLIC_USE_MOCK_API=false`: call real backend APIs at `NEXT_PUBLIC_API_BASE_URL`.
 
-## Current Auth UI Flows
+## Current Implemented Routes
 
 - `/auth/signup`
 - `/auth/verify-email`
@@ -47,6 +47,9 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
 - `/dashboard`
 - `/verification`
 - `/onboarding`
+- `/stays`
+- `/stays/new`
+- `/stays/[stayId]`
 - `/pricing-availability`
 - `/transfer-pricing-scheduling`
 - `/transfers`
@@ -63,7 +66,9 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
 - Flow 2.6 (`Stay Pricing and Availability`): Completed
 - Flow 2.7 (`Transfer/Taxi Listing Management`): Completed
 - Flow 2.8 (`Transfer Pricing and Scheduling`): Completed
-- Next target: Flow 2.9 (`Media and Document Management`)
+- Flow 2.9 (`Media and Document Management`): Completed
+- Flow 2.10 (`Data Quality Tools`): Completed
+- Next target: Flow 2.11 (`Notifications and Communication`)
 
 Recent updates:
 - Flow 2.5 strict validation test added (`src/modules/integration/flow-2.5-stays-strict.integration.test.ts`) with explicit assertions for create, enrich, submit/save-draft, status transitions, edit, pause, and archive.
@@ -86,6 +91,27 @@ Recent updates:
   - Fare model fields: currency, base fare, distance rate/km, time rate/minute, peak and night surcharges
   - Schedule windows with day-based conflict validation and blackout date management
   - Mock + real API adapters and integration/unit test coverage
+- Flow 2.9 implementation added:
+  - Shared media/document file validation rules for type, size, and count limits
+  - Stay and transfer listing image lifecycle now supports upload, replace, reorder, and remove
+  - Verification document lifecycle now supports upload, replace, and remove
+  - Strict flow alignment test added (`src/modules/integration/flow-2.9-media-docs-strict.integration.test.ts`)
+- Flow 2.10 implementation added:
+  - Shared listing quality scoring and validation tools for stays/transfers
+  - Required-field gate before submit with explicit missing-field errors
+  - Duplicate listing warnings in quality reports and moderation feedback
+  - Correction workflow prompts on rejected listings
+  - Strict flow alignment test added (`src/modules/integration/flow-2.10-data-quality-strict.integration.test.ts`)
+
+Latest validation snapshot (April 17, 2026):
+- `npm test`: 61/61 tests passing
+- `npm run build`: passing
+
+Alignment updates (April 17, 2026):
+- Verification lifecycle terminology aligned to `pending`, `in_review`, `approved`, `rejected`.
+- Added middleware-based route protection using partner session cookie (`tm_partner_session`) so protected routes are not client-check-only.
+- Added audit log recording support for verification document updates/submission and listing publish/pause actions in mock flows.
+- Added module scaffolds and tests for `wallet-payouts`, `notifications`, and `reports`.
 
 Onboarding behavior implemented:
 - Login routes users to `/onboarding`.
@@ -105,7 +131,8 @@ When Django APIs are ready, keep UI unchanged and map the real adapter contract 
 
 Verification behavior implemented:
 - Upload identity/business/address/permit metadata with file validation (type/size/count).
-- Submit verification and track status transitions (`not_started`, `pending`, `rejected`, `approved`).
+- Replace and remove previously uploaded verification documents.
+- Submit verification and track status transitions (`pending`, `in_review`, `rejected`, `approved`).
 - Rejection reasons displayed and re-submission supported.
 
 Dashboard behavior implemented:
@@ -120,5 +147,8 @@ Stay listing behavior implemented:
 - Create stay flow (`/stays/new`) and detail editor (`/stays/[stayId]`).
 - Property details editing, amenities CSV parsing, and policy fields.
 - Room/unit add and remove workflow.
-- Image metadata upload validation, reorder, and remove workflow.
+- Image metadata upload validation, replace, reorder, and remove workflow.
 - Listing status transitions: `draft`, `pending`, `approved`, `live`, `paused`, `rejected`, `archived`.
+
+Transfer listing behavior implemented:
+- Transfer image metadata upload validation, replace, reorder, and remove workflow.

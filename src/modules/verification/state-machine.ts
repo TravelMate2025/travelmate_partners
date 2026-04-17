@@ -5,11 +5,11 @@ export function canSubmitVerification(item: PartnerVerification) {
     return false;
   }
 
-  return item.status === "not_started" || item.status === "rejected";
+  return item.status === "pending" || item.status === "rejected";
 }
 
 export function shouldAutoResolvePending(item: PartnerVerification) {
-  if (item.status !== "pending" || !item.submittedAt) {
+  if (item.status !== "in_review" || !item.submittedAt) {
     return false;
   }
 

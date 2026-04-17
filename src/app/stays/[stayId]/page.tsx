@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { authClient } from "@/modules/auth/auth-client";
 import { PartnerShell } from "@/components/common/partner-shell";
 import type { PartnerUser } from "@/modules/auth/contracts";
+import { buildStayQualityReport } from "@/modules/data-quality/listing-quality";
 import { profileClient } from "@/modules/profile/profile-client";
 import { staysClient } from "@/modules/stays/stays-client";
 import type { StayListing, StayStatus } from "@/modules/stays/contracts";
@@ -25,9 +26,11 @@ export default function StayDetailPage() {
 
   const [user, setUser] = useState<PartnerUser | null>(null);
   const [stay, setStay] = useState<StayListing | null>(null);
+  const [allStays, setAllStays] = useState<StayListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [uploadState, setUploadState] = useState<"idle" | "uploading">("idle");
 
   const [amenitiesText, setAmenitiesText] = useState("");
   const [roomName, setRoomName] = useState("");
@@ -53,7 +56,10 @@ export default function StayDetailPage() {
           return;
         }
 
-        const item = await staysClient.getStay(currentUser.id, stayId);
+        const [item, listings] = await Promise.all([
+          staysClient.getStay(currentUser.id, stayId),
+          staysClient.listStays(currentUser.id),
+        ]);
 
         if (!active) {
           return;
@@ -61,6 +67,7 @@ export default function StayDetailPage() {
 
         setUser(currentUser);
         setStay(item);
+        setAllStays(listings);
         setAmenitiesText(item.amenities.join(", "));
         setLoading(false);
       })
@@ -83,6 +90,25 @@ export default function StayDetailPage() {
   }, [router, stayId]);
 
   const canSubmit = useMemo(() => stay?.status === "draft" || stay?.status === "rejected", [stay?.status]);
+  const qualityReport = useMemo(() => {
+    if (!stay) {
+      return null;
+    }
+    return buildStayQualityReport(stay, allStays);
+  }, [allStays, stay]);
+
+  function syncStay(updated: StayListing) {
+    setStay(updated);
+    setAllStays((prev) => {
+      const index = prev.findIndex((item) => item.id === updated.id);
+      if (index === -1) {
+        return [updated, ...prev];
+      }
+      const next = [...prev];
+      next[index] = updated;
+      return next;
+    });
+  }
 
   if (loading || !stay || !user) {
     return (
@@ -99,8 +125,12 @@ export default function StayDetailPage() {
       return;
     }
 
-    const item = await staysClient.getStay(user.id, stayId);
+    const [item, listings] = await Promise.all([
+      staysClient.getStay(user.id, stayId),
+      staysClient.listStays(user.id),
+    ]);
     setStay(item);
+    setAllStays(listings);
     setAmenitiesText(item.amenities.join(", "));
   }
 
@@ -111,6 +141,7 @@ export default function StayDetailPage() {
 
     event.preventDefault();
     setSaving(true);
+    setUploadState("uploading");
     setMessage("");
 
     const form = new FormData(event.currentTarget);
@@ -132,12 +163,13 @@ export default function StayDetailPage() {
         cancellationPolicy: String(form.get("cancellationPolicy") ?? ""),
       });
 
-      setStay(updated);
+      syncStay(updated);
       setMessage("Stay details saved.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to save details.");
     } finally {
       setSaving(false);
+      setUploadState("idle");
     }
   }
 
@@ -147,6 +179,7 @@ export default function StayDetailPage() {
     }
 
     setSaving(true);
+    setUploadState("uploading");
     setMessage("");
 
     try {
@@ -155,12 +188,13 @@ export default function StayDetailPage() {
         fileType: file.type,
         fileSize: file.size,
       });
-      setStay(updated);
+      syncStay(updated);
       setMessage("Image added.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to add image.");
     } finally {
       setSaving(false);
+      setUploadState("idle");
     }
   }
 
@@ -181,7 +215,30 @@ export default function StayDetailPage() {
     copy.splice(nextIndex, 0, item);
 
     const updated = await staysClient.reorderImages(user.id, stay.id, copy);
-    setStay(updated);
+    syncStay(updated);
+  }
+
+  async function replaceImage(imageId: string, file: File) {
+    if (!user || !stay) {
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const updated = await staysClient.replaceImage(user.id, stay.id, imageId, {
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      });
+      syncStay(updated);
+      setMessage("Image replaced.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to replace image.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function removeImage(imageId: string) {
@@ -190,7 +247,7 @@ export default function StayDetailPage() {
     }
 
     const updated = await staysClient.removeImage(user.id, stay.id, imageId);
-    setStay(updated);
+    syncStay(updated);
   }
 
   async function addRoom() {
@@ -208,7 +265,7 @@ export default function StayDetailPage() {
         bedConfiguration: roomBed,
         baseRate: Number(roomRate),
       });
-      setStay(updated);
+      syncStay(updated);
       setRoomName("");
       setRoomBed("");
       setRoomOccupancy("2");
@@ -227,7 +284,7 @@ export default function StayDetailPage() {
     }
 
     const updated = await staysClient.removeRoom(user.id, stay.id, roomId);
-    setStay(updated);
+    syncStay(updated);
   }
 
   async function changeStatus(next: StayStatus) {
@@ -240,7 +297,7 @@ export default function StayDetailPage() {
 
     try {
       const updated = await staysClient.updateStatus(user.id, stay.id, next);
-      setStay(updated);
+      syncStay(updated);
       setMessage(`Status updated to ${updated.status}.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Status change failed.");
@@ -255,7 +312,7 @@ export default function StayDetailPage() {
     }
 
     const updated = await staysClient.archiveStay(user.id, stay.id);
-    setStay(updated);
+    syncStay(updated);
     setMessage("Stay archived.");
   }
 
@@ -268,7 +325,7 @@ export default function StayDetailPage() {
         <section className="tm-panel p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-semibold text-slate-900">Listing Actions</h2>
+              <h2 className="tm-section-title">Listing Actions</h2>
               {stay.moderationFeedback ? (
                 <p className="mt-2 text-sm text-rose-700">Feedback: {stay.moderationFeedback}</p>
               ) : null}
@@ -306,32 +363,100 @@ export default function StayDetailPage() {
           </div>
         </section>
 
+        <section className="tm-panel p-6">
+          <h2 className="tm-section-title">Data Quality</h2>
+          <p className="tm-muted mt-1 text-sm">Submission readiness checks, completeness score, and duplicate warnings.</p>
+          <p className="mt-3 text-sm font-semibold text-slate-800">
+            Completeness score: {qualityReport?.completenessScore ?? 0}%
+          </p>
+          {qualityReport && qualityReport.missingRequiredFields.length > 0 ? (
+            <p className="mt-2 text-sm text-rose-700">
+              Missing required fields: {qualityReport.missingRequiredFields.join(", ")}.
+            </p>
+          ) : (
+            <p className="mt-2 text-sm text-emerald-700">Required submission fields are complete.</p>
+          )}
+          {qualityReport && qualityReport.duplicateWarnings.length > 0 ? (
+            <ul className="mt-2 space-y-1">
+              {qualityReport.duplicateWarnings.map((warning) => (
+                <li key={warning} className="text-sm text-amber-700">
+                  {warning}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {stay.status === "rejected" && stay.moderationFeedback ? (
+            <p className="mt-3 text-sm text-slate-700">
+              Correction workflow: apply moderation feedback, resolve quality warnings, then re-submit.
+            </p>
+          ) : null}
+        </section>
+
         <section className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
           <div className="space-y-5">
             <form className="tm-panel p-6" onSubmit={saveDetails}>
-              <h2 className="text-lg font-semibold text-slate-900">Property Details</h2>
-              <div className="mt-4 space-y-3">
-                <input className="tm-input" name="propertyType" defaultValue={stay.propertyType} placeholder="Property type" />
-                <input className="tm-input" name="name" defaultValue={stay.name} placeholder="Stay name" />
-                <textarea className="tm-input min-h-28" name="description" defaultValue={stay.description} placeholder="Description" />
-                <input className="tm-input" name="address" defaultValue={stay.address} placeholder="Address" />
+              <h2 className="tm-section-title">Property Details</h2>
+              <div className="tm-field-grid mt-4">
+                <label className="tm-field">
+                  <span className="tm-field-label">Property Type</span>
+                  <input className="tm-input" name="propertyType" defaultValue={stay.propertyType} placeholder="Property type" />
+                </label>
+                <label className="tm-field">
+                  <span className="tm-field-label">Stay Name</span>
+                  <input className="tm-input" name="name" defaultValue={stay.name} placeholder="Stay name" />
+                </label>
+                <label className="tm-field">
+                  <span className="tm-field-label">Description</span>
+                  <textarea className="tm-input min-h-28" name="description" defaultValue={stay.description} placeholder="Description" />
+                </label>
+                <label className="tm-field">
+                  <span className="tm-field-label">Address</span>
+                  <input className="tm-input" name="address" defaultValue={stay.address} placeholder="Address" />
+                </label>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <input className="tm-input" name="city" defaultValue={stay.city} placeholder="City" />
-                  <input className="tm-input" name="country" defaultValue={stay.country} placeholder="Country" />
+                  <label className="tm-field">
+                    <span className="tm-field-label">City</span>
+                    <input className="tm-input" name="city" defaultValue={stay.city} placeholder="City" />
+                  </label>
+                  <label className="tm-field">
+                    <span className="tm-field-label">Country</span>
+                    <input className="tm-input" name="country" defaultValue={stay.country} placeholder="Country" />
+                  </label>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <input className="tm-input" name="latitude" defaultValue={stay.latitude ?? ""} placeholder="Latitude (optional)" />
-                  <input className="tm-input" name="longitude" defaultValue={stay.longitude ?? ""} placeholder="Longitude (optional)" />
+                  <label className="tm-field">
+                    <span className="tm-field-label">Latitude</span>
+                    <input className="tm-input" name="latitude" defaultValue={stay.latitude ?? ""} placeholder="Latitude (optional)" />
+                  </label>
+                  <label className="tm-field">
+                    <span className="tm-field-label">Longitude</span>
+                    <input className="tm-input" name="longitude" defaultValue={stay.longitude ?? ""} placeholder="Longitude (optional)" />
+                  </label>
                 </div>
-                <textarea className="tm-input min-h-20" placeholder="Amenities (comma separated)" value={amenitiesText} onChange={(event) => setAmenitiesText(event.target.value)} />
-                <textarea className="tm-input min-h-20" name="houseRules" defaultValue={stay.houseRules} placeholder="House rules" />
+                <label className="tm-field">
+                  <span className="tm-field-label">Amenities</span>
+                  <textarea className="tm-input min-h-20" placeholder="Comma separated" value={amenitiesText} onChange={(event) => setAmenitiesText(event.target.value)} />
+                </label>
+                <label className="tm-field">
+                  <span className="tm-field-label">House Rules</span>
+                  <textarea className="tm-input min-h-20" name="houseRules" defaultValue={stay.houseRules} placeholder="House rules" />
+                </label>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <input className="tm-input" name="checkInTime" defaultValue={stay.checkInTime} placeholder="Check-in time" />
-                  <input className="tm-input" name="checkOutTime" defaultValue={stay.checkOutTime} placeholder="Check-out time" />
+                  <label className="tm-field">
+                    <span className="tm-field-label">Check-in Time</span>
+                    <input className="tm-input" name="checkInTime" defaultValue={stay.checkInTime} placeholder="Check-in time" />
+                  </label>
+                  <label className="tm-field">
+                    <span className="tm-field-label">Check-out Time</span>
+                    <input className="tm-input" name="checkOutTime" defaultValue={stay.checkOutTime} placeholder="Check-out time" />
+                  </label>
                 </div>
-                <textarea className="tm-input min-h-20" name="cancellationPolicy" defaultValue={stay.cancellationPolicy} placeholder="Cancellation policy" />
+                <label className="tm-field">
+                  <span className="tm-field-label">Cancellation Policy</span>
+                  <textarea className="tm-input min-h-20" name="cancellationPolicy" defaultValue={stay.cancellationPolicy} placeholder="Cancellation policy" />
+                </label>
               </div>
-              <div className="mt-4 flex gap-2">
+              <div className="tm-inline-actions mt-4">
                 <button className="tm-btn tm-btn-primary" disabled={saving} type="submit">
                   {saving ? "Saving..." : "Save Details"}
                 </button>
@@ -342,20 +467,32 @@ export default function StayDetailPage() {
             </form>
 
             <section className="tm-panel p-6">
-              <h2 className="text-lg font-semibold text-slate-900">Rooms / Units</h2>
+              <h2 className="tm-section-title">Rooms / Units</h2>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <input className="tm-input" placeholder="Room name" value={roomName} onChange={(event) => setRoomName(event.target.value)} />
-                <input className="tm-input" placeholder="Occupancy" type="number" value={roomOccupancy} onChange={(event) => setRoomOccupancy(event.target.value)} />
-                <input className="tm-input" placeholder="Bed configuration" value={roomBed} onChange={(event) => setRoomBed(event.target.value)} />
-                <input className="tm-input" placeholder="Base rate" type="number" value={roomRate} onChange={(event) => setRoomRate(event.target.value)} />
+                <label className="tm-field">
+                  <span className="tm-field-label">Room Name</span>
+                  <input className="tm-input" placeholder="Room name" value={roomName} onChange={(event) => setRoomName(event.target.value)} />
+                </label>
+                <label className="tm-field">
+                  <span className="tm-field-label">Occupancy</span>
+                  <input className="tm-input" placeholder="Occupancy" type="number" value={roomOccupancy} onChange={(event) => setRoomOccupancy(event.target.value)} />
+                </label>
+                <label className="tm-field">
+                  <span className="tm-field-label">Bed Configuration</span>
+                  <input className="tm-input" placeholder="Bed configuration" value={roomBed} onChange={(event) => setRoomBed(event.target.value)} />
+                </label>
+                <label className="tm-field">
+                  <span className="tm-field-label">Base Rate</span>
+                  <input className="tm-input" placeholder="Base rate" type="number" value={roomRate} onChange={(event) => setRoomRate(event.target.value)} />
+                </label>
               </div>
               <button className="tm-btn tm-btn-accent mt-3" onClick={() => void addRoom()} type="button">
                 Add Room
               </button>
 
-              <ul className="mt-4 space-y-2">
+              <ul className="tm-list-stack mt-4">
                 {stay.rooms.map((room) => (
-                  <li key={room.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white/70 p-3">
+                  <li key={room.id} className="tm-list-card flex flex-wrap items-center justify-between gap-2">
                     <div className="text-sm text-slate-700">
                       <p className="font-medium">{room.name}</p>
                       <p className="text-xs text-slate-500">
@@ -372,8 +509,11 @@ export default function StayDetailPage() {
           </div>
 
           <section className="tm-panel p-6">
-            <h2 className="text-lg font-semibold text-slate-900">Images</h2>
+            <h2 className="tm-section-title">Images</h2>
             <p className="mt-1 text-sm text-slate-600">PNG, JPEG, WEBP up to 8MB.</p>
+            {uploadState === "uploading" ? (
+              <p className="mt-2 text-sm text-blue-700">Upload in progress...</p>
+            ) : null}
 
             <input
               className="tm-input mt-3"
@@ -388,20 +528,36 @@ export default function StayDetailPage() {
               }}
             />
 
-            <ul className="mt-4 space-y-2">
+            <ul className="tm-list-stack mt-4">
               {[...stay.images]
                 .sort((a, b) => a.order - b.order)
                 .map((img, index) => (
-                  <li key={img.id} className="rounded-xl border border-slate-200/90 bg-white/70 p-3">
+                  <li key={img.id} className="tm-list-card">
                     <p className="text-sm font-medium text-slate-800">{img.fileName}</p>
                     <p className="text-xs text-slate-500">Order: {index + 1}</p>
-                    <div className="mt-2 flex gap-2">
+                    <input
+                      className="hidden"
+                      id={`replace-image-${img.id}`}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          void replaceImage(img.id, file);
+                        }
+                        event.currentTarget.value = "";
+                      }}
+                    />
+                    <div className="tm-inline-actions mt-2">
                       <button className="tm-btn tm-btn-outline" onClick={() => void moveImage(img.id, "up")} type="button">
                         Up
                       </button>
                       <button className="tm-btn tm-btn-outline" onClick={() => void moveImage(img.id, "down")} type="button">
                         Down
                       </button>
+                      <label className="tm-btn tm-btn-outline cursor-pointer" htmlFor={`replace-image-${img.id}`}>
+                        Replace
+                      </label>
                       <button className="tm-btn tm-btn-outline" onClick={() => void removeImage(img.id)} type="button">
                         Remove
                       </button>
@@ -410,7 +566,7 @@ export default function StayDetailPage() {
                 ))}
             </ul>
 
-            {stay.images.length === 0 ? <p className="mt-2 text-sm text-slate-500">No images uploaded yet.</p> : null}
+            {stay.images.length === 0 ? <p className="tm-soft-note mt-2 text-sm">No images uploaded yet.</p> : null}
           </section>
         </section>
 

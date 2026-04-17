@@ -1,6 +1,8 @@
 import { apiRequest } from "@/lib/http-client";
 import type {
+  AddTransferImageInput,
   CreateTransferInput,
+  ReplaceTransferImageInput,
   TransferListing,
   TransferStatus,
   TransfersApi,
@@ -52,6 +54,49 @@ export const realTransfersApi: TransfersApi = {
       {
         method: "POST",
         body: { status },
+      },
+    );
+    return response.data;
+  },
+
+  async addImage(userId, transferId, input: AddTransferImageInput) {
+    const response = await apiRequest<Envelope<TransferListing>>(
+      `/partners/${userId}/transfers/${transferId}/images`,
+      {
+        method: "POST",
+        body: input,
+      },
+    );
+    return response.data;
+  },
+
+  async replaceImage(userId, transferId, imageId, input: ReplaceTransferImageInput) {
+    const response = await apiRequest<Envelope<TransferListing>>(
+      `/partners/${userId}/transfers/${transferId}/images/${imageId}`,
+      {
+        method: "PUT",
+        body: input,
+      },
+    );
+    return response.data;
+  },
+
+  async removeImage(userId, transferId, imageId) {
+    const response = await apiRequest<Envelope<TransferListing>>(
+      `/partners/${userId}/transfers/${transferId}/images/${imageId}`,
+      {
+        method: "DELETE",
+      },
+    );
+    return response.data;
+  },
+
+  async reorderImages(userId, transferId, imageIds) {
+    const response = await apiRequest<Envelope<TransferListing>>(
+      `/partners/${userId}/transfers/${transferId}/images/reorder`,
+      {
+        method: "POST",
+        body: { imageIds },
       },
     );
     return response.data;

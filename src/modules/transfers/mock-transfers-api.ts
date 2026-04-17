@@ -1,10 +1,16 @@
 import type {
+  AddTransferImageInput,
   CreateTransferInput,
+  ReplaceTransferImageInput,
+  TransferImage,
   TransferListing,
   TransfersApi,
   UpdateTransferInput,
 } from "@/modules/transfers/contracts";
+import { validateMediaFile } from "@/modules/media/file-validation";
 import { transitionTransferStatus } from "@/modules/transfers/state-machine";
+import { buildTransferQualityReport } from "@/modules/data-quality/listing-quality";
+import { recordAuditEvent } from "@/modules/audit/audit-log";
 
 type MockTransfersState = {
   byUserId: Record<string, TransferListing[]>;
@@ -64,6 +70,9 @@ function findTransfer(items: TransferListing[], transferId: string) {
   if (!item) {
     throw new Error("Transfer not found.");
   }
+  if (!Array.isArray(item.images)) {
+    item.images = [];
+  }
   return item;
 }
 
@@ -76,6 +85,10 @@ function patch(item: TransferListing, input: UpdateTransferInput) {
   };
 
   return next;
+}
+
+function validateImage(input: AddTransferImageInput) {
+  validateMediaFile("transfer_image", input);
 }
 
 function createFromInput(userId: string, input: CreateTransferInput): TransferListing {
@@ -98,6 +111,7 @@ function createFromInput(userId: string, input: CreateTransferInput): TransferLi
     currency: "NGN",
     baseFare: input.baseFare ?? 0,
     nightSurcharge: 0,
+    images: [],
     createdAt: ts,
     updatedAt: ts,
   };
@@ -132,6 +146,23 @@ export const mockTransfersApi: TransfersApi = {
     const next = patch(current, input);
     const index = items.findIndex((item) => item.id === transferId);
     items[index] = next;
+
+    if (status === "live") {
+      recordAuditEvent({
+        userId,
+        action: "listing_published",
+        entityType: "transfer",
+        entityId: transferId,
+      });
+    } else if (status === "paused") {
+      recordAuditEvent({
+        userId,
+        action: "listing_paused",
+        entityType: "transfer",
+        entityId: transferId,
+      });
+    }
+
     writeState(state);
     return next;
   },
@@ -140,6 +171,13 @@ export const mockTransfersApi: TransfersApi = {
     const state = readState();
     const items = ensure(state, userId);
     const current = findTransfer(items, transferId);
+    const qualityReport = buildTransferQualityReport(current, items);
+
+    if (status === "pending" && qualityReport.missingRequiredFields.length > 0) {
+      throw new Error(
+        `Cannot submit transfer. Missing required fields: ${qualityReport.missingRequiredFields.join(", ")}.`,
+      );
+    }
 
     let next = transitionTransferStatus(current, status);
 
@@ -154,6 +192,15 @@ export const mockTransfersApi: TransfersApi = {
         next.moderationFeedback = undefined;
       }
       next.submissionCount = submissionCount;
+
+      if (qualityReport.duplicateWarnings.length > 0) {
+        next.moderationFeedback = [
+          next.moderationFeedback,
+          ...qualityReport.duplicateWarnings,
+        ]
+          .filter(Boolean)
+          .join(" ");
+      }
     }
 
     const index = items.findIndex((item) => item.id === transferId);
@@ -168,6 +215,117 @@ export const mockTransfersApi: TransfersApi = {
     const current = findTransfer(items, transferId);
     const next = transitionTransferStatus(current, "archived");
 
+    const index = items.findIndex((item) => item.id === transferId);
+    items[index] = next;
+    writeState(state);
+    return next;
+  },
+
+  async addImage(userId, transferId, input) {
+    const state = readState();
+    const items = ensure(state, userId);
+    const current = findTransfer(items, transferId);
+    validateMediaFile("transfer_image", { ...input, currentCount: current.images.length });
+
+    const image: TransferImage = {
+      id: makeId(),
+      fileName: input.fileName,
+      fileType: input.fileType,
+      fileSize: input.fileSize,
+      order: current.images.length,
+      uploadedAt: nowIso(),
+    };
+
+    const next = {
+      ...current,
+      images: [...current.images, image],
+      updatedAt: nowIso(),
+    };
+    const index = items.findIndex((item) => item.id === transferId);
+    items[index] = next;
+    writeState(state);
+    return next;
+  },
+
+  async replaceImage(userId, transferId, imageId, input: ReplaceTransferImageInput) {
+    validateImage(input);
+    const state = readState();
+    const items = ensure(state, userId);
+    const current = findTransfer(items, transferId);
+
+    const targetIndex = current.images.findIndex((img) => img.id === imageId);
+    if (targetIndex === -1) {
+      throw new Error("Image not found.");
+    }
+
+    const existing = current.images[targetIndex];
+    const images = [...current.images];
+    images[targetIndex] = {
+      ...existing,
+      fileName: input.fileName,
+      fileType: input.fileType,
+      fileSize: input.fileSize,
+      uploadedAt: nowIso(),
+    };
+
+    const next = {
+      ...current,
+      images,
+      updatedAt: nowIso(),
+    };
+    const index = items.findIndex((item) => item.id === transferId);
+    items[index] = next;
+    writeState(state);
+    return next;
+  },
+
+  async removeImage(userId, transferId, imageId) {
+    const state = readState();
+    const items = ensure(state, userId);
+    const current = findTransfer(items, transferId);
+
+    const images = current.images
+      .filter((img) => img.id !== imageId)
+      .map((img, index) => ({ ...img, order: index }));
+
+    const next = {
+      ...current,
+      images,
+      updatedAt: nowIso(),
+    };
+    const index = items.findIndex((item) => item.id === transferId);
+    items[index] = next;
+    writeState(state);
+    return next;
+  },
+
+  async reorderImages(userId, transferId, imageIds) {
+    const state = readState();
+    const items = ensure(state, userId);
+    const current = findTransfer(items, transferId);
+
+    const byId = new Map(current.images.map((img) => [img.id, img]));
+    const reordered: TransferImage[] = [];
+
+    for (const imageId of imageIds) {
+      const image = byId.get(imageId);
+      if (image) {
+        reordered.push(image);
+      }
+    }
+
+    for (const image of current.images) {
+      if (!reordered.find((item) => item.id === image.id)) {
+        reordered.push(image);
+      }
+    }
+
+    const images = reordered.map((image, index) => ({ ...image, order: index }));
+    const next = {
+      ...current,
+      images,
+      updatedAt: nowIso(),
+    };
     const index = items.findIndex((item) => item.id === transferId);
     items[index] = next;
     writeState(state);

@@ -3,9 +3,12 @@ import {
   resolvePending,
   shouldAutoResolvePending,
 } from "@/modules/verification/state-machine";
+import { recordAuditEvent } from "@/modules/audit/audit-log";
+import { validateMediaFile } from "@/modules/media/file-validation";
 import type {
   AddVerificationDocumentInput,
   PartnerVerification,
+  ReplaceVerificationDocumentInput,
   VerificationApi,
 } from "@/modules/verification/contracts";
 
@@ -14,9 +17,6 @@ type MockVerificationState = {
 };
 
 const STORAGE_KEY = "tm_partner_verification_state_v1";
-const MAX_DOCS = 12;
-const MAX_FILE_SIZE = 8 * 1024 * 1024;
-const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg"];
 
 function nowIso() {
   return new Date().toISOString();
@@ -33,7 +33,7 @@ function makeId() {
 function createDefault(userId: string): PartnerVerification {
   return {
     userId,
-    status: "not_started",
+    status: "pending",
     documents: [],
     submissionCount: 0,
     updatedAt: nowIso(),
@@ -82,17 +82,7 @@ function ensure(state: MockVerificationState, userId: string) {
 }
 
 function validateDocumentInput(input: AddVerificationDocumentInput) {
-  if (!input.fileName.trim()) {
-    throw new Error("Document filename is required.");
-  }
-
-  if (!ALLOWED_TYPES.includes(input.fileType)) {
-    throw new Error("Unsupported file type. Allowed: PDF, PNG, JPEG.");
-  }
-
-  if (input.fileSize <= 0 || input.fileSize > MAX_FILE_SIZE) {
-    throw new Error("File size must be between 1 byte and 8MB.");
-  }
+  validateMediaFile("verification_document", input);
 }
 
 export const mockVerificationApi: VerificationApi = {
@@ -104,14 +94,10 @@ export const mockVerificationApi: VerificationApi = {
   },
 
   async addDocument(userId: string, input: AddVerificationDocumentInput) {
-    validateDocumentInput(input);
-
     const state = readState();
     const item = ensure(state, userId);
 
-    if (item.documents.length >= MAX_DOCS) {
-      throw new Error("Maximum document count reached.");
-    }
+    validateMediaFile("verification_document", { ...input, currentCount: item.documents.length });
 
     item.documents.push({
       id: makeId(),
@@ -129,6 +115,52 @@ export const mockVerificationApi: VerificationApi = {
       item.rejectionReason = "Profile changed after approval. Re-submit verification.";
     }
 
+    recordAuditEvent({
+      userId,
+      action: "verification_document_added",
+      entityType: "verification",
+      entityId: userId,
+      metadata: { category: input.category },
+    });
+
+    writeState(state);
+    return item;
+  },
+
+  async replaceDocument(userId: string, documentId: string, input: ReplaceVerificationDocumentInput) {
+    validateDocumentInput(input);
+
+    const state = readState();
+    const item = ensure(state, userId);
+
+    const index = item.documents.findIndex((doc) => doc.id === documentId);
+    if (index === -1) {
+      throw new Error("Document not found.");
+    }
+
+    item.documents[index] = {
+      ...item.documents[index],
+      category: input.category,
+      fileName: input.fileName,
+      fileType: input.fileType,
+      fileSize: input.fileSize,
+      uploadedAt: nowIso(),
+    };
+    item.updatedAt = nowIso();
+
+    if (item.status === "approved") {
+      item.status = "rejected";
+      item.rejectionReason = "Profile changed after approval. Re-submit verification.";
+    }
+
+    recordAuditEvent({
+      userId,
+      action: "verification_document_replaced",
+      entityType: "verification",
+      entityId: userId,
+      metadata: { category: input.category },
+    });
+
     writeState(state);
     return item;
   },
@@ -138,6 +170,13 @@ export const mockVerificationApi: VerificationApi = {
     const item = ensure(state, userId);
     item.documents = item.documents.filter((doc) => doc.id !== documentId);
     item.updatedAt = nowIso();
+    recordAuditEvent({
+      userId,
+      action: "verification_document_removed",
+      entityType: "verification",
+      entityId: userId,
+      metadata: { documentId },
+    });
     writeState(state);
     return item;
   },
@@ -150,11 +189,18 @@ export const mockVerificationApi: VerificationApi = {
       throw new Error("Cannot submit verification in current status or without documents.");
     }
 
-    item.status = "pending";
+    item.status = "in_review";
     item.rejectionReason = undefined;
     item.submissionCount += 1;
     item.submittedAt = nowIso();
     item.updatedAt = nowIso();
+    recordAuditEvent({
+      userId,
+      action: "verification_submitted",
+      entityType: "verification",
+      entityId: userId,
+      metadata: { submissionCount: item.submissionCount },
+    });
 
     writeState(state);
     return item;

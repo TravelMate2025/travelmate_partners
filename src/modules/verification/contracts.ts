@@ -1,4 +1,4 @@
-export type VerificationStatus = "not_started" | "pending" | "approved" | "rejected";
+export type VerificationStatus = "pending" | "in_review" | "approved" | "rejected";
 export type VerificationDocCategory = "identity" | "business" | "address" | "permit";
 
 export type VerificationDocument = {
@@ -28,9 +28,16 @@ export type AddVerificationDocumentInput = {
   fileSize: number;
 };
 
+export type ReplaceVerificationDocumentInput = AddVerificationDocumentInput;
+
 export type VerificationApi = {
   getVerification(userId: string): Promise<PartnerVerification>;
   addDocument(userId: string, input: AddVerificationDocumentInput): Promise<PartnerVerification>;
+  replaceDocument(
+    userId: string,
+    documentId: string,
+    input: ReplaceVerificationDocumentInput,
+  ): Promise<PartnerVerification>;
   removeDocument(userId: string, documentId: string): Promise<PartnerVerification>;
   submitVerification(userId: string): Promise<PartnerVerification>;
 };

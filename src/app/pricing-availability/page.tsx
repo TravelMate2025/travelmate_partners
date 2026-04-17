@@ -229,7 +229,7 @@ export default function PricingAvailabilityPage() {
       }
     >
       <section className="tm-panel p-6">
-        <h2 className="text-2xl font-semibold text-slate-900">Stay Selection</h2>
+        <h2 className="tm-section-title">Stay Selection</h2>
         <p className="tm-muted mt-1 text-sm">Choose the stay listing to configure downstream availability data.</p>
         <div className="mt-4 max-w-md">
           <select
@@ -249,13 +249,13 @@ export default function PricingAvailabilityPage() {
 
       {selectedStay ? (
         <section className="tm-panel p-6">
-          <h2 className="text-2xl font-semibold text-slate-900">Pricing Rules</h2>
+          <h2 className="tm-section-title">Pricing Rules</h2>
           <p className="tm-muted mt-1 text-sm">
             Configuring: <span className="font-semibold text-slate-900">{selectedStay.name || selectedStay.id}</span>
           </p>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <label className="block">
+            <label className="tm-field">
               <span className="mb-1 flex items-center justify-between text-sm font-medium text-slate-700">
                 <span>Currency</span>
                 <InfoHint text="The currency guests will see for all stay rates." />
@@ -273,7 +273,7 @@ export default function PricingAvailabilityPage() {
               </select>
             </label>
 
-            <label className="block">
+            <label className="tm-field">
               <span className="mb-1 flex items-center justify-between text-sm font-medium text-slate-700">
                 <span>Base Rate</span>
                 <InfoHint text="Default nightly amount used before weekday, weekend, and seasonal adjustments." />
@@ -286,7 +286,7 @@ export default function PricingAvailabilityPage() {
               />
             </label>
 
-            <label className="block">
+            <label className="tm-field">
               <span className="mb-1 flex items-center justify-between text-sm font-medium text-slate-700">
                 <span>Weekday Rate</span>
                 <InfoHint text="Nightly price applied on Monday to Thursday when no override exists." />
@@ -299,7 +299,7 @@ export default function PricingAvailabilityPage() {
               />
             </label>
 
-            <label className="block">
+            <label className="tm-field">
               <span className="mb-1 flex items-center justify-between text-sm font-medium text-slate-700">
                 <span>Weekend Rate</span>
                 <InfoHint text="Nightly price used for weekend bookings when no seasonal override applies." />
@@ -312,7 +312,7 @@ export default function PricingAvailabilityPage() {
               />
             </label>
 
-            <label className="block">
+            <label className="tm-field">
               <span className="mb-1 block text-sm font-medium text-slate-700">Minimum Stay Nights</span>
               <input
                 className="tm-input"
@@ -322,7 +322,7 @@ export default function PricingAvailabilityPage() {
               />
             </label>
 
-            <label className="block">
+            <label className="tm-field">
               <span className="mb-1 block text-sm font-medium text-slate-700">Maximum Stay Nights</span>
               <input
                 className="tm-input"
@@ -345,7 +345,7 @@ export default function PricingAvailabilityPage() {
             </div>
             <div className="mt-3 space-y-3">
               {seasonalOverrides.map((item, index) => (
-                <div key={`${item.id ?? "new"}-${index}`} className="rounded-xl border border-slate-200/90 bg-white/70 p-3">
+                <div key={`${item.id ?? "new"}-${index}`} className="tm-list-card">
                   <div className="grid gap-3 md:grid-cols-4">
                     <input
                       className="tm-input"
@@ -398,7 +398,7 @@ export default function PricingAvailabilityPage() {
               {blackoutDates.map((date) => (
                 <button
                   key={date}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700"
+                  className="tm-tag-pill"
                   onClick={() => removeBlackoutDate(date)}
                   type="button"
                 >

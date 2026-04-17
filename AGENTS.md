@@ -33,7 +33,7 @@ Use these terms consistently across code, UI text, and docs:
 - `Stay` (for accommodation inventory)
 - `Transfer` (for taxi/ride inventory)
 - `Verification` statuses: `pending`, `in_review`, `approved`, `rejected`
-- Listing statuses: `draft`, `pending`, `approved`, `live`, `paused`, `rejected`
+- Listing statuses: `draft`, `pending`, `approved`, `live`, `paused`, `rejected`, `archived`
 - Payout statuses: `pending`, `processing`, `paid`, `failed`, `reversed`
 
 ## Functional Modules

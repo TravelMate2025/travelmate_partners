@@ -111,9 +111,9 @@ export function PartnerShell({ title, description, children, headerExtra }: Part
   const pathname = usePathname();
 
   return (
-    <main className="tm-page">
-      <div className="tm-shell grid max-w-6xl gap-5 md:grid-cols-[220px_1fr]">
-        <aside className="tm-panel p-4 md:sticky md:top-6 md:self-start">
+    <main className="tm-page tm-grid-drift">
+      <div className="tm-shell grid max-w-7xl gap-5 md:grid-cols-[250px_1fr]">
+        <aside className="tm-panel tm-nav-panel p-4 md:sticky md:top-6 md:self-start">
           <p className="tm-kicker">TravelMate Partner</p>
           <nav className="mt-4 space-y-4">
             {NAV_SECTIONS.map((section) => (
@@ -122,21 +122,22 @@ export function PartnerShell({ title, description, children, headerExtra }: Part
                   {section.label}
                 </p>
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-1">
-                  {section.items.map((item) => {
+                  {section.items.map((item, index) => {
                     const active = item.match(pathname);
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
-                        className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
+                        className={`tm-nav-link flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm font-semibold tm-animate-in ${
                           active
-                            ? "border-[#1d4f9a] bg-blue-50 text-[#1a3f76]"
-                            : "border-slate-200/90 bg-white/70 text-slate-700 hover:border-slate-300"
+                            ? "tm-nav-link-active"
+                            : "tm-nav-link-idle"
                         }`}
+                        style={{ animationDelay: `${index * 35}ms` }}
                       >
                         <span>{item.label}</span>
                         {item.status === "soon" ? (
-                          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                          <span className="tm-chip-soon rounded-full px-2 py-0.5 text-[10px] font-semibold">
                             Soon
                           </span>
                         ) : null}
@@ -150,10 +151,10 @@ export function PartnerShell({ title, description, children, headerExtra }: Part
         </aside>
 
         <div className="space-y-5">
-          <section className="tm-panel p-6">
+          <section className="tm-panel tm-overview p-6 tm-animate-in">
             <p className="tm-kicker">Overview</p>
-            <h1 className="mt-2 text-3xl font-semibold text-slate-900">{title}</h1>
-            <p className="tm-muted mt-1 text-sm">{description}</p>
+            <h1 className="mt-2 text-3xl font-semibold text-slate-900 md:text-4xl">{title}</h1>
+            <p className="tm-muted mt-2 max-w-2xl text-sm md:text-[0.95rem]">{description}</p>
             {headerExtra ? <div className="mt-3">{headerExtra}</div> : null}
           </section>
           {children}

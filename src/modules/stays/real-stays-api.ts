@@ -2,6 +2,7 @@ import { apiRequest } from "@/lib/http-client";
 import type {
   AddStayImageInput,
   CreateStayInput,
+  ReplaceStayImageInput,
   StayListing,
   StayStatus,
   StaysApi,
@@ -54,6 +55,17 @@ export const realStaysApi: StaysApi = {
       `/partners/${userId}/stays/${stayId}/images`,
       {
         method: "POST",
+        body: input,
+      },
+    );
+    return response.data;
+  },
+
+  async replaceImage(userId, stayId, imageId, input: ReplaceStayImageInput) {
+    const response = await apiRequest<Envelope<StayListing>>(
+      `/partners/${userId}/stays/${stayId}/images/${imageId}`,
+      {
+        method: "PUT",
         body: input,
       },
     );

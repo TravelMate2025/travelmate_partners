@@ -2,6 +2,7 @@ import { apiRequest } from "@/lib/http-client";
 import type {
   AddVerificationDocumentInput,
   PartnerVerification,
+  ReplaceVerificationDocumentInput,
   VerificationApi,
 } from "@/modules/verification/contracts";
 
@@ -27,6 +28,18 @@ export const realVerificationApi: VerificationApi = {
       `/partners/${userId}/verification/documents/${documentId}`,
       {
         method: "DELETE",
+      },
+    );
+
+    return response.data;
+  },
+
+  async replaceDocument(userId: string, documentId: string, input: ReplaceVerificationDocumentInput) {
+    const response = await apiRequest<Envelope<PartnerVerification>>(
+      `/partners/${userId}/verification/documents/${documentId}`,
+      {
+        method: "PUT",
+        body: input,
       },
     );
 

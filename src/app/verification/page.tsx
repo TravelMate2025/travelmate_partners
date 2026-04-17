@@ -25,6 +25,7 @@ export default function VerificationPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [uploadState, setUploadState] = useState<"idle" | "uploading">("idle");
   const [category, setCategory] = useState<VerificationDocCategory>("identity");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -60,6 +61,8 @@ export default function VerificationPage() {
         return "text-emerald-700 bg-emerald-50 border-emerald-200";
       case "rejected":
         return "text-rose-700 bg-rose-50 border-rose-200";
+      case "in_review":
+        return "text-amber-700 bg-amber-50 border-amber-200";
       case "pending":
         return "text-amber-700 bg-amber-50 border-amber-200";
       default:
@@ -97,6 +100,7 @@ export default function VerificationPage() {
     }
 
     setBusy(true);
+    setUploadState("uploading");
     setMessage("");
 
     try {
@@ -114,6 +118,7 @@ export default function VerificationPage() {
       setMessage(error instanceof Error ? error.message : "Failed to add document.");
     } finally {
       setBusy(false);
+      setUploadState("idle");
     }
   }
 
@@ -123,6 +128,7 @@ export default function VerificationPage() {
     }
 
     setBusy(true);
+    setUploadState("uploading");
     setMessage("");
 
     try {
@@ -131,6 +137,31 @@ export default function VerificationPage() {
       setMessage("Document removed.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to remove document.");
+    } finally {
+      setBusy(false);
+      setUploadState("idle");
+    }
+  }
+
+  async function replaceDocument(id: string, categoryForDocument: VerificationDocCategory, file: File) {
+    if (!user) {
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const item = await verificationClient.replaceDocument(user.id, id, {
+        category: categoryForDocument,
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      });
+      setVerification(item);
+      setMessage("Document replaced.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to replace document.");
     } finally {
       setBusy(false);
     }
@@ -147,7 +178,7 @@ export default function VerificationPage() {
     try {
       const item = await verificationClient.submitVerification(user.id);
       setVerification(item);
-      setMessage("Verification submitted. Status is pending.");
+      setMessage("Verification submitted. Status is in_review.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to submit verification.");
     } finally {
@@ -179,6 +210,9 @@ export default function VerificationPage() {
         <section className="tm-panel p-6">
           <h2 className="text-lg font-semibold text-slate-900">Upload Documents</h2>
           <p className="tm-muted mt-1 text-sm">Allowed: PDF, PNG, JPEG (up to 8MB each)</p>
+          {uploadState === "uploading" ? (
+            <p className="mt-2 text-sm text-blue-700">Upload in progress...</p>
+          ) : null}
 
           <div className="mt-4 grid gap-3 md:grid-cols-[220px_1fr_auto]">
             <select className="tm-input" value={category} onChange={(event) => setCategory(event.target.value as VerificationDocCategory)}>
@@ -210,9 +244,27 @@ export default function VerificationPage() {
                     {doc.category} • {(doc.fileSize / 1024).toFixed(1)} KB
                   </p>
                 </div>
-                <button className="tm-btn tm-btn-outline" disabled={busy} onClick={() => void removeDocument(doc.id)} type="button">
-                  Remove
-                </button>
+                <div className="flex gap-2">
+                  <input
+                    className="hidden"
+                    id={`replace-doc-${doc.id}`}
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) {
+                        void replaceDocument(doc.id, doc.category, file);
+                      }
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                  <label className="tm-btn tm-btn-outline cursor-pointer" htmlFor={`replace-doc-${doc.id}`}>
+                    Replace
+                  </label>
+                  <button className="tm-btn tm-btn-outline" disabled={busy} onClick={() => void removeDocument(doc.id)} type="button">
+                    Remove
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

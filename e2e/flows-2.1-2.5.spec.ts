@@ -54,6 +54,14 @@ test.describe("TravelMate Partner implemented UI flows (2.2-2.5)", () => {
 
       window.localStorage.setItem(key, JSON.stringify(state));
     }, creds);
+    await page.context().addCookies([
+      {
+        name: "tm_partner_session",
+        value: "1",
+        domain: "127.0.0.1",
+        path: "/",
+      },
+    ]);
 
     await page.goto("/onboarding");
     await expect(page.getByText("Partner Onboarding")).toBeVisible();
@@ -75,21 +83,21 @@ test.describe("TravelMate Partner implemented UI flows (2.2-2.5)", () => {
     await expect(page).toHaveURL("/verification");
     await expect(page.getByText("Partner Verification (KYC/KYB)")).toBeVisible();
 
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"]:not(.hidden)').first().setInputFiles({
       name: "id.pdf",
       mimeType: "application/pdf",
       buffer: Buffer.from("mock-id-document"),
     });
     await page.getByRole("button", { name: "Add Document" }).click();
     await page.getByRole("button", { name: "Submit Verification" }).click();
-    await expect(page.getByText("Status: pending")).toBeVisible();
+    await expect(page.getByText("Status: in_review")).toBeVisible();
 
     await page.waitForTimeout(1700);
     await page.getByRole("button", { name: "Refresh Status" }).click();
     await expect(page.getByText("Status: rejected")).toBeVisible();
 
     await page.locator("select").first().selectOption("business");
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"]:not(.hidden)').first().setInputFiles({
       name: "business.pdf",
       mimeType: "application/pdf",
       buffer: Buffer.from("mock-business-document"),
@@ -127,7 +135,7 @@ test.describe("TravelMate Partner implemented UI flows (2.2-2.5)", () => {
     await page.getByRole("button", { name: "Add Room" }).click();
     await expect(page.getByText("Room added.")).toBeVisible();
 
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"]:not(.hidden)').first().setInputFiles({
       name: "front.jpg",
       mimeType: "image/jpeg",
       buffer: Buffer.from("mock-image-data"),

@@ -15,7 +15,7 @@ function base(status: PartnerVerification["status"]): PartnerVerification {
 
 describe("verification state machine", () => {
   it("validates submit eligibility", () => {
-    const item = base("not_started");
+    const item = base("pending");
     expect(canSubmitVerification(item)).toBe(false);
 
     item.documents.push({
@@ -29,13 +29,13 @@ describe("verification state machine", () => {
 
     expect(canSubmitVerification(item)).toBe(true);
 
-    item.status = "pending";
+    item.status = "in_review";
     expect(canSubmitVerification(item)).toBe(false);
   });
 
   it("resolves pending to rejected first and approved after resubmission", () => {
     const first: PartnerVerification = {
-      ...base("pending"),
+      ...base("in_review"),
       documents: [
         {
           id: "d1",

@@ -127,9 +127,10 @@ export default function StaysPage() {
       }
     >
         <section className="tm-panel p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="tm-section-head">
             <div>
-              <h2 className="text-2xl font-semibold text-slate-900">Listings</h2>
+              <h2 className="tm-section-title">Listings</h2>
+              <p className="tm-muted text-sm">Manage listing readiness, moderation, and live status.</p>
             </div>
             <Link href="/stays/new" className="tm-btn tm-btn-primary">
               Create Stay
@@ -138,16 +139,16 @@ export default function StaysPage() {
         </section>
 
         <section className="tm-panel p-6">
-          <ul className="space-y-3">
+          <ul className="tm-list-stack">
             {items.map((stay) => (
-              <li key={stay.id} className="rounded-xl border border-slate-200/90 bg-white/70 p-4">
+              <li key={stay.id} className="tm-list-card">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-semibold text-slate-900">{stay.name || "Untitled stay"}</h2>
                     <p className="text-sm text-slate-600">
                       {stay.propertyType || "Property type not set"} • {stay.city || "City"}, {stay.country || "Country"}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">Status: {stay.status}</p>
+                    <p className="tm-status-inline mt-2">Status: {stay.status}</p>
                     {stay.moderationFeedback ? (
                       <p className="mt-2 text-xs text-rose-700">Feedback: {stay.moderationFeedback}</p>
                     ) : null}

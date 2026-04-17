@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { clearAuditEvents } from "@/modules/audit/audit-log";
 import { mockStaysApi } from "@/modules/stays/mock-stays-api";
 
 function resetStorage() {
@@ -9,6 +10,7 @@ function resetStorage() {
 describe("mockStaysApi", () => {
   beforeEach(() => {
     resetStorage();
+    clearAuditEvents();
   });
 
   it("supports draft -> rejected -> approved lifecycle through submission flow", async () => {
@@ -66,6 +68,36 @@ describe("mockStaysApi", () => {
 
     expect(updated.images[0].id).toBe(reversed[0]);
     expect(updated.images[1].id).toBe(reversed[1]);
+  });
+
+  it("replaces existing image metadata without changing list order", async () => {
+    const userId = "u1";
+    const stay = await mockStaysApi.createStay(userId, {
+      propertyType: "apartment",
+      name: "Replace Image Stay",
+      description: "City center",
+      address: "12 Broad Street",
+      city: "Abuja",
+      country: "Nigeria",
+    });
+
+    let updated = await mockStaysApi.addImage(userId, stay.id, {
+      fileName: "front.jpg",
+      fileType: "image/jpeg",
+      fileSize: 1024,
+    });
+    const originalImageId = updated.images[0].id;
+
+    updated = await mockStaysApi.replaceImage(userId, stay.id, originalImageId, {
+      fileName: "front-new.webp",
+      fileType: "image/webp",
+      fileSize: 2048,
+    });
+
+    expect(updated.images[0].id).toBe(originalImageId);
+    expect(updated.images[0].order).toBe(0);
+    expect(updated.images[0].fileName).toBe("front-new.webp");
+    expect(updated.images[0].fileType).toBe("image/webp");
   });
 
   it("adds and removes rooms", async () => {

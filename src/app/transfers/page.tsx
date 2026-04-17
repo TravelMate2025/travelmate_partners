@@ -111,10 +111,15 @@ export default function TransfersPage() {
       }
     >
       <section className="tm-panel p-6">
-        <h2 className="text-2xl font-semibold text-slate-900">Listings</h2>
-        <ul className="mt-4 space-y-3">
+        <div className="tm-section-head">
+          <div>
+            <h2 className="tm-section-title">Listings</h2>
+            <p className="tm-muted text-sm">Track lifecycle, moderation, and publish state for transfer inventory.</p>
+          </div>
+        </div>
+        <ul className="tm-list-stack mt-4">
           {items.map((item) => (
-            <li key={item.id} className="rounded-xl border border-slate-200/90 bg-white/70 p-4">
+            <li key={item.id} className="tm-list-card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900">{item.name || "Untitled transfer"}</h3>
@@ -122,7 +127,7 @@ export default function TransfersPage() {
                     {item.transferType || "Transfer type not set"} • {item.pickupPoint || "Pickup"} to{" "}
                     {item.dropoffPoint || "Dropoff"}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">Status: {item.status}</p>
+                  <p className="tm-status-inline mt-2">Status: {item.status}</p>
                   {item.moderationFeedback ? (
                     <p className="mt-2 text-xs text-rose-700">Feedback: {item.moderationFeedback}</p>
                   ) : null}

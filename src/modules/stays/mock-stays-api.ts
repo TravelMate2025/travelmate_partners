@@ -1,6 +1,10 @@
 import { transitionStatus } from "@/modules/stays/state-machine";
+import { validateMediaFile } from "@/modules/media/file-validation";
+import { buildStayQualityReport } from "@/modules/data-quality/listing-quality";
+import { recordAuditEvent } from "@/modules/audit/audit-log";
 import type {
   AddStayImageInput,
+  ReplaceStayImageInput,
   StayImage,
   StayListing,
   StayRoom,
@@ -13,9 +17,6 @@ type MockStaysState = {
 };
 
 const STORAGE_KEY = "tm_partner_stays_state_v1";
-const MAX_IMAGES = 12;
-const MAX_IMAGE_SIZE = 8 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 function nowIso() {
   return new Date().toISOString();
@@ -73,13 +74,7 @@ function findStay(items: StayListing[], stayId: string) {
 }
 
 function validateImage(input: AddStayImageInput) {
-  if (!ALLOWED_IMAGE_TYPES.includes(input.fileType)) {
-    throw new Error("Invalid image format. Allowed: PNG, JPEG, WEBP.");
-  }
-
-  if (input.fileSize <= 0 || input.fileSize > MAX_IMAGE_SIZE) {
-    throw new Error("Image size must be between 1 byte and 8MB.");
-  }
+  validateMediaFile("stay_image", input);
 }
 
 function patch(item: StayListing, input: UpdateStayInput) {
@@ -144,6 +139,23 @@ export const mockStaysApi: StaysApi = {
     const next = patch(current, input);
     const index = items.findIndex((item) => item.id === stayId);
     items[index] = next;
+
+    if (status === "live") {
+      recordAuditEvent({
+        userId,
+        action: "listing_published",
+        entityType: "stay",
+        entityId: stayId,
+      });
+    } else if (status === "paused") {
+      recordAuditEvent({
+        userId,
+        action: "listing_paused",
+        entityType: "stay",
+        entityId: stayId,
+      });
+    }
+
     writeState(state);
     return next;
   },
@@ -152,6 +164,13 @@ export const mockStaysApi: StaysApi = {
     const state = readState();
     const items = ensure(state, userId);
     const current = findStay(items, stayId);
+    const qualityReport = buildStayQualityReport(current, items);
+
+    if (status === "pending" && qualityReport.missingRequiredFields.length > 0) {
+      throw new Error(
+        `Cannot submit stay. Missing required fields: ${qualityReport.missingRequiredFields.join(", ")}.`,
+      );
+    }
 
     let next = transitionStatus(current, status);
 
@@ -167,6 +186,15 @@ export const mockStaysApi: StaysApi = {
         next.moderationFeedback = undefined;
       }
       next.submissionCount = submissionCount;
+
+      if (qualityReport.duplicateWarnings.length > 0) {
+        next.moderationFeedback = [
+          next.moderationFeedback,
+          ...qualityReport.duplicateWarnings,
+        ]
+          .filter(Boolean)
+          .join(" ");
+      }
     }
 
     const index = items.findIndex((item) => item.id === stayId);
@@ -176,14 +204,11 @@ export const mockStaysApi: StaysApi = {
   },
 
   async addImage(userId, stayId, input) {
-    validateImage(input);
     const state = readState();
     const items = ensure(state, userId);
     const current = findStay(items, stayId);
 
-    if (current.images.length >= MAX_IMAGES) {
-      throw new Error("Maximum image count reached.");
-    }
+    validateMediaFile("stay_image", { ...input, currentCount: current.images.length });
 
     const image: StayImage = {
       id: makeId(),
@@ -197,6 +222,39 @@ export const mockStaysApi: StaysApi = {
     const next = {
       ...current,
       images: [...current.images, image],
+      updatedAt: nowIso(),
+    };
+
+    const index = items.findIndex((item) => item.id === stayId);
+    items[index] = next;
+    writeState(state);
+    return next;
+  },
+
+  async replaceImage(userId, stayId, imageId, input: ReplaceStayImageInput) {
+    validateImage(input);
+    const state = readState();
+    const items = ensure(state, userId);
+    const current = findStay(items, stayId);
+
+    const targetIndex = current.images.findIndex((img) => img.id === imageId);
+    if (targetIndex === -1) {
+      throw new Error("Image not found.");
+    }
+
+    const existing = current.images[targetIndex];
+    const images = [...current.images];
+    images[targetIndex] = {
+      ...existing,
+      fileName: input.fileName,
+      fileType: input.fileType,
+      fileSize: input.fileSize,
+      uploadedAt: nowIso(),
+    };
+
+    const next = {
+      ...current,
+      images,
       updatedAt: nowIso(),
     };
 

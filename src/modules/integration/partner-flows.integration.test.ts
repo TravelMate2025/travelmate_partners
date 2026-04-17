@@ -117,7 +117,7 @@ describe("partner app flow integrations (2.1 - 2.5)", () => {
     expect(verification.documents.length).toBe(1);
 
     verification = await verificationClient.submitVerification(user.id);
-    expect(verification.status).toBe("pending");
+    expect(verification.status).toBe("in_review");
 
     await new Promise((resolve) => setTimeout(resolve, 1600));
     verification = await verificationClient.getVerification(user.id);

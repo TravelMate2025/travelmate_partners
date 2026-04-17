@@ -267,7 +267,7 @@ export default function TransferPricingSchedulingPage() {
       }
     >
       <section className="tm-panel p-6">
-        <h2 className="text-2xl font-semibold text-slate-900">Transfer Selection</h2>
+        <h2 className="tm-section-title">Transfer Selection</h2>
         <p className="tm-muted mt-1 text-sm">
           Pick a transfer listing to manage route-specific fare and schedule rules.
         </p>
@@ -289,7 +289,7 @@ export default function TransferPricingSchedulingPage() {
 
       {selectedTransfer ? (
         <section className="tm-panel p-6">
-          <h2 className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
+          <h2 className="tm-section-title flex items-center gap-2">
             Fare Model & Schedule
             <InfoHint text="Configure base transfer fares, surcharge rules, operating windows, and blocked dates." />
           </h2>
@@ -301,7 +301,7 @@ export default function TransferPricingSchedulingPage() {
           </p>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <label className="block">
+            <label className="tm-field">
               <span className="mb-1 flex items-center justify-between text-sm font-medium text-slate-700">
                 <span>Currency</span>
                 <InfoHint text="The currency used for all transfer fare values." />
@@ -319,7 +319,7 @@ export default function TransferPricingSchedulingPage() {
               </select>
             </label>
 
-            <label className="block">
+            <label className="tm-field">
               <span className="mb-1 flex items-center justify-between text-sm font-medium text-slate-700">
                 <span>Base Fare</span>
                 <InfoHint text="Starting fare charged before distance, time, and surcharge calculations." />
@@ -332,7 +332,7 @@ export default function TransferPricingSchedulingPage() {
               />
             </label>
 
-            <label className="block">
+            <label className="tm-field">
               <span className="mb-1 flex items-center justify-between text-sm font-medium text-slate-700">
                 <span>Distance Rate / km</span>
                 <InfoHint text="Extra amount charged for each kilometer traveled." />
@@ -345,7 +345,7 @@ export default function TransferPricingSchedulingPage() {
               />
             </label>
 
-            <label className="block">
+            <label className="tm-field">
               <span className="mb-1 flex items-center justify-between text-sm font-medium text-slate-700">
                 <span>Time Rate / minute</span>
                 <InfoHint text="Extra amount charged for each minute of trip duration." />
@@ -358,7 +358,7 @@ export default function TransferPricingSchedulingPage() {
               />
             </label>
 
-            <label className="block">
+            <label className="tm-field">
               <span className="mb-1 flex items-center justify-between text-sm font-medium text-slate-700">
                 <span>Peak Surcharge</span>
                 <InfoHint text="Additional flat charge applied during high-demand periods." />
@@ -371,7 +371,7 @@ export default function TransferPricingSchedulingPage() {
               />
             </label>
 
-            <label className="block">
+            <label className="tm-field">
               <span className="mb-1 flex items-center justify-between text-sm font-medium text-slate-700">
                 <span>Night Surcharge</span>
                 <InfoHint text="Additional flat charge applied for late-night trips." />
@@ -400,7 +400,7 @@ export default function TransferPricingSchedulingPage() {
               {scheduleWindows.map((window, index) => (
                 <div
                   key={`${window.id ?? "new"}-${index}`}
-                  className="rounded-xl border border-slate-200/90 bg-white/70 p-3"
+                  className="tm-list-card"
                 >
                   <div className="grid gap-3 md:grid-cols-4">
                     <input
@@ -431,10 +431,10 @@ export default function TransferPricingSchedulingPage() {
                       return (
                         <button
                           key={`${window.id ?? "new"}-${index}-${day}`}
-                          className={`rounded-lg border px-2 py-1 text-xs font-semibold ${
+                          className={`tm-tag-pill ${
                             active
-                              ? "border-[#1d4f9a] bg-blue-50 text-[#1a3f76]"
-                              : "border-slate-200/90 bg-white/70 text-slate-700"
+                              ? "tm-tag-pill-active"
+                              : ""
                           }`}
                           onClick={() => toggleWindowDay(index, day)}
                           type="button"
@@ -472,7 +472,7 @@ export default function TransferPricingSchedulingPage() {
               {blackoutDates.map((date) => (
                 <button
                   key={date}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700"
+                  className="tm-tag-pill"
                   onClick={() => removeBlackoutDate(date)}
                   type="button"
                 >
