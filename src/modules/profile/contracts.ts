@@ -1,0 +1,28 @@
+export type OnboardingStepKey = "business" | "contact" | "operations";
+
+export type PartnerProfileData = {
+  businessType: "individual" | "agency" | "business" | "";
+  legalName: string;
+  tradeName: string;
+  registrationNumber: string;
+  primaryContactName: string;
+  primaryContactEmail: string;
+  supportContactEmail: string;
+  serviceRegions: string[];
+  operatingCities: string[];
+  payoutSchedule: "weekly" | "bi-weekly" | "monthly" | "";
+};
+
+export type PartnerOnboarding = {
+  userId: string;
+  data: PartnerProfileData;
+  completedSteps: OnboardingStepKey[];
+  status: "not_started" | "in_progress" | "completed";
+  updatedAt: string;
+};
+
+export type ProfileApi = {
+  getOnboarding(userId: string): Promise<PartnerOnboarding>;
+  saveStep(userId: string, step: OnboardingStepKey, data: Partial<PartnerProfileData>): Promise<PartnerOnboarding>;
+  submitOnboarding(userId: string): Promise<PartnerOnboarding>;
+};

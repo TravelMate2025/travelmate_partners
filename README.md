@@ -1,36 +1,124 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TravelMate Partner (UI App)
 
-## Getting Started
+Next.js frontend for the TravelMate Partner application.
 
-First, run the development server:
+This app is prepared to consume backend APIs once Django is ready. Until then, it runs with a mock API adapter to support UI development.
+
+## Run Locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Testing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm test
+npm run test:e2e
+npm run test:all
+```
 
-## Learn More
+E2E coverage currently includes:
+- Flow 2.1 auth UI journey (signup -> verify email -> login).
+- Flows 2.2 to 2.5 UI journey (onboarding -> verification -> dashboard -> stays lifecycle).
 
-To learn more about Next.js, take a look at the following resources:
+## API Integration Modes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Set these in `.env.local`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+NEXT_PUBLIC_USE_MOCK_API=true
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
+```
 
-## Deploy on Vercel
+- `NEXT_PUBLIC_USE_MOCK_API=true`: use frontend mock data adapter.
+- `NEXT_PUBLIC_USE_MOCK_API=false`: call real backend APIs at `NEXT_PUBLIC_API_BASE_URL`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Current Auth UI Flows
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `/auth/signup`
+- `/auth/verify-email`
+- `/auth/login`
+- `/auth/forgot-password`
+- `/auth/reset-password`
+- `/dashboard`
+- `/verification`
+- `/onboarding`
+- `/pricing-availability`
+- `/transfer-pricing-scheduling`
+- `/transfers`
+- `/transfers/new`
+- `/transfers/[transferId]`
+
+## Implementation Status
+
+- Flow 2.1 (`Authentication and Account Access`): Completed
+- Flow 2.2 (`Partner Profile and Onboarding`): Completed
+- Flow 2.3 (`Partner Verification`): Completed
+- Flow 2.4 (`Partner Dashboard`): Completed
+- Flow 2.5 (`Stay Listing Management`): Completed
+- Flow 2.6 (`Stay Pricing and Availability`): Completed
+- Flow 2.7 (`Transfer/Taxi Listing Management`): Completed
+- Flow 2.8 (`Transfer Pricing and Scheduling`): Completed
+- Next target: Flow 2.9 (`Media and Document Management`)
+
+Recent updates:
+- Flow 2.5 strict validation test added (`src/modules/integration/flow-2.5-stays-strict.integration.test.ts`) with explicit assertions for create, enrich, submit/save-draft, status transitions, edit, pause, and archive.
+- Dashboard quick action behavior corrected: `Add Stay` now routes directly to `/stays/new` instead of mutating pending approval counters.
+- UI polish pass applied across auth, onboarding, verification, dashboard, and stays pages with a unified visual system (new typography, richer surfaces, stronger CTA styling, and subtle motion).
+- Product shell expanded to include plan-aligned module navigation (`Dashboard`, `Onboarding`, `Verification`, `Stays`, `Transfers`, `Pricing & Availability`, `Wallet & Payouts`, `Notifications`, `Reports`, `Support & Settings`) with scaffolded "Coming soon" pages for not-yet-implemented flows.
+- Flow 2.6 implementation added:
+  - Pricing and availability page with stay selection (`/pricing-availability`)
+  - Currency + base/weekday/weekend rates, min/max stay rules
+  - Seasonal date-range overrides with overlap conflict validation
+  - Blackout date entry with duplicate validation
+  - Mock + real API adapters and integration/unit test coverage
+- Flow 2.7 implementation added:
+  - Transfer list view (`/transfers`), create flow (`/transfers/new`), and detail editor (`/transfers/[transferId]`)
+  - Route/vehicle configuration, features, fares, and operating metadata updates
+  - Transfer listing lifecycle transitions with moderation feedback loop (`draft`, `pending`, `approved`, `live`, `paused`, `rejected`, `archived`)
+  - Mock + real API adapters and integration/unit test coverage
+- Flow 2.8 implementation added:
+  - Transfer pricing and scheduling module (`/transfer-pricing-scheduling`) with transfer selector
+  - Fare model fields: currency, base fare, distance rate/km, time rate/minute, peak and night surcharges
+  - Schedule windows with day-based conflict validation and blackout date management
+  - Mock + real API adapters and integration/unit test coverage
+
+Onboarding behavior implemented:
+- Login routes users to `/onboarding`.
+- Onboarding is a resumable 3-step wizard.
+- Dashboard access is blocked until onboarding status is `completed`.
+
+## Architecture Notes
+
+- UI only in this repo folder.
+- API client abstraction is in:
+  - `src/lib/http-client.ts`
+  - `src/modules/auth/real-auth-api.ts`
+  - `src/modules/auth/mock-auth-api.ts`
+  - `src/modules/auth/auth-client.ts`
+
+When Django APIs are ready, keep UI unchanged and map the real adapter contract to backend endpoints.
+
+Verification behavior implemented:
+- Upload identity/business/address/permit metadata with file validation (type/size/count).
+- Submit verification and track status transitions (`not_started`, `pending`, `rejected`, `approved`).
+- Rejection reasons displayed and re-submission supported.
+
+Dashboard behavior implemented:
+- Summary cards for active listings, pending approvals, and total views.
+- Alerts feed with status-aware messages.
+- Quick actions for add stay, add transfer, and update availability.
+  - `Add Stay` now routes to `/stays/new`.
+- Recent activity feed with timestamped events and widget refresh.
+
+Stay listing behavior implemented:
+- Stay list view (`/stays`) with status-aware actions.
+- Create stay flow (`/stays/new`) and detail editor (`/stays/[stayId]`).
+- Property details editing, amenities CSV parsing, and policy fields.
+- Room/unit add and remove workflow.
+- Image metadata upload validation, reorder, and remove workflow.
+- Listing status transitions: `draft`, `pending`, `approved`, `live`, `paused`, `rejected`, `archived`.

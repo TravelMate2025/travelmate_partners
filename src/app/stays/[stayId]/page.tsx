@@ -1,0 +1,420 @@
+"use client";
+
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+
+import { authClient } from "@/modules/auth/auth-client";
+import { PartnerShell } from "@/components/common/partner-shell";
+import type { PartnerUser } from "@/modules/auth/contracts";
+import { profileClient } from "@/modules/profile/profile-client";
+import { staysClient } from "@/modules/stays/stays-client";
+import type { StayListing, StayStatus } from "@/modules/stays/contracts";
+import { verificationClient } from "@/modules/verification/verification-client";
+
+function splitCsv(value: string) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+export default function StayDetailPage() {
+  const router = useRouter();
+  const params = useParams<{ stayId: string }>();
+  const stayId = params.stayId;
+
+  const [user, setUser] = useState<PartnerUser | null>(null);
+  const [stay, setStay] = useState<StayListing | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const [amenitiesText, setAmenitiesText] = useState("");
+  const [roomName, setRoomName] = useState("");
+  const [roomOccupancy, setRoomOccupancy] = useState("2");
+  const [roomBed, setRoomBed] = useState("");
+  const [roomRate, setRoomRate] = useState("0");
+
+  useEffect(() => {
+    let active = true;
+
+    authClient
+      .me()
+      .then(async (currentUser) => {
+        const onboarding = await profileClient.getOnboarding(currentUser.id);
+        if (onboarding.status !== "completed") {
+          router.replace("/onboarding");
+          return;
+        }
+
+        const verification = await verificationClient.getVerification(currentUser.id);
+        if (verification.status !== "approved") {
+          router.replace("/verification");
+          return;
+        }
+
+        const item = await staysClient.getStay(currentUser.id, stayId);
+
+        if (!active) {
+          return;
+        }
+
+        setUser(currentUser);
+        setStay(item);
+        setAmenitiesText(item.amenities.join(", "));
+        setLoading(false);
+      })
+      .catch((error) => {
+        if (!active) {
+          return;
+        }
+
+        if (error instanceof Error && error.message.includes("Stay not found")) {
+          router.replace("/stays");
+          return;
+        }
+
+        router.replace("/auth/login");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [router, stayId]);
+
+  const canSubmit = useMemo(() => stay?.status === "draft" || stay?.status === "rejected", [stay?.status]);
+
+  if (loading || !stay || !user) {
+    return (
+      <main className="tm-page">
+        <div className="tm-shell tm-panel mx-auto max-w-5xl p-6">
+          <p className="text-sm text-slate-600">Loading stay...</p>
+        </div>
+      </main>
+    );
+  }
+
+  async function refresh() {
+    if (!user || !stay) {
+      return;
+    }
+
+    const item = await staysClient.getStay(user.id, stayId);
+    setStay(item);
+    setAmenitiesText(item.amenities.join(", "));
+  }
+
+  async function saveDetails(event: FormEvent<HTMLFormElement>) {
+    if (!user || !stay) {
+      return;
+    }
+
+    event.preventDefault();
+    setSaving(true);
+    setMessage("");
+
+    const form = new FormData(event.currentTarget);
+
+    try {
+      const updated = await staysClient.updateStay(user.id, stay.id, {
+        propertyType: String(form.get("propertyType") ?? ""),
+        name: String(form.get("name") ?? ""),
+        description: String(form.get("description") ?? ""),
+        address: String(form.get("address") ?? ""),
+        city: String(form.get("city") ?? ""),
+        country: String(form.get("country") ?? ""),
+        latitude: String(form.get("latitude") ?? ""),
+        longitude: String(form.get("longitude") ?? ""),
+        amenities: splitCsv(amenitiesText),
+        houseRules: String(form.get("houseRules") ?? ""),
+        checkInTime: String(form.get("checkInTime") ?? ""),
+        checkOutTime: String(form.get("checkOutTime") ?? ""),
+        cancellationPolicy: String(form.get("cancellationPolicy") ?? ""),
+      });
+
+      setStay(updated);
+      setMessage("Stay details saved.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to save details.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function addImage(file: File) {
+    if (!user || !stay) {
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const updated = await staysClient.addImage(user.id, stay.id, {
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      });
+      setStay(updated);
+      setMessage("Image added.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to add image.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function moveImage(imageId: string, direction: "up" | "down") {
+    if (!user || !stay) {
+      return;
+    }
+
+    const currentIds = [...stay.images].sort((a, b) => a.order - b.order).map((img) => img.id);
+    const index = currentIds.findIndex((id) => id === imageId);
+    const nextIndex = direction === "up" ? index - 1 : index + 1;
+    if (index < 0 || nextIndex < 0 || nextIndex >= currentIds.length) {
+      return;
+    }
+
+    const copy = [...currentIds];
+    const [item] = copy.splice(index, 1);
+    copy.splice(nextIndex, 0, item);
+
+    const updated = await staysClient.reorderImages(user.id, stay.id, copy);
+    setStay(updated);
+  }
+
+  async function removeImage(imageId: string) {
+    if (!user || !stay) {
+      return;
+    }
+
+    const updated = await staysClient.removeImage(user.id, stay.id, imageId);
+    setStay(updated);
+  }
+
+  async function addRoom() {
+    if (!user || !stay) {
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const updated = await staysClient.upsertRoom(user.id, stay.id, {
+        name: roomName,
+        occupancy: Number(roomOccupancy),
+        bedConfiguration: roomBed,
+        baseRate: Number(roomRate),
+      });
+      setStay(updated);
+      setRoomName("");
+      setRoomBed("");
+      setRoomOccupancy("2");
+      setRoomRate("0");
+      setMessage("Room added.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to add room.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeRoom(roomId: string) {
+    if (!user || !stay) {
+      return;
+    }
+
+    const updated = await staysClient.removeRoom(user.id, stay.id, roomId);
+    setStay(updated);
+  }
+
+  async function changeStatus(next: StayStatus) {
+    if (!user || !stay) {
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const updated = await staysClient.updateStatus(user.id, stay.id, next);
+      setStay(updated);
+      setMessage(`Status updated to ${updated.status}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Status change failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function archive() {
+    if (!user || !stay) {
+      return;
+    }
+
+    const updated = await staysClient.archiveStay(user.id, stay.id);
+    setStay(updated);
+    setMessage("Stay archived.");
+  }
+
+  return (
+    <PartnerShell
+      title={stay.name || "Stay Draft"}
+      description="Edit listing details, media, rooms, and lifecycle status."
+      headerExtra={<p className="tm-muted text-sm">Status: {stay.status}</p>}
+    >
+        <section className="tm-panel p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900">Listing Actions</h2>
+              {stay.moderationFeedback ? (
+                <p className="mt-2 text-sm text-rose-700">Feedback: {stay.moderationFeedback}</p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {canSubmit ? (
+                <button className="tm-btn tm-btn-accent" disabled={saving} onClick={() => void changeStatus("pending")} type="button">
+                  Submit for Review
+                </button>
+              ) : null}
+              {stay.status === "approved" ? (
+                <button className="tm-btn tm-btn-primary" disabled={saving} onClick={() => void changeStatus("live")} type="button">
+                  Go Live
+                </button>
+              ) : null}
+              {stay.status === "live" ? (
+                <button className="tm-btn tm-btn-outline" disabled={saving} onClick={() => void changeStatus("paused")} type="button">
+                  Pause
+                </button>
+              ) : null}
+              {stay.status === "paused" ? (
+                <button className="tm-btn tm-btn-primary" disabled={saving} onClick={() => void changeStatus("live")} type="button">
+                  Resume
+                </button>
+              ) : null}
+              {stay.status !== "archived" ? (
+                <button className="tm-btn tm-btn-outline" disabled={saving} onClick={() => void archive()} type="button">
+                  Archive
+                </button>
+              ) : null}
+              <button className="tm-btn tm-btn-outline" onClick={() => router.push("/stays")} type="button">
+                Back to Stays
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+          <div className="space-y-5">
+            <form className="tm-panel p-6" onSubmit={saveDetails}>
+              <h2 className="text-lg font-semibold text-slate-900">Property Details</h2>
+              <div className="mt-4 space-y-3">
+                <input className="tm-input" name="propertyType" defaultValue={stay.propertyType} placeholder="Property type" />
+                <input className="tm-input" name="name" defaultValue={stay.name} placeholder="Stay name" />
+                <textarea className="tm-input min-h-28" name="description" defaultValue={stay.description} placeholder="Description" />
+                <input className="tm-input" name="address" defaultValue={stay.address} placeholder="Address" />
+                <div className="grid gap-3 md:grid-cols-2">
+                  <input className="tm-input" name="city" defaultValue={stay.city} placeholder="City" />
+                  <input className="tm-input" name="country" defaultValue={stay.country} placeholder="Country" />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <input className="tm-input" name="latitude" defaultValue={stay.latitude ?? ""} placeholder="Latitude (optional)" />
+                  <input className="tm-input" name="longitude" defaultValue={stay.longitude ?? ""} placeholder="Longitude (optional)" />
+                </div>
+                <textarea className="tm-input min-h-20" placeholder="Amenities (comma separated)" value={amenitiesText} onChange={(event) => setAmenitiesText(event.target.value)} />
+                <textarea className="tm-input min-h-20" name="houseRules" defaultValue={stay.houseRules} placeholder="House rules" />
+                <div className="grid gap-3 md:grid-cols-2">
+                  <input className="tm-input" name="checkInTime" defaultValue={stay.checkInTime} placeholder="Check-in time" />
+                  <input className="tm-input" name="checkOutTime" defaultValue={stay.checkOutTime} placeholder="Check-out time" />
+                </div>
+                <textarea className="tm-input min-h-20" name="cancellationPolicy" defaultValue={stay.cancellationPolicy} placeholder="Cancellation policy" />
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button className="tm-btn tm-btn-primary" disabled={saving} type="submit">
+                  {saving ? "Saving..." : "Save Details"}
+                </button>
+                <button className="tm-btn tm-btn-outline" disabled={saving} onClick={() => void refresh()} type="button">
+                  Reload
+                </button>
+              </div>
+            </form>
+
+            <section className="tm-panel p-6">
+              <h2 className="text-lg font-semibold text-slate-900">Rooms / Units</h2>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <input className="tm-input" placeholder="Room name" value={roomName} onChange={(event) => setRoomName(event.target.value)} />
+                <input className="tm-input" placeholder="Occupancy" type="number" value={roomOccupancy} onChange={(event) => setRoomOccupancy(event.target.value)} />
+                <input className="tm-input" placeholder="Bed configuration" value={roomBed} onChange={(event) => setRoomBed(event.target.value)} />
+                <input className="tm-input" placeholder="Base rate" type="number" value={roomRate} onChange={(event) => setRoomRate(event.target.value)} />
+              </div>
+              <button className="tm-btn tm-btn-accent mt-3" onClick={() => void addRoom()} type="button">
+                Add Room
+              </button>
+
+              <ul className="mt-4 space-y-2">
+                {stay.rooms.map((room) => (
+                  <li key={room.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white/70 p-3">
+                    <div className="text-sm text-slate-700">
+                      <p className="font-medium">{room.name}</p>
+                      <p className="text-xs text-slate-500">
+                        Occupancy: {room.occupancy} • {room.bedConfiguration} • Rate: {room.baseRate}
+                      </p>
+                    </div>
+                    <button className="tm-btn tm-btn-outline" onClick={() => void removeRoom(room.id)} type="button">
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+
+          <section className="tm-panel p-6">
+            <h2 className="text-lg font-semibold text-slate-900">Images</h2>
+            <p className="mt-1 text-sm text-slate-600">PNG, JPEG, WEBP up to 8MB.</p>
+
+            <input
+              className="tm-input mt-3"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  void addImage(file);
+                  event.currentTarget.value = "";
+                }
+              }}
+            />
+
+            <ul className="mt-4 space-y-2">
+              {[...stay.images]
+                .sort((a, b) => a.order - b.order)
+                .map((img, index) => (
+                  <li key={img.id} className="rounded-xl border border-slate-200/90 bg-white/70 p-3">
+                    <p className="text-sm font-medium text-slate-800">{img.fileName}</p>
+                    <p className="text-xs text-slate-500">Order: {index + 1}</p>
+                    <div className="mt-2 flex gap-2">
+                      <button className="tm-btn tm-btn-outline" onClick={() => void moveImage(img.id, "up")} type="button">
+                        Up
+                      </button>
+                      <button className="tm-btn tm-btn-outline" onClick={() => void moveImage(img.id, "down")} type="button">
+                        Down
+                      </button>
+                      <button className="tm-btn tm-btn-outline" onClick={() => void removeImage(img.id)} type="button">
+                        Remove
+                      </button>
+                    </div>
+                  </li>
+                ))}
+            </ul>
+
+            {stay.images.length === 0 ? <p className="mt-2 text-sm text-slate-500">No images uploaded yet.</p> : null}
+          </section>
+        </section>
+
+        {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+    </PartnerShell>
+  );
+}
