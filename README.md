@@ -71,7 +71,8 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
 - Flow 2.11 (`Notifications and Communication`): Completed
 - Flow 2.12 (`Reports and Insights`): Completed
 - Flow 2.13 (`Partner Support and Settings`): Completed
-- Next target: Flow 2.14 (`Wallet, Earnings, and Payouts`)
+- Flow 2.14 (`Wallet, Earnings, and Payouts`): Pending approval
+- Next target: Flow 2.15 (`Payout Account Details and Verification`) after 2.14 approval
 
 Recent updates:
 - Flow 2.5 strict validation test added (`src/modules/integration/flow-2.5-stays-strict.integration.test.ts`) with explicit assertions for create, enrich, submit/save-draft, status transitions, edit, pause, and archive.
@@ -121,6 +122,13 @@ Recent updates:
   - Account deactivation request flow with validation
   - Audit trail logging and visibility for settings updates, support tickets, and deactivation requests
   - Strict flow alignment test added (`src/modules/integration/flow-2.13-support-settings-strict.integration.test.ts`)
+- Flow 2.14 implementation added:
+  - Wallet and payouts module (`/wallet-payouts`) with pending/available/paid balance views
+  - Payout settings management (schedule, minimum threshold, manual request mode)
+  - Manual payout request flow with status progression (`pending` -> `processing` -> `paid`)
+  - Downloadable payout statements and deduction breakdown visibility
+  - Strict flow alignment test added (`src/modules/integration/flow-2.14-wallet-payouts-strict.integration.test.ts`)
+  - Status note: implementation is in code and test-covered, but kept pending approval in planning status.
 
 Latest validation snapshot (April 17, 2026):
 - `npm test`: 61/61 tests passing

@@ -257,7 +257,8 @@
 - Flow 2.11 Notifications and Communication: `Completed`
 - Flow 2.12 Reports and Insights: `Completed`
 - Flow 2.13 Partner Support and Settings: `Completed`
-- Flow 2.14 and onward: `Not started`
+- Flow 2.14 Wallet, Earnings, and Payouts: `Pending approval`
+- Flow 2.15 and onward: `Not started`
 
 Latest completion notes:
 - Auth flow includes signup OTP, email verification, login/logout, password reset, session management, and logout-all-devices.
@@ -288,6 +289,9 @@ Latest completion notes:
 - Flow 2.13 support and settings is now implemented with partner preference updates (profile/security), support ticket submission and status list, account deactivation request flow, and audit trail visibility in module UI.
 - Strict Flow 2.13 validation coverage is added via dedicated integration test (`flow-2.13-support-settings-strict.integration.test.ts`) aligned to each flow bullet in section 2.13.
 - Navigation status is updated so Support & Settings is marked live in the app shell (no "Soon" tag).
+- Flow 2.14 wallet and payouts implementation is completed in code but currently pending product approval before sign-off.
+- Flow 2.14 strict validation coverage is implemented via dedicated integration test (`flow-2.14-wallet-payouts-strict.integration.test.ts`) and held pending approval with the feature.
+- Navigation status for Wallet & Payouts is kept as "Soon" until flow approval.
 
 ## 3. Flow-Based Implementation Plan
 

@@ -354,6 +354,40 @@ h3 {
   background: linear-gradient(90deg, rgba(27, 74, 145, 0.16), rgba(240, 157, 93, 0.25), rgba(27, 74, 145, 0.16));
 }
 
+.tm-toast-stack {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 90;
+  display: grid;
+  gap: 0.55rem;
+  width: min(22rem, calc(100vw - 2rem));
+}
+
+.tm-toast {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(166, 188, 219, 0.64);
+  background: linear-gradient(152deg, rgba(255, 255, 255, 0.96) 0%, rgba(242, 248, 255, 0.92) 100%);
+  color: #17355f;
+  padding: 0.72rem 0.85rem;
+  box-shadow: 0 18px 34px -28px rgba(12, 50, 101, 0.82);
+  animation: tm-fade-up 220ms ease both;
+}
+
+.tm-toast-success {
+  border-color: rgba(62, 141, 102, 0.5);
+  background: linear-gradient(145deg, rgba(237, 255, 247, 0.96) 0%, rgba(227, 248, 238, 0.9) 100%);
+}
+
+.tm-toast-error {
+  border-color: rgba(194, 97, 111, 0.52);
+  background: linear-gradient(145deg, rgba(255, 241, 243, 0.96) 0%, rgba(255, 232, 236, 0.9) 100%);
+}
+
+.tm-toast-info {
+  border-color: rgba(118, 153, 204, 0.58);
+}
+
 .tm-info-hint-wrap {
   position: relative;
   display: inline-flex;

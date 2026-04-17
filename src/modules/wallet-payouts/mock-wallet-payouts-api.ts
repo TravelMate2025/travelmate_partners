@@ -2,6 +2,7 @@ import { notificationsClient } from "@/modules/notifications/notifications-clien
 import type {
   PayoutRecord,
   PayoutSettings,
+  PayoutStatus,
   WalletPayoutsApi,
   WalletSummary,
 } from "@/modules/wallet-payouts/contracts";
@@ -145,12 +146,12 @@ function advanceLifecycle(
   payouts: Array<PayoutRecord & { lifecycleStep: number }>,
 ) {
   let changed = false;
-  const updated = payouts.map((payout) => {
+  const updated: Array<PayoutRecord & { lifecycleStep: number }> = payouts.map((payout) => {
     if (payout.lifecycleStep >= 2) {
       return payout;
     }
     const nextStep = payout.lifecycleStep + 1;
-    const nextStatus = nextStep === 1 ? "processing" : "paid";
+    const nextStatus: PayoutStatus = nextStep === 1 ? "processing" : "paid";
     changed = true;
     return {
       ...payout,

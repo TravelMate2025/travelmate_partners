@@ -107,7 +107,8 @@ export default function SettingsPage() {
 
     setBusy(true);
     setMessage("");
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
 
     const payload: SubmitSupportTicketInput = {
       category: String(form.get("category") ?? "general") as SubmitSupportTicketInput["category"],
@@ -120,7 +121,7 @@ export default function SettingsPage() {
       setTickets(updated);
       await refreshAudit();
       setMessage("Support ticket submitted.");
-      event.currentTarget.reset();
+      formElement.reset();
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Failed to submit support ticket.",
@@ -138,7 +139,8 @@ export default function SettingsPage() {
 
     setBusy(true);
     setMessage("");
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
 
     try {
       const updated = await supportSettingsClient.requestDeactivation(user.id, {
@@ -147,7 +149,7 @@ export default function SettingsPage() {
       setSettings(updated);
       await refreshAudit();
       setMessage("Account deactivation request submitted.");
-      event.currentTarget.reset();
+      formElement.reset();
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Failed to request deactivation.",
