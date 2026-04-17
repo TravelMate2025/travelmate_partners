@@ -254,7 +254,10 @@
 - Flow 2.8 Transfer Pricing and Scheduling: `Completed`
 - Flow 2.9 Media and Document Management: `Completed`
 - Flow 2.10 Data Quality Tools: `Completed`
-- Flow 2.11 and onward: `Not started`
+- Flow 2.11 Notifications and Communication: `Completed`
+- Flow 2.12 Reports and Insights: `Completed`
+- Flow 2.13 Partner Support and Settings: `Completed`
+- Flow 2.14 and onward: `Not started`
 
 Latest completion notes:
 - Auth flow includes signup OTP, email verification, login/logout, password reset, session management, and logout-all-devices.
@@ -274,6 +277,17 @@ Latest completion notes:
 - Flow 2.10 data quality tooling is implemented with listing completeness scoring, required-field submission gates, duplicate listing warnings, and correction prompts on rejected listings for both stays and transfers.
 - Strict Flow 2.10 validation coverage is added via dedicated integration test (`flow-2.10-data-quality-strict.integration.test.ts`) aligned to each flow bullet in section 2.10.
 - AGENTS alignment hardening added middleware-backed protected route checks, verification terminology alignment (`in_review` lifecycle stage), and audit event recording support for critical verification/listing actions.
+- Transfer detail flow hardened for legacy data shapes so missing array fields (`features`, `images`) no longer crash render and quality checks.
+- Flow 2.11 notifications is now implemented with event emission scaffolding, in-app notification center UI, read/unread toggles, acknowledge action, optional email dispatch metadata, and mark-all-read controls.
+- Strict Flow 2.11 validation coverage is added via dedicated integration test (`flow-2.11-notifications-strict.integration.test.ts`) aligned to each flow bullet in section 2.11.
+- Flow 2.11 event emission is now wired to system workflows (verification submission/status change, moderation outcomes, payout status reads, and incomplete listing submission reminders) rather than simulator-only triggers.
+- Navigation status is updated so Notifications is marked live in the app shell (no "Soon" tag).
+- Flow 2.12 reports is now implemented with date-range selection, aggregated performance metrics, listing health indicators, and CSV export with selected range context.
+- Strict Flow 2.12 validation coverage is added via dedicated integration test (`flow-2.12-reports-strict.integration.test.ts`) aligned to each flow bullet in section 2.12.
+- Navigation status is updated so Reports is marked live in the app shell (no "Soon" tag).
+- Flow 2.13 support and settings is now implemented with partner preference updates (profile/security), support ticket submission and status list, account deactivation request flow, and audit trail visibility in module UI.
+- Strict Flow 2.13 validation coverage is added via dedicated integration test (`flow-2.13-support-settings-strict.integration.test.ts`) aligned to each flow bullet in section 2.13.
+- Navigation status is updated so Support & Settings is marked live in the app shell (no "Soon" tag).
 
 ## 3. Flow-Based Implementation Plan
 

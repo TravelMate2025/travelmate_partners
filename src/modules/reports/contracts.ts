@@ -8,5 +8,5 @@ export type ReportsSummary = {
 
 export type ReportsApi = {
   getSummary(userId: string, fromDate?: string, toDate?: string): Promise<ReportsSummary>;
-  exportCsv(userId: string): Promise<string>;
+  exportCsv(userId: string, fromDate?: string, toDate?: string): Promise<string>;
 };

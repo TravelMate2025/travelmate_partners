@@ -68,7 +68,10 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
 - Flow 2.8 (`Transfer Pricing and Scheduling`): Completed
 - Flow 2.9 (`Media and Document Management`): Completed
 - Flow 2.10 (`Data Quality Tools`): Completed
-- Next target: Flow 2.11 (`Notifications and Communication`)
+- Flow 2.11 (`Notifications and Communication`): Completed
+- Flow 2.12 (`Reports and Insights`): Completed
+- Flow 2.13 (`Partner Support and Settings`): Completed
+- Next target: Flow 2.14 (`Wallet, Earnings, and Payouts`)
 
 Recent updates:
 - Flow 2.5 strict validation test added (`src/modules/integration/flow-2.5-stays-strict.integration.test.ts`) with explicit assertions for create, enrich, submit/save-draft, status transitions, edit, pause, and archive.
@@ -102,6 +105,22 @@ Recent updates:
   - Duplicate listing warnings in quality reports and moderation feedback
   - Correction workflow prompts on rejected listings
   - Strict flow alignment test added (`src/modules/integration/flow-2.10-data-quality-strict.integration.test.ts`)
+- Flow 2.11 implementation added:
+  - Notifications center (`/notifications`) with read/unread filters, acknowledge, and mark-all-read actions
+  - Event routing coverage for verification, moderation, payout updates, and incomplete listing reminders
+  - Optional email dispatch metadata with in-app notification channel support
+  - Strict flow alignment test added (`src/modules/integration/flow-2.11-notifications-strict.integration.test.ts`)
+- Flow 2.12 implementation added:
+  - Reports and insights dashboard (`/reports`) with preset/custom date-range selection
+  - Aggregated listing performance metrics and listing health indicators
+  - CSV export for selected date range with preview support
+  - Strict flow alignment test added (`src/modules/integration/flow-2.12-reports-strict.integration.test.ts`)
+- Flow 2.13 implementation added:
+  - Support and settings module (`/settings`) with profile/security preference updates
+  - Support ticket submission flow with category, subject, message, and open ticket listing
+  - Account deactivation request flow with validation
+  - Audit trail logging and visibility for settings updates, support tickets, and deactivation requests
+  - Strict flow alignment test added (`src/modules/integration/flow-2.13-support-settings-strict.integration.test.ts`)
 
 Latest validation snapshot (April 17, 2026):
 - `npm test`: 61/61 tests passing

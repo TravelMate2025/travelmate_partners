@@ -5,6 +5,7 @@ import {
 } from "@/modules/verification/state-machine";
 import { recordAuditEvent } from "@/modules/audit/audit-log";
 import { validateMediaFile } from "@/modules/media/file-validation";
+import { notificationsClient } from "@/modules/notifications/notifications-client";
 import type {
   AddVerificationDocumentInput,
   PartnerVerification,
@@ -85,6 +86,18 @@ function validateDocumentInput(input: AddVerificationDocumentInput) {
   validateMediaFile("verification_document", input);
 }
 
+async function emitVerificationStatus(userId: string, contextLabel: string) {
+  try {
+    await notificationsClient.emitEvent(userId, {
+      eventType: "verification_status_updated",
+      channels: ["in_app", "email"],
+      contextLabel,
+    });
+  } catch {
+    // Notification failures should not block verification state updates.
+  }
+}
+
 export const mockVerificationApi: VerificationApi = {
   async getVerification(userId: string) {
     const state = readState();
@@ -113,6 +126,7 @@ export const mockVerificationApi: VerificationApi = {
     if (item.status === "approved") {
       item.status = "rejected";
       item.rejectionReason = "Profile changed after approval. Re-submit verification.";
+      await emitVerificationStatus(userId, "rejected");
     }
 
     recordAuditEvent({
@@ -151,6 +165,7 @@ export const mockVerificationApi: VerificationApi = {
     if (item.status === "approved") {
       item.status = "rejected";
       item.rejectionReason = "Profile changed after approval. Re-submit verification.";
+      await emitVerificationStatus(userId, "rejected");
     }
 
     recordAuditEvent({
@@ -170,6 +185,10 @@ export const mockVerificationApi: VerificationApi = {
     const item = ensure(state, userId);
     item.documents = item.documents.filter((doc) => doc.id !== documentId);
     item.updatedAt = nowIso();
+    if (item.status === "approved") {
+      item.status = "rejected";
+      item.rejectionReason = "Profile changed after approval. Re-submit verification.";
+    }
     recordAuditEvent({
       userId,
       action: "verification_document_removed",
@@ -177,6 +196,9 @@ export const mockVerificationApi: VerificationApi = {
       entityId: userId,
       metadata: { documentId },
     });
+    if (item.status === "rejected") {
+      await emitVerificationStatus(userId, "rejected");
+    }
     writeState(state);
     return item;
   },
@@ -201,6 +223,7 @@ export const mockVerificationApi: VerificationApi = {
       entityId: userId,
       metadata: { submissionCount: item.submissionCount },
     });
+    await emitVerificationStatus(userId, item.status);
 
     writeState(state);
     return item;

@@ -11,6 +11,7 @@ import { validateMediaFile } from "@/modules/media/file-validation";
 import { transitionTransferStatus } from "@/modules/transfers/state-machine";
 import { buildTransferQualityReport } from "@/modules/data-quality/listing-quality";
 import { recordAuditEvent } from "@/modules/audit/audit-log";
+import { notificationsClient } from "@/modules/notifications/notifications-client";
 
 type MockTransfersState = {
   byUserId: Record<string, TransferListing[]>;
@@ -89,6 +90,30 @@ function patch(item: TransferListing, input: UpdateTransferInput) {
 
 function validateImage(input: AddTransferImageInput) {
   validateMediaFile("transfer_image", input);
+}
+
+async function emitListingModeration(userId: string, contextLabel: string) {
+  try {
+    await notificationsClient.emitEvent(userId, {
+      eventType: "listing_moderation_updated",
+      channels: ["in_app", "email"],
+      contextLabel,
+    });
+  } catch {
+    // Notification failures should never block listing workflows.
+  }
+}
+
+async function emitIncompleteReminder(userId: string, contextLabel: string) {
+  try {
+    await notificationsClient.emitEvent(userId, {
+      eventType: "incomplete_listing_reminder",
+      channels: ["in_app"],
+      contextLabel,
+    });
+  } catch {
+    // Notification failures should never block listing workflows.
+  }
 }
 
 function createFromInput(userId: string, input: CreateTransferInput): TransferListing {
@@ -174,6 +199,10 @@ export const mockTransfersApi: TransfersApi = {
     const qualityReport = buildTransferQualityReport(current, items);
 
     if (status === "pending" && qualityReport.missingRequiredFields.length > 0) {
+      await emitIncompleteReminder(
+        userId,
+        `transfer "${current.name || "Untitled transfer"}": ${qualityReport.missingRequiredFields.join(", ")}`,
+      );
       throw new Error(
         `Cannot submit transfer. Missing required fields: ${qualityReport.missingRequiredFields.join(", ")}.`,
       );
@@ -201,6 +230,11 @@ export const mockTransfersApi: TransfersApi = {
           .filter(Boolean)
           .join(" ");
       }
+
+      await emitListingModeration(
+        userId,
+        `transfer "${next.name || "Untitled transfer"}" moved to ${next.status}`,
+      );
     }
 
     const index = items.findIndex((item) => item.id === transferId);

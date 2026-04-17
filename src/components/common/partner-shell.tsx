@@ -88,19 +88,19 @@ const NAV_SECTIONS: NavSection[] = [
       {
         href: "/notifications",
         label: "Notifications",
-        status: "soon",
+        status: "live",
         match: (path) => path.startsWith("/notifications"),
       },
       {
         href: "/reports",
         label: "Reports",
-        status: "soon",
+        status: "live",
         match: (path) => path.startsWith("/reports"),
       },
       {
         href: "/settings",
         label: "Support & Settings",
-        status: "soon",
+        status: "live",
         match: (path) => path.startsWith("/settings"),
       },
     ],

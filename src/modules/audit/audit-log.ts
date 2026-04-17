@@ -4,9 +4,18 @@ export type AuditAction =
   | "verification_document_removed"
   | "verification_submitted"
   | "listing_published"
-  | "listing_paused";
+  | "listing_paused"
+  | "settings_updated"
+  | "support_ticket_submitted"
+  | "account_deactivation_requested";
 
-export type AuditEntityType = "verification" | "stay" | "transfer";
+export type AuditEntityType =
+  | "verification"
+  | "stay"
+  | "transfer"
+  | "settings"
+  | "support"
+  | "account";
 
 export type AuditEvent = {
   id: string;

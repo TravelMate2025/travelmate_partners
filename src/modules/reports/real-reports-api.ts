@@ -19,10 +19,17 @@ export const realReportsApi: ReportsApi = {
     return response.data;
   },
 
-  async exportCsv(userId: string) {
-    const response = await apiRequest<Envelope<{ csv: string }>>(`/partners/${userId}/reports/export`, {
-      method: "POST",
-    });
+  async exportCsv(userId: string, fromDate?: string, toDate?: string) {
+    const response = await apiRequest<Envelope<{ csv: string }>>(
+      `/partners/${userId}/reports/export`,
+      {
+        method: "POST",
+        body: {
+          from: fromDate,
+          to: toDate,
+        },
+      },
+    );
     return response.data.csv;
   },
 };

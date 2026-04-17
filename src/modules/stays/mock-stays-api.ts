@@ -2,6 +2,7 @@ import { transitionStatus } from "@/modules/stays/state-machine";
 import { validateMediaFile } from "@/modules/media/file-validation";
 import { buildStayQualityReport } from "@/modules/data-quality/listing-quality";
 import { recordAuditEvent } from "@/modules/audit/audit-log";
+import { notificationsClient } from "@/modules/notifications/notifications-client";
 import type {
   AddStayImageInput,
   ReplaceStayImageInput,
@@ -88,6 +89,30 @@ function patch(item: StayListing, input: UpdateStayInput) {
   return next;
 }
 
+async function emitListingModeration(userId: string, contextLabel: string) {
+  try {
+    await notificationsClient.emitEvent(userId, {
+      eventType: "listing_moderation_updated",
+      channels: ["in_app", "email"],
+      contextLabel,
+    });
+  } catch {
+    // Notification failures should never block listing workflows.
+  }
+}
+
+async function emitIncompleteReminder(userId: string, contextLabel: string) {
+  try {
+    await notificationsClient.emitEvent(userId, {
+      eventType: "incomplete_listing_reminder",
+      channels: ["in_app"],
+      contextLabel,
+    });
+  } catch {
+    // Notification failures should never block listing workflows.
+  }
+}
+
 export const mockStaysApi: StaysApi = {
   async listStays(userId) {
     const state = readState();
@@ -167,6 +192,10 @@ export const mockStaysApi: StaysApi = {
     const qualityReport = buildStayQualityReport(current, items);
 
     if (status === "pending" && qualityReport.missingRequiredFields.length > 0) {
+      await emitIncompleteReminder(
+        userId,
+        `stay "${current.name || "Untitled stay"}": ${qualityReport.missingRequiredFields.join(", ")}`,
+      );
       throw new Error(
         `Cannot submit stay. Missing required fields: ${qualityReport.missingRequiredFields.join(", ")}.`,
       );
@@ -195,6 +224,11 @@ export const mockStaysApi: StaysApi = {
           .filter(Boolean)
           .join(" ");
       }
+
+      await emitListingModeration(
+        userId,
+        `stay "${next.name || "Untitled stay"}" moved to ${next.status}`,
+      );
     }
 
     const index = items.findIndex((item) => item.id === stayId);
