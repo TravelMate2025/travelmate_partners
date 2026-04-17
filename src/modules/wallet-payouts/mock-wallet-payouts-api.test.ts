@@ -47,4 +47,74 @@ describe("mockWalletPayoutsApi", () => {
     expect(statement).toContain("field,value");
     expect(statement).toContain("settlementReference");
   });
+
+  it("supports settlement account submission, otp verification, masking, and re-verification after updates", async () => {
+    const userId = "u2";
+    window.localStorage.setItem(
+      "tm_partner_profile_state_v1",
+      JSON.stringify({
+        onboardingByUserId: {
+          [userId]: {
+            userId,
+            data: {
+              businessType: "business",
+              legalName: "TravelMate Ltd",
+              tradeName: "TravelMate",
+              registrationNumber: "RC123456",
+              primaryContactName: "Jane Doe",
+              primaryContactEmail: "jane@example.com",
+              supportContactEmail: "",
+              serviceRegions: ["Lagos"],
+              operatingCities: ["Lekki"],
+              payoutSchedule: "weekly",
+            },
+            completedSteps: ["business", "contact", "operations"],
+            status: "completed",
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      }),
+    );
+
+    const submitted = await mockWalletPayoutsApi.submitSettlementAccount(userId, {
+      methodType: "bank_account",
+      country: "NG",
+      currency: "NGN",
+      accountHolderName: "TravelMate Ltd",
+      bankName: "Zenith Bank",
+      accountNumber: "1234567890",
+      isDefault: true,
+    });
+    expect(submitted.account.accountNumberMasked).toBe("******7890");
+    expect(submitted.account.status).toBe("pending");
+    expect(submitted.otpCodeHint).toHaveLength(6);
+
+    const verified = await mockWalletPayoutsApi.verifySettlementAccountOtp(userId, {
+      accountId: submitted.account.id,
+      otpCode: submitted.otpCodeHint ?? "",
+    });
+    expect(verified.status).toBe("verified");
+
+    const updated = await mockWalletPayoutsApi.submitSettlementAccount(userId, {
+      accountId: verified.id,
+      methodType: "bank_account",
+      country: "NG",
+      currency: "NGN",
+      accountHolderName: "Mismatch Name",
+      bankName: "Zenith Bank",
+      isDefault: true,
+    });
+    expect(updated.account.status).toBe("pending");
+
+    const rejected = await mockWalletPayoutsApi.verifySettlementAccountOtp(userId, {
+      accountId: updated.account.id,
+      otpCode: updated.otpCodeHint ?? "",
+    });
+    expect(rejected.status).toBe("rejected");
+
+    const history = await mockWalletPayoutsApi.listSettlementAccountHistory(userId);
+    expect(history.some((item) => item.action === "verified")).toBe(true);
+    expect(history.some((item) => item.action === "reverification_required")).toBe(true);
+    expect(history.some((item) => item.action === "rejected")).toBe(true);
+  });
 });

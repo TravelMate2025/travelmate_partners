@@ -139,7 +139,7 @@ export function validateSettlementAccountInput(input: SettlementAccountUpsertInp
     }
     const accountNumber = input.accountNumber?.trim() ?? "";
     const iban = input.iban?.trim().toUpperCase() ?? "";
-    if (!accountNumber && !iban) {
+    if (!accountNumber && !iban && !input.accountId) {
       throw new Error("Account number or IBAN is required for bank accounts.");
     }
     if (accountNumber && rule.bank.accountNumberPattern && !rule.bank.accountNumberPattern.test(accountNumber)) {
@@ -165,6 +165,9 @@ export function validateSettlementAccountInput(input: SettlementAccountUpsertInp
       throw new Error("Unsupported mobile money provider for selected country.");
     }
     const mobileNumber = input.mobileNumber?.trim() ?? "";
+    if (!mobileNumber && input.accountId) {
+      return;
+    }
     if (!rule.mobileMoney.phonePattern.test(mobileNumber)) {
       throw new Error("Invalid mobile money number format for selected country.");
     }

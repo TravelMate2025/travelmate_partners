@@ -73,7 +73,7 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
 - Flow 2.12 (`Reports and Insights`): Completed
 - Flow 2.13 (`Partner Support and Settings`): Completed
 - Flow 2.14 (`Wallet, Earnings, and Booking Settlement`): Completed and strict-alignment confirmed (mock/module-first)
-- Next target: Flow 2.15 (`Settlement Account Details and Verification`)
+- Flow 2.15 (`Settlement Account Details and Verification`): Completed (mock/module-first)
 
 Recent updates:
 - Flow 2.5 strict validation test added (`src/modules/integration/flow-2.5-stays-strict.integration.test.ts`) with explicit assertions for create, enrich, submit/save-draft, status transitions, edit, pause, and archive.
@@ -132,12 +132,21 @@ Recent updates:
   - Strict flow alignment test added (`src/modules/integration/flow-2.14-wallet-payouts-strict.integration.test.ts`)
   - Dedicated E2E flow coverage added (`e2e/flow-2.14-wallet-settlement.spec.ts`)
   - Status note: implemented in code and test-covered with local/mock adapters; Django API integration is deferred.
+- Flow 2.15 implementation added:
+  - Settlement account verification workflow inside `/wallet-payouts` for bank account and mobile money payout methods
+  - Country/currency-aware payout method validation with masked sensitive field display
+  - Mock OTP confirmation and onboarding-name ownership checks for payout method verification
+  - Re-verification on payout method updates, default payout method selection, and payout method history timeline
+  - Strict flow alignment test added (`src/modules/integration/flow-2.15-settlement-accounts-strict.integration.test.ts`)
+  - Dedicated E2E flow coverage added (`e2e/flow-2.15-settlement-account.spec.ts`)
+  - Status note: implemented in code and test-covered with local/mock adapters; Django API integration is deferred.
 
 Latest validation snapshot (April 17, 2026):
-- `npm test`: 67/67 tests passing
+- `npm test`: 72/72 tests passing
 - `npm run build`: passing
-- `npm run test:e2e`: 4/4 passing
+- `npm run test:e2e`: 5/5 passing
 - `npx playwright test e2e/flow-2.14-wallet-settlement.spec.ts`: 1/1 passing
+- `npx playwright test e2e/flow-2.15-settlement-account.spec.ts`: 1/1 passing
 
 Alignment updates (April 17, 2026):
 - Verification lifecycle terminology aligned to `pending`, `in_review`, `approved`, `rejected`.
@@ -145,6 +154,7 @@ Alignment updates (April 17, 2026):
 - Added audit log recording support for verification document updates/submission and listing publish/pause actions in mock flows.
 - Added module scaffolds and tests for `wallet-payouts`, `notifications`, and `reports`.
 - Flow 2.14 strict alignment confirmed against the partner plan for the current frontend/module-first phase; payout-account verification remains deferred to Flow 2.15 / later Django wiring.
+- Flow 2.15 payout-account verification is now implemented and test-covered in the current frontend/module-first phase; Django backend wiring remains deferred.
 
 Onboarding behavior implemented:
 - Login routes users to `/onboarding`.

@@ -260,7 +260,7 @@
 - Flow 2.12 Reports and Insights: `Completed`
 - Flow 2.13 Partner Support and Settings: `Completed`
 - Flow 2.14 Wallet, Earnings, and Booking Settlement: `Completed and strict-alignment confirmed (frontend/module-first)`
-- Flow 2.15 and onward: `Not started`
+- Flow 2.15 Settlement Account (Payout Method) Details and Verification: `Completed (frontend/module-first)`
 
 Latest completion notes:
 - Auth flow includes signup OTP, email verification, login/logout, password reset, session management, and logout-all-devices.
@@ -300,6 +300,10 @@ Latest completion notes:
 - Flow 2.14 implementation scope for this phase is frontend/module-first with mock adapters; Django APIs will be introduced in a later backend phase.
 - Flow 2.14 strict alignment is confirmed against the feature flow in section 2.14 for this phase: booking completion is recorded in local/mock state, deductions and net payout are computed, settlement status advances in local/mock data, balances and booking-level breakdowns are visible, cancellation refund tracking is present, and downloadable settlement statements are supported.
 - Settlement account details capture, country/account-format validation, OTP confirmation, ownership/name checks, and re-verification remain intentionally deferred to Flow 2.15 and are not part of the confirmed Flow 2.14 scope.
+- Flow 2.15 is now implemented with bank account and mobile money payout method support, country/currency-aware validation, masked sensitive field display, default payout method selection, OTP verification, ownership/name-match checks against onboarding profile data, re-verification after account changes, and payout method history tracking.
+- Flow 2.15 strict validation coverage is added via dedicated integration test (`flow-2.15-settlement-accounts-strict.integration.test.ts`) aligned to the feature flow in section 2.15.
+- Flow 2.15 dedicated E2E coverage is now added and passing (`e2e/flow-2.15-settlement-account.spec.ts`) for payout method submission, OTP verification, account updates, and re-verification.
+- Flow 2.15 implementation scope for this phase remains frontend/module-first with local/mock adapters; Django-backed verification and real payout rails will be wired in the backend phase.
 
 ## 3. Flow-Based Implementation Plan
 
