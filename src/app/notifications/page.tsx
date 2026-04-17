@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { PartnerShell } from "@/components/common/partner-shell";
+import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import { notificationsClient } from "@/modules/notifications/notifications-client";
 import type {
@@ -31,9 +32,14 @@ const EVENT_PRESETS: EventPreset[] = [
     contextLabel: "Stay listing flagged for correction",
   },
   {
-    eventType: "payout_status_updated",
-    label: "Payout Update",
+    eventType: "settlement_refund_status_updated",
+    label: "Settlement/Refund Update",
     contextLabel: "processing",
+  },
+  {
+    eventType: "settlement_account_updated",
+    label: "Settlement Account Update",
+    contextLabel: "Acct ******7890 verified",
   },
   {
     eventType: "incomplete_listing_reminder",
@@ -48,8 +54,10 @@ function eventLabel(eventType: NotificationEventType) {
       return "Verification";
     case "listing_moderation_updated":
       return "Moderation";
-    case "payout_status_updated":
-      return "Payout";
+    case "settlement_refund_status_updated":
+      return "Settlement/Refund";
+    case "settlement_account_updated":
+      return "Settlement Account";
     case "incomplete_listing_reminder":
       return "Reminder";
     default: {
@@ -64,6 +72,7 @@ export default function NotificationsPage() {
   const [items, setItems] = useState<PartnerNotification[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  useToastMessage(message);
   const [filter, setFilter] = useState<ViewFilter>("all");
   const [sendEmail, setSendEmail] = useState(true);
 
@@ -238,7 +247,7 @@ export default function NotificationsPage() {
   return (
     <PartnerShell
       title="Notifications"
-      description="Track verification, moderation, payout, and reminder communication in one place."
+      description="Track verification, moderation, settlement/refund, and reminder communication in one place."
       headerExtra={
         <div className="tm-inline-actions">
           <button

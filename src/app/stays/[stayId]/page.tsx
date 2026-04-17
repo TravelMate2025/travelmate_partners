@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { authClient } from "@/modules/auth/auth-client";
 import { PartnerShell } from "@/components/common/partner-shell";
+import { useToastMessage } from "@/components/common/use-toast-message";
 import type { PartnerUser } from "@/modules/auth/contracts";
 import { buildStayQualityReport } from "@/modules/data-quality/listing-quality";
 import { profileClient } from "@/modules/profile/profile-client";
@@ -30,6 +31,7 @@ export default function StayDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  useToastMessage(message);
   const [uploadState, setUploadState] = useState<"idle" | "uploading">("idle");
 
   const [amenitiesText, setAmenitiesText] = useState("");

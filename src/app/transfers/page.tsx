@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { PartnerShell } from "@/components/common/partner-shell";
+import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import type { TransferListing, TransferStatus } from "@/modules/transfers/contracts";
 import { transfersClient } from "@/modules/transfers/transfers-client";
@@ -13,6 +14,7 @@ export default function TransfersPage() {
   const [items, setItems] = useState<TransferListing[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  useToastMessage(message);
 
   useEffect(() => {
     if (!user) {

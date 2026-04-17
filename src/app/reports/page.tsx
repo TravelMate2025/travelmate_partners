@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { PartnerShell } from "@/components/common/partner-shell";
+import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import type { ReportsSummary } from "@/modules/reports/contracts";
 import { reportsClient } from "@/modules/reports/reports-client";
@@ -25,6 +26,7 @@ export default function ReportsPage() {
   const [summary, setSummary] = useState<ReportsSummary | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  useToastMessage(message);
   const [csvPreview, setCsvPreview] = useState("");
   const [preset, setPreset] = useState<DateRangePreset>("30d");
   const [toDate, setToDate] = useState(todayIsoDate());

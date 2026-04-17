@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { PartnerShell } from "@/components/common/partner-shell";
+import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import type { TransferType } from "@/modules/transfers/contracts";
 import { transfersClient } from "@/modules/transfers/transfers-client";
@@ -13,6 +14,7 @@ export default function NewTransferPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  useToastMessage(message);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

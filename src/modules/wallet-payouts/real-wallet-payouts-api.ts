@@ -1,7 +1,10 @@
 import { apiRequest } from "@/lib/http-client";
 import type {
-  PayoutRecord,
-  PayoutSettings,
+  SettlementAccount,
+  SettlementAccountHistoryEntry,
+  SubmitSettlementAccountResult,
+  SettlementRecord,
+  SettlementSettings,
   WalletPayoutsApi,
   WalletSummary,
 } from "@/modules/wallet-payouts/contracts";
@@ -14,21 +17,23 @@ export const realWalletPayoutsApi: WalletPayoutsApi = {
     return response.data;
   },
 
-  async listPayouts(userId: string): Promise<PayoutRecord[]> {
-    const response = await apiRequest<Envelope<PayoutRecord[]>>(`/partners/${userId}/wallet/payouts`);
-    return response.data;
-  },
-
-  async getPayoutSettings(userId: string): Promise<PayoutSettings> {
-    const response = await apiRequest<Envelope<PayoutSettings>>(
-      `/partners/${userId}/wallet/payout-settings`,
+  async listSettlements(userId: string): Promise<SettlementRecord[]> {
+    const response = await apiRequest<Envelope<SettlementRecord[]>>(
+      `/partners/${userId}/wallet/settlements`,
     );
     return response.data;
   },
 
-  async updatePayoutSettings(userId: string, input): Promise<PayoutSettings> {
-    const response = await apiRequest<Envelope<PayoutSettings>>(
-      `/partners/${userId}/wallet/payout-settings`,
+  async getSettlementSettings(userId: string): Promise<SettlementSettings> {
+    const response = await apiRequest<Envelope<SettlementSettings>>(
+      `/partners/${userId}/wallet/settlement-settings`,
+    );
+    return response.data;
+  },
+
+  async updateSettlementSettings(userId: string, input): Promise<SettlementSettings> {
+    const response = await apiRequest<Envelope<SettlementSettings>>(
+      `/partners/${userId}/wallet/settlement-settings`,
       {
         method: "PATCH",
         body: input,
@@ -37,24 +42,74 @@ export const realWalletPayoutsApi: WalletPayoutsApi = {
     return response.data;
   },
 
-  async requestPayout(userId: string, amount: number): Promise<PayoutRecord> {
-    const response = await apiRequest<Envelope<PayoutRecord>>(
-      `/partners/${userId}/wallet/payouts/request`,
+  async recordBookingCompletion(userId: string, input): Promise<SettlementRecord> {
+    const response = await apiRequest<Envelope<SettlementRecord>>(
+      `/partners/${userId}/wallet/settlements/record-completion`,
       {
         method: "POST",
-        body: { amount },
+        body: input,
       },
     );
     return response.data;
   },
 
-  async downloadPayoutStatement(userId: string, payoutId: string): Promise<string> {
+  async recordCancellationRefund(userId: string, input): Promise<SettlementRecord> {
+    const response = await apiRequest<Envelope<SettlementRecord>>(
+      `/partners/${userId}/wallet/settlements/refund`,
+      {
+        method: "POST",
+        body: input,
+      },
+    );
+    return response.data;
+  },
+
+  async downloadSettlementStatement(userId: string, settlementId: string): Promise<string> {
     const response = await apiRequest<Envelope<{ csv: string }>>(
-      `/partners/${userId}/wallet/payouts/${payoutId}/statement`,
+      `/partners/${userId}/wallet/settlements/${settlementId}/statement`,
       {
         method: "POST",
       },
     );
     return response.data.csv;
+  },
+
+  async listSettlementAccounts(userId: string): Promise<SettlementAccount[]> {
+    const response = await apiRequest<Envelope<SettlementAccount[]>>(
+      `/partners/${userId}/wallet/settlement-accounts`,
+    );
+    return response.data;
+  },
+
+  async listSettlementAccountHistory(userId: string): Promise<SettlementAccountHistoryEntry[]> {
+    const response = await apiRequest<Envelope<SettlementAccountHistoryEntry[]>>(
+      `/partners/${userId}/wallet/settlement-accounts/history`,
+    );
+    return response.data;
+  },
+
+  async submitSettlementAccount(
+    userId: string,
+    input,
+  ): Promise<SubmitSettlementAccountResult> {
+    const response = await apiRequest<Envelope<SubmitSettlementAccountResult>>(
+      `/partners/${userId}/wallet/settlement-accounts`,
+      {
+        method: "POST",
+        body: input,
+      },
+    );
+    return response.data;
+  },
+
+  async verifySettlementAccountOtp(userId: string, input): Promise<SettlementAccount> {
+    const response = await apiRequest<Envelope<SettlementAccount>>(
+      `/partners/${userId}/wallet/settlement-accounts/verify-otp`,
+      {
+        method: "POST",
+        body: input,
+      },
+    );
+    return response.data;
   },
 };

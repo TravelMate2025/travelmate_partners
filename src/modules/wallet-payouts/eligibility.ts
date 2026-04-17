@@ -1,11 +1,11 @@
-export type PayoutEligibilityInput = {
-  availableBalance: number;
-  minimumThreshold: number;
+export type SettlementEligibilityInput = {
+  grossAmount: number;
+  minimumSettleAmount: number;
   reserveHoldBalance?: number;
 };
 
-export function canRequestPayout(input: PayoutEligibilityInput) {
+export function canSettleBooking(input: SettlementEligibilityInput) {
   const reserveHold = input.reserveHoldBalance ?? 0;
-  const eligibleAmount = input.availableBalance - reserveHold;
-  return eligibleAmount >= input.minimumThreshold && eligibleAmount > 0;
+  const eligibleAmount = input.grossAmount - reserveHold;
+  return eligibleAmount >= input.minimumSettleAmount && eligibleAmount > 0;
 }

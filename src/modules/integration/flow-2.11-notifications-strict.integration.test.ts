@@ -50,7 +50,17 @@ describe("Flow 2.11 strict alignment (notifications and communication)", () => {
     });
     await verificationClient.submitVerification(userId);
 
-    await walletPayoutsClient.listPayouts(userId);
+    const completion = await walletPayoutsClient.recordBookingCompletion(userId, {
+      bookingReference: "TM-BOOK-2111001",
+      grossAmount: 44000,
+    });
+    await walletPayoutsClient.listSettlements(userId);
+    await walletPayoutsClient.recordCancellationRefund(userId, {
+      settlementId: completion.id,
+      refundAmount: 5000,
+      reason: "Traveler cancelled after settlement.",
+      status: "partner_notified",
+    });
 
     let notifications = await notificationsClient.listNotifications(userId);
 
@@ -64,7 +74,9 @@ describe("Flow 2.11 strict alignment (notifications and communication)", () => {
       notifications.some((item) => item.eventType === "verification_status_updated"),
     ).toBe(true);
     expect(
-      notifications.some((item) => item.eventType === "payout_status_updated"),
+      notifications.some(
+        (item) => item.eventType === "settlement_refund_status_updated",
+      ),
     ).toBe(true);
     expect(
       notifications.some(

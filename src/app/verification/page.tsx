@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useToastMessage } from "@/components/common/use-toast-message";
 import { authClient } from "@/modules/auth/auth-client";
 import type { PartnerUser } from "@/modules/auth/contracts";
 import type {
@@ -25,6 +26,7 @@ export default function VerificationPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  useToastMessage(message);
   const [uploadState, setUploadState] = useState<"idle" | "uploading">("idle");
   const [category, setCategory] = useState<VerificationDocCategory>("identity");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);

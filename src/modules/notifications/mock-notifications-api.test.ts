@@ -12,11 +12,11 @@ describe("mockNotificationsApi", () => {
     expect(notifications.length).toBeGreaterThan(0);
 
     notifications = await mockNotificationsApi.emitEvent("u1", {
-      eventType: "payout_status_updated",
+      eventType: "settlement_refund_status_updated",
       channels: ["in_app", "email"],
       contextLabel: "Processing",
     });
-    expect(notifications[0].eventType).toBe("payout_status_updated");
+    expect(notifications[0].eventType).toBe("settlement_refund_status_updated");
     expect(notifications[0].emailDispatched).toBe(true);
     expect(notifications[0].channels).toContain("in_app");
     expect(notifications[0].channels).toContain("email");

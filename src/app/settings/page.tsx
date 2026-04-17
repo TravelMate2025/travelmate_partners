@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 
 import { listAuditEvents } from "@/modules/audit/audit-log";
 import { PartnerShell } from "@/components/common/partner-shell";
+import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import type {
   PartnerSettings,
@@ -20,6 +21,7 @@ export default function SettingsPage() {
   const [auditItems, setAuditItems] = useState(() => [] as ReturnType<typeof listAuditEvents>);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  useToastMessage(message);
 
   useEffect(() => {
     if (!user) {
@@ -264,7 +266,7 @@ export default function SettingsPage() {
               <option value="technical">Technical</option>
               <option value="verification">Verification</option>
               <option value="listing">Listing</option>
-              <option value="payout">Payout</option>
+              <option value="payout">Settlement / Refund</option>
             </select>
           </label>
           <label className="tm-field">

@@ -24,6 +24,7 @@ npm run test:all
 E2E coverage currently includes:
 - Flow 2.1 auth UI journey (signup -> verify email -> login).
 - Flows 2.2 to 2.5 UI journey (onboarding -> verification -> dashboard -> stays lifecycle).
+- Flow 2.14 wallet/settlement UI journey (booking completion -> settlement update -> cancellation refund tracking -> statement download).
 
 ## API Integration Modes
 
@@ -71,14 +72,14 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
 - Flow 2.11 (`Notifications and Communication`): Completed
 - Flow 2.12 (`Reports and Insights`): Completed
 - Flow 2.13 (`Partner Support and Settings`): Completed
-- Flow 2.14 (`Wallet, Earnings, and Payouts`): Pending approval
-- Next target: Flow 2.15 (`Payout Account Details and Verification`) after 2.14 approval
+- Flow 2.14 (`Wallet, Earnings, and Booking Settlement`): Completed and strict-alignment confirmed (mock/module-first)
+- Next target: Flow 2.15 (`Settlement Account Details and Verification`)
 
 Recent updates:
 - Flow 2.5 strict validation test added (`src/modules/integration/flow-2.5-stays-strict.integration.test.ts`) with explicit assertions for create, enrich, submit/save-draft, status transitions, edit, pause, and archive.
 - Dashboard quick action behavior corrected: `Add Stay` now routes directly to `/stays/new` instead of mutating pending approval counters.
 - UI polish pass applied across auth, onboarding, verification, dashboard, and stays pages with a unified visual system (new typography, richer surfaces, stronger CTA styling, and subtle motion).
-- Product shell expanded to include plan-aligned module navigation (`Dashboard`, `Onboarding`, `Verification`, `Stays`, `Transfers`, `Pricing & Availability`, `Wallet & Payouts`, `Notifications`, `Reports`, `Support & Settings`) with scaffolded "Coming soon" pages for not-yet-implemented flows.
+- Product shell expanded to include plan-aligned module navigation (`Dashboard`, `Onboarding`, `Verification`, `Stays`, `Transfers`, `Pricing & Availability`, `Wallet & Settlements`, `Notifications`, `Reports`, `Support & Settings`) with scaffolded "Coming soon" pages for not-yet-implemented flows.
 - Flow 2.6 implementation added:
   - Pricing and availability page with stay selection (`/pricing-availability`)
   - Currency + base/weekday/weekend rates, min/max stay rules
@@ -108,7 +109,7 @@ Recent updates:
   - Strict flow alignment test added (`src/modules/integration/flow-2.10-data-quality-strict.integration.test.ts`)
 - Flow 2.11 implementation added:
   - Notifications center (`/notifications`) with read/unread filters, acknowledge, and mark-all-read actions
-  - Event routing coverage for verification, moderation, payout updates, and incomplete listing reminders
+  - Event routing coverage for verification, moderation, settlement/refund updates, and incomplete listing reminders
   - Optional email dispatch metadata with in-app notification channel support
   - Strict flow alignment test added (`src/modules/integration/flow-2.11-notifications-strict.integration.test.ts`)
 - Flow 2.12 implementation added:
@@ -123,22 +124,27 @@ Recent updates:
   - Audit trail logging and visibility for settings updates, support tickets, and deactivation requests
   - Strict flow alignment test added (`src/modules/integration/flow-2.13-support-settings-strict.integration.test.ts`)
 - Flow 2.14 implementation added:
-  - Wallet and payouts module (`/wallet-payouts`) with pending/available/paid balance views
-  - Payout settings management (schedule, minimum threshold, manual request mode)
-  - Manual payout request flow with status progression (`pending` -> `processing` -> `paid`)
-  - Downloadable payout statements and deduction breakdown visibility
+  - Wallet and settlements module (`/wallet-payouts`) with pending/available/paid balance views
+  - Settlement settings management (auto-settlement, reserve hold, admin refund-notification rule)
+  - Booking-completion settlement flow with lifecycle progression (`pending_completion` -> `processing` -> `paid`)
+  - Cancellation refund tracking with partner-notified/refunded/disputed/recovered statuses
+  - Downloadable settlement statements and deduction breakdown visibility
   - Strict flow alignment test added (`src/modules/integration/flow-2.14-wallet-payouts-strict.integration.test.ts`)
-  - Status note: implementation is in code and test-covered, but kept pending approval in planning status.
+  - Dedicated E2E flow coverage added (`e2e/flow-2.14-wallet-settlement.spec.ts`)
+  - Status note: implemented in code and test-covered with local/mock adapters; Django API integration is deferred.
 
 Latest validation snapshot (April 17, 2026):
-- `npm test`: 61/61 tests passing
+- `npm test`: 67/67 tests passing
 - `npm run build`: passing
+- `npm run test:e2e`: 4/4 passing
+- `npx playwright test e2e/flow-2.14-wallet-settlement.spec.ts`: 1/1 passing
 
 Alignment updates (April 17, 2026):
 - Verification lifecycle terminology aligned to `pending`, `in_review`, `approved`, `rejected`.
 - Added middleware-based route protection using partner session cookie (`tm_partner_session`) so protected routes are not client-check-only.
 - Added audit log recording support for verification document updates/submission and listing publish/pause actions in mock flows.
 - Added module scaffolds and tests for `wallet-payouts`, `notifications`, and `reports`.
+- Flow 2.14 strict alignment confirmed against the partner plan for the current frontend/module-first phase; payout-account verification remains deferred to Flow 2.15 / later Django wiring.
 
 Onboarding behavior implemented:
 - Login routes users to `/onboarding`.

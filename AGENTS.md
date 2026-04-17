@@ -3,7 +3,7 @@
 ## Application Identity
 - Product name: `TravelMate Partner`
 - App type: Partner-facing web application
-- Purpose: Enable verified agents/partners to onboard, manage stays and transfers, track earnings, and configure payouts.
+- Purpose: Enable verified agents/partners to onboard, manage stays and transfers, track earnings, and receive booking-completion settlements.
 
 ## Primary Users
 - Partner Agent
@@ -18,7 +18,7 @@ The `partner_app` is responsible for:
 - Stay listing creation and management
 - Transfer/taxi listing creation and management
 - Pricing and availability management
-- Wallet, earnings, payout setup, and payout status tracking
+- Wallet, earnings, settlement account (payout method) setup, booking-completion settlement, and refund status tracking
 - Partner notifications and basic partner-side reporting
 
 The `partner_app` is **not** responsible for:
@@ -34,7 +34,8 @@ Use these terms consistently across code, UI text, and docs:
 - `Transfer` (for taxi/ride inventory)
 - `Verification` statuses: `pending`, `in_review`, `approved`, `rejected`
 - Listing statuses: `draft`, `pending`, `approved`, `live`, `paused`, `rejected`, `archived`
-- Payout statuses: `pending`, `processing`, `paid`, `failed`, `reversed`
+- Settlement statuses: `pending_completion`, `processing`, `paid`, `failed`, `reversed`
+- Refund statuses: `requested`, `partner_notified`, `refunded`, `disputed`, `recovered`
 
 ## Functional Modules
 - `auth`: sign up, sign in, reset password, session handling
@@ -43,23 +44,25 @@ Use these terms consistently across code, UI text, and docs:
 - `stays`: stay CRUD, media, amenities, policies, room/unit details
 - `transfers`: transfer CRUD, route, vehicle, operating schedule
 - `pricing_availability`: seasonal pricing, calendars, blackout dates
-- `wallet_payouts`: balances, payout account setup, payout history, statements
+- `wallet_payouts`: balances, settlement account setup, booking-linked settlement history, refund tracking, statements
 - `notifications`: in-app and email-trigger metadata
 - `reports`: partner-side listing and earnings insights
 
 ## Data and Security Rules
 - Never store plaintext secrets or sensitive financial details in logs.
-- Mask payout account details in UI and logs (show only safe partial values).
-- Encrypt sensitive personal and payout fields at rest.
+- Mask settlement account details in UI and logs (show only safe partial values).
+- Encrypt sensitive personal and settlement account fields at rest.
 - Enforce role-based access on every protected route and API action.
 - Record audit events for critical actions:
   - verification submission/update
-  - payout account changes
+  - settlement account changes
   - listing publish/pause actions
+  - booking settlement execution/failure
+  - refund request and resolution actions
 
 ## UX and Product Rules
 - Prioritize clear, fast partner workflows with direct next actions.
-- Show actionable status messages for verification, listing moderation, and payouts.
+- Show actionable status messages for verification, listing moderation, settlements, and refunds.
 - Use clear empty states with direct next actions.
 - Keep forms resumable where possible (especially onboarding and listing creation).
 
@@ -68,7 +71,7 @@ Use these terms consistently across code, UI text, and docs:
 - Use Next.js App Router (`src/app`) for all route definitions.
 - Keep modules feature-based to match the functional modules above.
 - Validate incoming data at boundary layers (client and server).
-- Favor explicit types for domain entities (`Partner`, `Stay`, `Transfer`, `Payout`).
+- Favor explicit types for domain entities (`Partner`, `Stay`, `Transfer`, `Settlement`, `Refund`).
 - All modules must be thoroughly tested.
 - Minimum expectation per module:
   - unit tests for business logic and edge cases
@@ -77,7 +80,7 @@ Use these terms consistently across code, UI text, and docs:
 - Require explicit coverage for:
   - status transitions
   - pricing/availability rules
-  - payout eligibility rules
+  - settlement eligibility and refund recovery rules
 
 ## Suggested Folder Structure (Next.js Reference)
 - `src/app` (App Router pages, layouts, route groups, route handlers)
@@ -104,7 +107,7 @@ Use these terms consistently across code, UI text, and docs:
 - Use shared UI components from `src/components/ui` to maintain design consistency.
 
 ## Performance Standards
-- Optimize for Core Web Vitals on key partner pages (dashboard, stays, transfers, payouts).
+- Optimize for Core Web Vitals on key partner pages (dashboard, stays, transfers, settlements).
 - Target page load performance:
   - LCP under 2.5s on standard broadband for primary pages
   - INP under 200ms for core interactions
@@ -122,8 +125,8 @@ Use these terms consistently across code, UI text, and docs:
 2. Verification submission + status tracking
 3. Stay and Transfer listing CRUD
 4. Pricing and availability management
-5. Wallet and payout account setup
-6. Payout status and statements
+5. Wallet, settlement account setup, and booking-completion settlement
+6. Settlement/refund status and statements
 
 ## Definition of Done (Feature Level)
 A feature is done when:
@@ -135,7 +138,7 @@ A feature is done when:
 
 ## Change Management
 - Keep status enums synchronized with backend contracts.
-- Any change to payout or verification flows must include audit and rollback considerations.
+- Any change to settlement, settlement account, refund, or verification flows must include audit and rollback considerations.
 - Update this `AGENTS.md` when scope, naming, or module boundaries change.
 
 ## Resource Cleanup Rules

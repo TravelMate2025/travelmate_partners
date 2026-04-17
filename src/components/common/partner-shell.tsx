@@ -81,8 +81,8 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       {
         href: "/wallet-payouts",
-        label: "Wallet & Payouts",
-        status: "soon",
+        label: "Wallet & Settlements",
+        status: "live",
         match: (path) => path.startsWith("/wallet-payouts"),
       },
       {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { authClient } from "@/modules/auth/auth-client";
 import { PartnerShell } from "@/components/common/partner-shell";
+import { useToastMessage } from "@/components/common/use-toast-message";
 import type { PartnerUser } from "@/modules/auth/contracts";
 import { profileClient } from "@/modules/profile/profile-client";
 import { staysClient } from "@/modules/stays/stays-client";
@@ -16,6 +17,7 @@ export default function NewStayPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  useToastMessage(message);
 
   useEffect(() => {
     let active = true;

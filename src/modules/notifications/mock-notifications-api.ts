@@ -73,18 +73,32 @@ function createNotificationFromEvent(
         actionLabel: "Open Listings",
         actionUrl: "/stays",
       };
-    case "payout_status_updated":
+    case "settlement_refund_status_updated":
       return {
         eventType: input.eventType,
-        title: "Payout Status Updated",
+        title: "Settlement/Refund Status Updated",
         message: context
-          ? `Payout status changed: ${context}.`
-          : "Your payout status has changed.",
+          ? `Settlement or refund status changed: ${context}.`
+          : "Your settlement or refund status has changed.",
         read: false,
         acknowledged: false,
         channels: input.channels,
         emailDispatched: input.channels.includes("email"),
-        actionLabel: "Open Wallet",
+        actionLabel: "Open Wallet & Settlements",
+        actionUrl: "/wallet-payouts",
+      };
+    case "settlement_account_updated":
+      return {
+        eventType: input.eventType,
+        title: "Settlement Account Updated",
+        message: context
+          ? `Settlement account update: ${context}.`
+          : "Your settlement account details have changed.",
+        read: false,
+        acknowledged: false,
+        channels: input.channels,
+        emailDispatched: input.channels.includes("email"),
+        actionLabel: "Review Payout Method",
         actionUrl: "/wallet-payouts",
       };
     case "incomplete_listing_reminder":

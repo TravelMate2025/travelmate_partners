@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { InfoHint } from "@/components/common/info-hint";
 import { PartnerShell } from "@/components/common/partner-shell";
+import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import { transferPricingSchedulingClient } from "@/modules/transfer-pricing-scheduling/transfer-pricing-scheduling-client";
 import type {
@@ -44,6 +45,7 @@ export default function TransferPricingSchedulingPage() {
   const [config, setConfig] = useState<TransferPricingScheduling | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  useToastMessage(message);
 
   const [currency, setCurrency] = useState("NGN");
   const [baseFare, setBaseFare] = useState("0");

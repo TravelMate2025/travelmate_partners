@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { buildTransferQualityReport } from "@/modules/data-quality/listing-quality";
 import { PartnerShell } from "@/components/common/partner-shell";
+import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import type { TransferListing, TransferStatus, TransferType } from "@/modules/transfers/contracts";
 import { transfersClient } from "@/modules/transfers/transfers-client";
@@ -34,6 +35,7 @@ export default function TransferDetailPage() {
   const [allTransfers, setAllTransfers] = useState<TransferListing[]>([]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  useToastMessage(message);
   const [uploadState, setUploadState] = useState<"idle" | "uploading">("idle");
   const [featuresText, setFeaturesText] = useState("");
 

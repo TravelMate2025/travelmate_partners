@@ -3,32 +3,48 @@ import { describe, expect, it } from "vitest";
 import { mockWalletPayoutsApi } from "@/modules/wallet-payouts/mock-wallet-payouts-api";
 
 describe("mockWalletPayoutsApi", () => {
-  it("supports payout settings, request flow, lifecycle progression, and statement download", async () => {
+  it("supports settlement settings, booking completion, refund tracking, lifecycle progression, and statement download", async () => {
     const userId = "u1";
     const summary = await mockWalletPayoutsApi.getWalletSummary(userId);
-    const settings = await mockWalletPayoutsApi.getPayoutSettings(userId);
-    const payouts = await mockWalletPayoutsApi.listPayouts(userId);
+    const settings = await mockWalletPayoutsApi.getSettlementSettings(userId);
+    const settlements = await mockWalletPayoutsApi.listSettlements(userId);
 
     expect(summary.currency).toBe("NGN");
     expect(summary.reserveHoldDays).toBeGreaterThan(0);
-    expect(settings.minimumThreshold).toBeGreaterThan(0);
-    expect(payouts.length).toBeGreaterThan(0);
+    expect(settings.reserveHoldDays).toBeGreaterThan(0);
+    expect(settlements.length).toBeGreaterThan(0);
 
-    const updatedSettings = await mockWalletPayoutsApi.updatePayoutSettings(userId, {
-      minimumThreshold: 20000,
-      schedule: "weekly",
+    const updatedSettings = await mockWalletPayoutsApi.updateSettlementSettings(userId, {
+      reserveHoldDays: 3,
+      autoSettleOnBookingCompletion: true,
     });
-    expect(updatedSettings.minimumThreshold).toBe(20000);
-    expect(updatedSettings.schedule).toBe("weekly");
+    expect(updatedSettings.reserveHoldDays).toBe(3);
+    expect(updatedSettings.autoSettleOnBookingCompletion).toBe(true);
 
-    const requested = await mockWalletPayoutsApi.requestPayout(userId, 30000);
-    expect(requested.status).toBe("pending");
+    const created = await mockWalletPayoutsApi.recordBookingCompletion(userId, {
+      bookingReference: "TM-BOOK-1001",
+      grossAmount: 30000,
+    });
+    expect(created.status).toBe("pending_completion");
 
-    const afterList = await mockWalletPayoutsApi.listPayouts(userId);
-    expect(afterList.some((item) => item.id === requested.id)).toBe(true);
+    let afterList = await mockWalletPayoutsApi.listSettlements(userId);
+    const step1 = afterList.find((item) => item.id === created.id);
+    expect(step1?.status).toBe("processing");
 
-    const statement = await mockWalletPayoutsApi.downloadPayoutStatement(userId, requested.id);
+    afterList = await mockWalletPayoutsApi.listSettlements(userId);
+    const step2 = afterList.find((item) => item.id === created.id);
+    expect(step2?.status).toBe("paid");
+
+    const refunded = await mockWalletPayoutsApi.recordCancellationRefund(userId, {
+      settlementId: created.id,
+      refundAmount: 8000,
+      reason: "Traveler cancelled after settlement.",
+      status: "partner_notified",
+    });
+    expect(refunded.refundStatus).toBe("partner_notified");
+
+    const statement = await mockWalletPayoutsApi.downloadSettlementStatement(userId, created.id);
     expect(statement).toContain("field,value");
-    expect(statement).toContain("reference");
+    expect(statement).toContain("settlementReference");
   });
 });

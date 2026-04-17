@@ -13,7 +13,7 @@ const STEP_ORDER: OnboardingStepKey[] = ["business", "contact", "operations"];
 const STEP_LABELS: Record<OnboardingStepKey, string> = {
   business: "Business Details",
   contact: "Contact Details",
-  operations: "Operations & Payout",
+  operations: "Operations & Settlement",
 };
 
 function splitCsv(value: string) {
@@ -242,7 +242,7 @@ export default function OnboardingPage() {
                   onChange={(event) => setOperatingCitiesInput(event.target.value)}
                 />
                 <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-slate-700">Payout Schedule</span>
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Settlement Preference</span>
                   <select
                     className="tm-input"
                     value={formData.payoutSchedule}
@@ -257,7 +257,7 @@ export default function OnboardingPage() {
                       )
                     }
                   >
-                    <option value="">Select payout schedule</option>
+                    <option value="">Select settlement preference</option>
                     <option value="weekly">Weekly</option>
                     <option value="bi-weekly">Bi-weekly</option>
                     <option value="monthly">Monthly</option>

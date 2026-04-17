@@ -77,7 +77,7 @@ test.describe("TravelMate Partner implemented UI flows (2.2-2.5)", () => {
 
     await page.getByPlaceholder("Service regions (comma separated)").fill("Lagos, Abuja");
     await page.getByPlaceholder("Operating cities (comma separated)").fill("Lekki, Ikeja");
-    await page.getByLabel("Payout Schedule").selectOption("weekly");
+    await page.getByLabel("Settlement Preference").selectOption("weekly");
     await page.getByRole("button", { name: "Submit Onboarding" }).click();
 
     await expect(page).toHaveURL("/verification");
@@ -115,16 +115,16 @@ test.describe("TravelMate Partner implemented UI flows (2.2-2.5)", () => {
 
     await page.getByRole("button", { name: "Add Stay" }).click();
     await expect(page).toHaveURL("/stays/new");
-    await page.getByPlaceholder("Property type (hotel, apartment, villa...)").fill("hotel");
-    await page.getByPlaceholder("Stay name").fill("Ocean View Hotel");
-    await page.getByPlaceholder("Short description").fill("Seaside property for guests.");
-    await page.getByPlaceholder("Address").fill("1 Marina Road");
-    await page.getByPlaceholder("City").fill("Lagos");
-    await page.getByPlaceholder("Country").fill("Nigeria");
+    await page.getByLabel("Property Type").fill("hotel");
+    await page.getByLabel("Stay Name").fill("Ocean View Hotel");
+    await page.getByLabel("Description").fill("Seaside property for guests.");
+    await page.getByLabel("Address").fill("1 Marina Road");
+    await page.getByLabel("City").fill("Lagos");
+    await page.getByLabel("Country").fill("Nigeria");
     await page.getByRole("button", { name: "Create Stay Draft" }).click();
 
     await expect(page).toHaveURL(/\/stays\/.+/);
-    await page.getByPlaceholder("Amenities (comma separated)").fill("wifi, pool");
+    await page.getByLabel("Amenities").fill("wifi, pool");
     await page.getByRole("button", { name: "Save Details" }).click();
     await expect(page.getByText("Stay details saved.")).toBeVisible();
 
@@ -140,7 +140,7 @@ test.describe("TravelMate Partner implemented UI flows (2.2-2.5)", () => {
       mimeType: "image/jpeg",
       buffer: Buffer.from("mock-image-data"),
     });
-    await expect(page.getByText("Image added.")).toBeVisible();
+    await expect(page.getByRole("status").getByText("Image added.")).toBeVisible();
 
     await page.getByRole("button", { name: "Submit for Review" }).click();
     await expect(page.getByText("Status updated to rejected.")).toBeVisible();

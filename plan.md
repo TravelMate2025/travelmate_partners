@@ -111,33 +111,33 @@
 - Password change and account security settings
 - Account deactivation request
 
-### 1.14 Partner Wallet, Earnings, and Payouts
+### 1.14 Partner Wallet, Earnings, and Booking Settlement
 - Earnings wallet/ledger view
 - View pending balance, available balance, and paid balance
-- Payout method setup (bank account or mobile money where supported)
-- Payout schedule selection (weekly, bi-weekly, monthly)
-- Minimum payout threshold configuration
-- Reserve/hold period visibility for new earnings
-- Payout request flow (manual mode, if enabled)
-- Payout status tracking (pending, processing, paid, failed, reversed)
-- Failed payout retry and correction flow
-- Download payout statements and earnings reports
-- Commission/fee deductions breakdown per payout
+- Settlement account (payout method) setup (bank account or mobile money where supported)
+- Booking-completion settlement (net payout released when booking is completed)
+- Automatic commission/fee deduction before settlement
+- Settlement status tracking (pending_completion, processing, paid, failed, reversed)
+- Reserve/hold visibility for risk-managed settlements where applicable
+- Failed settlement retry and correction flow
+- Download settlement statements and earnings reports
+- Commission/fee deductions breakdown per settled booking
 - Tax/withholding summary visibility (where applicable)
+- Cancellation/refund impact view on wallet balance and settlement history
 
-### 1.15 Payout Account Details and Verification
-- Payout details form for bank or mobile money accounts
-- Required payout fields by country (account holder name, bank name, account number/IBAN, routing/SWIFT where required)
-- Country and currency selection for payouts
+### 1.15 Settlement Account (Payout Method) Details and Verification
+- Settlement account details form for bank or mobile money accounts
+- Required settlement account fields by country (account holder name, bank name, account number/IBAN, routing/SWIFT where required)
+- Country and currency selection for settlement accounts
 - Account ownership verification status (pending, verified, rejected)
-- OTP confirmation for payout account submission/updates
-- Name match check between KYC profile and payout account holder name
-- Re-verification required when payout details are changed
+- OTP confirmation for settlement account submission/updates
+- Name match check between KYC profile and settlement account holder name
+- Re-verification required when settlement account details are changed
 - Masked account display in UI (show only safe partial data, e.g., last 4 digits)
-- Ability to set one default payout method
+- Ability to set one default settlement account method
 - Validation messages for invalid or unsupported account formats
-- Submission history for payout account updates
-- Alert notifications when payout details are updated
+- Submission history for settlement account updates
+- Alert notifications when settlement account details are updated
 
 ## 2. Feature Flows (Partner App)
 
@@ -152,7 +152,7 @@
 ### 2.2 Partner Profile and Onboarding Flow
 - Verified user starts onboarding wizard.
 - User completes business identity and contact fields.
-- User selects service regions and payout preferences.
+- User selects service regions and settlement preferences.
 - System saves progress and updates checklist.
 - User completes required steps and submits profile.
 
@@ -211,7 +211,7 @@
 - System forwards clean listing to review.
 
 ### 2.11 Notifications and Communication Flow
-- System emits events for verification, moderation, payout, and reminders.
+- System emits events for verification, moderation, settlement/refund updates, and reminders.
 - Notification service creates in-app message and optional email.
 - User views and acknowledges notifications.
 - Notification status updates to read/unread.
@@ -227,20 +227,22 @@
 - System validates and saves updates.
 - System confirms result and logs audit trail.
 
-### 2.14 Wallet, Earnings, and Payouts Flow
-- System ingests earning events to partner ledger.
-- User views pending, available, and paid balances.
-- User sets payout schedule/threshold.
-- User requests payout where manual mode exists.
-- System updates payout status until completion/failure.
-- User downloads payout statement and deduction breakdown.
+### 2.14 Wallet, Earnings, and Booking Settlement Flow
+- Booking completion is recorded in local/mock app state for settlement processing.
+- System computes commission/fees and net partner amount per completed booking.
+- System advances settlement state in local/mock data using configured settlement account metadata.
+- User views pending, available, and paid balances with booking-level breakdown.
+- System updates settlement status until completion/failure.
+- If traveler cancels after settlement, admin notifies partner to issue refund and tracks resolution.
+- User downloads settlement statement and deduction breakdown.
 
-### 2.15 Payout Account Details and Verification Flow
-- User adds bank/mobile payout details.
+### 2.15 Settlement Account (Payout Method) Details and Verification Flow
+- User adds bank/mobile settlement account details.
 - System validates account format by country.
-- System sends OTP and runs ownership/name checks.
-- System marks payout method status.
+- System runs OTP and ownership/name verification through local/mock verification adapters.
+- System marks settlement account method status.
 - On updates, system triggers re-verification and alerts.
+- Django-backed verification integration is deferred to the backend phase.
 
 ## Project Status
 
@@ -257,7 +259,7 @@
 - Flow 2.11 Notifications and Communication: `Completed`
 - Flow 2.12 Reports and Insights: `Completed`
 - Flow 2.13 Partner Support and Settings: `Completed`
-- Flow 2.14 Wallet, Earnings, and Payouts: `Pending approval`
+- Flow 2.14 Wallet, Earnings, and Booking Settlement: `Completed and strict-alignment confirmed (frontend/module-first)`
 - Flow 2.15 and onward: `Not started`
 
 Latest completion notes:
@@ -281,7 +283,7 @@ Latest completion notes:
 - Transfer detail flow hardened for legacy data shapes so missing array fields (`features`, `images`) no longer crash render and quality checks.
 - Flow 2.11 notifications is now implemented with event emission scaffolding, in-app notification center UI, read/unread toggles, acknowledge action, optional email dispatch metadata, and mark-all-read controls.
 - Strict Flow 2.11 validation coverage is added via dedicated integration test (`flow-2.11-notifications-strict.integration.test.ts`) aligned to each flow bullet in section 2.11.
-- Flow 2.11 event emission is now wired to system workflows (verification submission/status change, moderation outcomes, payout status reads, and incomplete listing submission reminders) rather than simulator-only triggers.
+- Flow 2.11 event emission is now wired to system workflows (verification submission/status change, moderation outcomes, settlement/refund status updates, and incomplete listing submission reminders) rather than simulator-only triggers.
 - Navigation status is updated so Notifications is marked live in the app shell (no "Soon" tag).
 - Flow 2.12 reports is now implemented with date-range selection, aggregated performance metrics, listing health indicators, and CSV export with selected range context.
 - Strict Flow 2.12 validation coverage is added via dedicated integration test (`flow-2.12-reports-strict.integration.test.ts`) aligned to each flow bullet in section 2.12.
@@ -289,15 +291,25 @@ Latest completion notes:
 - Flow 2.13 support and settings is now implemented with partner preference updates (profile/security), support ticket submission and status list, account deactivation request flow, and audit trail visibility in module UI.
 - Strict Flow 2.13 validation coverage is added via dedicated integration test (`flow-2.13-support-settings-strict.integration.test.ts`) aligned to each flow bullet in section 2.13.
 - Navigation status is updated so Support & Settings is marked live in the app shell (no "Soon" tag).
-- Flow 2.14 wallet and payouts implementation is completed in code but currently pending product approval before sign-off.
-- Flow 2.14 strict validation coverage is implemented via dedicated integration test (`flow-2.14-wallet-payouts-strict.integration.test.ts`) and held pending approval with the feature.
-- Navigation status for Wallet & Payouts is kept as "Soon" until flow approval.
+- Flow 2.14 is implemented with booking-completion settlement lifecycle (`pending_completion` -> `processing` -> `paid`) in local/mock adapters.
+- Flow 2.14 includes cancellation refund tracking with admin-notified partner workflow states and wallet impact updates.
+- Flow 2.14 strict validation coverage (`flow-2.14-wallet-payouts-strict.integration.test.ts`) is aligned to settlement and cancellation-refund behaviors.
+- Flow 2.14 dedicated E2E coverage is now added and passing (`e2e/flow-2.14-wallet-settlement.spec.ts`) for booking completion, refund tracking, and statement download.
+- UI/E2E alignment for Flow 2.14 and dependent flows is updated to current settlement terminology and toast semantics.
+- Navigation status for Wallet & Settlements is now live in the app shell.
+- Flow 2.14 implementation scope for this phase is frontend/module-first with mock adapters; Django APIs will be introduced in a later backend phase.
+- Flow 2.14 strict alignment is confirmed against the feature flow in section 2.14 for this phase: booking completion is recorded in local/mock state, deductions and net payout are computed, settlement status advances in local/mock data, balances and booking-level breakdowns are visible, cancellation refund tracking is present, and downloadable settlement statements are supported.
+- Settlement account details capture, country/account-format validation, OTP confirmation, ownership/name checks, and re-verification remain intentionally deferred to Flow 2.15 and are not part of the confirmed Flow 2.14 scope.
 
 ## 3. Flow-Based Implementation Plan
 
+Alignment rule for this section:
+- Each `Flow 2.x` implementation item below maps directly to the corresponding `Feature Flow 2.x` above.
+- Current phase implementation is frontend/module-first with local/mock adapters; Django API integration is deferred to a later backend phase.
+
 ### Flow 2.1: Authentication and Account Access
 - Implementation steps:
-  - Build sign-up/sign-in/reset endpoints and UI screens.
+  - Build sign-up/sign-in/reset UI screens and route actions with local/mock auth adapters.
   - Add email verification and optional OTP verification.
   - Implement secure session/token handling and logout-all-devices.
   - Enforce password policy and suspicious-login checks.
@@ -415,7 +427,7 @@ Latest completion notes:
 
 ### Flow 2.9: Media and Document Management
 - Implementation steps:
-  - Build upload service integration for images/documents.
+  - Build image/document upload integration through local/mock file adapters for this phase.
   - Add replace/remove/reorder flows.
   - Enforce file type, size, and count validations.
 - Required tests:
@@ -443,9 +455,9 @@ Latest completion notes:
 
 ### Flow 2.11: Notifications and Communication
 - Implementation steps:
-  - Implement event-driven notification pipeline.
+  - Implement event-driven notification pipeline using local/mock event emitters in this phase.
   - Build in-app notification center and read/unread states.
-  - Add email templates for verification/moderation/payout events.
+  - Add email templates for verification/moderation/settlement/refund events.
 - Required tests:
   - Unit: template rendering and notification routing.
   - Integration: event -> notification -> delivery status.
@@ -457,7 +469,7 @@ Latest completion notes:
 
 ### Flow 2.12: Reports and Insights
 - Implementation steps:
-  - Build report data aggregation endpoints.
+  - Build report data aggregation layer/services for the partner module (no API endpoints in this phase).
   - Implement partner report UI with date filters.
   - Add CSV export generation and download flow.
 - Required tests:
@@ -483,35 +495,39 @@ Latest completion notes:
   - Support requests are recorded consistently.
   - All support/settings tests pass in CI.
 
-### Flow 2.14: Wallet, Earnings, and Payouts
+### Flow 2.14: Wallet, Earnings, and Booking Settlement
 - Implementation steps:
   - Implement partner ledger balances and transaction views.
-  - Build payout schedule/threshold configuration.
-  - Add payout request, status tracking, and statement downloads.
-  - Show fee/tax deduction breakdown.
+  - Trigger settlement state transitions automatically when a booking is marked completed in local/mock data.
+  - Deduct commission/fees before calculating net partner settlement amount.
+  - Add settlement status tracking and statement downloads in the partner UI.
+  - Implement cancellation-refund operations flow where admin notifies partner and tracks refund completion status.
+  - Show fee/tax deduction breakdown per settled booking.
+  - Keep integration behind module adapters so Django API wiring can be added later without UI rewrite.
 - Required tests:
-  - Unit: ledger math, payout eligibility, deduction calculations.
-  - Integration: earning event -> balance update -> payout lifecycle.
-  - E2E: configure payout and track payout status end-to-end.
+  - Unit: ledger math, settlement eligibility, deduction calculations, refund impact calculations.
+  - Integration: mock booking completion -> balance update -> settlement lifecycle; mock cancellation -> admin notification -> refund resolution tracking.
+  - E2E: complete booking in test fixtures triggers partner settlement state updates; cancellation triggers admin refund notification and tracked refund status updates.
 - Success criteria:
-  - Ledger totals reconcile with payout statements.
-  - Payout state transitions are deterministic.
-  - All wallet/payout tests pass in CI.
+  - Ledger totals reconcile with booking-level settlement statements.
+  - Settlement and refund state transitions are deterministic.
+  - All wallet/settlement tests pass in CI.
 
-### Flow 2.15: Payout Account Details and Verification
+### Flow 2.15: Settlement Account (Payout Method) Details and Verification
 - Implementation steps:
-  - Build payout account form with country-specific validation.
+  - Build settlement account form with country-specific validation.
   - Add OTP confirmation and account ownership checks.
   - Enforce masked display and re-verification on account changes.
-  - Add payout-method history timeline.
+  - Add settlement account method history timeline.
+  - Implement this phase with local/mock verification adapters; defer Django integration to backend phase.
 - Required tests:
   - Unit: country format validators, masking logic, ownership checks.
-  - Integration: add/update payout account -> verify -> status changes.
-  - E2E: set payout account, verify OTP, update details, re-verify.
+  - Integration: add/update settlement account -> mock verify -> status changes.
+  - E2E: set settlement account, verify OTP, update details, re-verify.
 - Success criteria:
-  - Sensitive payout details are never exposed in plain form.
+  - Sensitive settlement account details are never exposed in plain form.
   - Re-verification triggers correctly after account changes.
-  - All payout account tests pass in CI.
+  - All settlement account tests pass in CI.
 
 ## 4. Test Strategy by Module
 
@@ -535,10 +551,10 @@ Latest completion notes:
 - Integration: pricing with calendar persistence.
 - E2E: user updates reflected end-to-end.
 
-### Wallet and Payouts Module
-- Unit: ledger math, payout eligibility, masking.
-- Integration: earnings ingestion to payout completion.
-- E2E: payout setup and statement generation.
+### Wallet and Settlement Module
+- Unit: ledger math, settlement eligibility, refund impact logic, masking.
+- Integration: mock booking completion ingestion to settlement completion; mock cancellation to refund tracking.
+- E2E: settlement account setup, booking settlement, and refund status journey.
 
 ### Notifications and Reports Modules
 - Unit: notification routing and report transforms.
@@ -555,5 +571,5 @@ Latest completion notes:
   - verification
   - listing creation and submission
   - pricing and availability updates
-  - payout setup and payout tracking
+  - settlement account setup and booking-completion settlement/refund tracking
 - Production observability dashboards and alerts are active for key flows.

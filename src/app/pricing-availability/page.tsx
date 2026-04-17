@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { PartnerShell } from "@/components/common/partner-shell";
 import { InfoHint } from "@/components/common/info-hint";
+import { PartnerShell } from "@/components/common/partner-shell";
+import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import { pricingAvailabilityClient } from "@/modules/pricing-availability/pricing-availability-client";
 import type {
@@ -30,6 +31,7 @@ export default function PricingAvailabilityPage() {
   const [pricing, setPricing] = useState<StayPricingAvailability | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  useToastMessage(message);
 
   const [baseRate, setBaseRate] = useState("0");
   const [currency, setCurrency] = useState("NGN");

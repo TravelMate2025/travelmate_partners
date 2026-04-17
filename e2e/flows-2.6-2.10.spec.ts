@@ -171,7 +171,9 @@ test.describe("TravelMate Partner implemented UI flows (2.6-2.10)", () => {
     await page.goto("/pricing-availability");
     await expect(page.getByRole("heading", { name: "Pricing & Availability" })).toBeVisible();
     await page.getByRole("button", { name: "Save Pricing & Availability" }).click();
-    await expect(page.getByText("Pricing and availability saved.")).toBeVisible();
+    await expect(
+      page.getByRole("status").getByText("Pricing and availability saved."),
+    ).toBeVisible();
 
     await page.goto("/transfer-pricing-scheduling");
     await expect(page.getByRole("heading", { name: "Transfer Pricing & Scheduling" })).toBeVisible();
