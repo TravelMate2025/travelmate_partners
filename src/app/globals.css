@@ -13,6 +13,11 @@
   --tm-shadow-soft: 0 22px 60px -36px rgba(3, 61, 137, 0.58);
   --tm-shadow-strong: 0 30px 70px -34px rgba(2, 37, 78, 0.48);
   --tm-surface-highlight: rgba(255, 255, 255, 0.62);
+  --font-geist-sans:
+    "Avenir Next", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-geist-mono:
+    "SFMono-Regular", "Cascadia Code", "Fira Code", Consolas, "Liberation Mono",
+    Menlo, monospace;
 }
 
 @theme inline {

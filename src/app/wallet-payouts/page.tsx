@@ -347,11 +347,7 @@ export default function WalletPayoutsPage() {
       setSelectedAccountId(result.account.id);
       setAccountForm(mapAccountToForm(result.account));
       setOtpCode("");
-      setMessage(
-        result.otpCodeHint
-          ? `Settlement account submitted. Mock OTP: ${result.otpCodeHint}`
-          : "Settlement account submitted.",
-      );
+      setMessage("Settlement account submitted. Check your email for the verification code.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to submit settlement account.");
     } finally {

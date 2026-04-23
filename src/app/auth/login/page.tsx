@@ -1,21 +1,21 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { AuthShell } from "@/components/common/auth-shell";
+import { showToast } from "@/components/common/toast";
 import { authClient } from "@/modules/auth/auth-client";
 
-export default function LoginPage() {
-  const [message, setMessage] = useState("");
+function LoginPageInner() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setMessage("");
 
     const form = new FormData(event.currentTarget);
     try {
@@ -25,14 +25,13 @@ export default function LoginPage() {
       });
 
       if (result.suspiciousLogin) {
-        setMessage("Login successful. Suspicious login alert: new device fingerprint detected.");
-      } else {
-        setMessage("Login successful.");
+        showToast({ message: "Signed in — new device detected on your account.", kind: "info" });
       }
 
-      router.push("/onboarding");
+      const redirectPath = searchParams.get("redirect") || "/onboarding";
+      router.push(redirectPath);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Login failed.");
+      showToast({ message: error instanceof Error ? error.message : "Login failed.", kind: "error" });
     } finally {
       setLoading(false);
     }
@@ -51,12 +50,31 @@ export default function LoginPage() {
       <form className="space-y-4" onSubmit={onSubmit}>
         <input name="email" type="email" placeholder="Email" required className="tm-input" />
         <input name="password" type="password" placeholder="Password" required className="tm-input" />
-        <button disabled={loading} className="tm-btn tm-btn-primary w-full disabled:opacity-70" type="submit">
-          {loading ? "Signing in..." : "Sign in"}
+        <button disabled={loading} className="tm-btn tm-btn-primary w-full disabled:opacity-70 disabled:cursor-not-allowed" type="submit">
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              Signing in…
+            </span>
+          ) : "Sign in"}
         </button>
       </form>
-
-      {message ? <p className="tm-note text-sm">{message}</p> : null}
     </AuthShell>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="tm-page">
+          <div className="tm-shell tm-panel mx-auto max-w-5xl p-6">
+            <p className="text-sm text-slate-600">Loading sign in...</p>
+          </div>
+        </main>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
   );
 }

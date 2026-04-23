@@ -31,6 +31,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   const response = await fetch(url, {
     method: options.method ?? "GET",
+    credentials: "include",
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
@@ -39,7 +40,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (!response.ok) {
     throw new HttpError(
-      (data as { message?: string })?.message ?? "Request failed",
+      (data as { message?: string; error?: { message?: string } })?.message ??
+        (data as { error?: { message?: string } })?.error?.message ??
+        "Request failed",
       response.status,
       data,
     );

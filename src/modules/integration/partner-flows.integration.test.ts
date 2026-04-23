@@ -103,7 +103,7 @@ describe("partner app flow integrations (2.1 - 2.5)", () => {
       operatingCities: ["Ikeja", "Lekki"],
       payoutSchedule: "weekly",
     });
-    expect(onboarding.status).toBe("completed");
+    expect(onboarding.status).toBe("in_progress");
 
     onboarding = await profileClient.submitOnboarding(user.id);
     expect(onboarding.status).toBe("completed");

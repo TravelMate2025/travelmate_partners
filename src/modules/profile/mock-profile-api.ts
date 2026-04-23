@@ -41,6 +41,18 @@ function createOnboarding(userId: string): PartnerOnboarding {
   };
 }
 
+function deriveStatus(completedSteps: OnboardingStepKey[], currentStatus: PartnerOnboarding["status"]) {
+  if (completedSteps.length === 0) {
+    return "not_started";
+  }
+
+  if (currentStatus === "completed" && completedSteps.length === 3) {
+    return "completed";
+  }
+
+  return "in_progress";
+}
+
 function readState(): MockProfileState {
   if (typeof window === "undefined") {
     return { onboardingByUserId: {} };
@@ -97,12 +109,7 @@ function mergeData(current: PartnerProfileData, incoming: Partial<PartnerProfile
 
 function touch(onboarding: PartnerOnboarding) {
   onboarding.completedSteps = computeCompletedSteps(onboarding.data);
-  onboarding.status =
-    onboarding.completedSteps.length === 0
-      ? "not_started"
-      : onboarding.completedSteps.length === 3
-        ? "completed"
-        : "in_progress";
+  onboarding.status = deriveStatus(onboarding.completedSteps, onboarding.status);
   onboarding.updatedAt = nowIso();
   return onboarding;
 }

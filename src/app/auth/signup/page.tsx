@@ -5,17 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { AuthShell } from "@/components/common/auth-shell";
+import { showToast } from "@/components/common/toast";
 import { authClient } from "@/modules/auth/auth-client";
 
 export default function SignupPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [requestingOtp, setRequestingOtp] = useState(false);
-  const [message, setMessage] = useState("");
 
   async function onRequestOtp(event: FormEvent<HTMLButtonElement>) {
     event.preventDefault();
-    setMessage("");
     setRequestingOtp(true);
 
     const form = event.currentTarget.form;
@@ -29,10 +28,10 @@ export default function SignupPage() {
     const phone = String(formData.get("phone") ?? "");
 
     try {
-      const result = await authClient.requestSignupOtp({ email, phone });
-      setMessage(`Signup OTP sent. Mock/dev OTP code: ${result.otpCodeHint ?? "N/A"}`);
+      await authClient.requestSignupOtp({ email, phone });
+      showToast({ message: "Signup code sent — check your email.", kind: "success" });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to request OTP.");
+      showToast({ message: error instanceof Error ? error.message : "Failed to request OTP.", kind: "error" });
     } finally {
       setRequestingOtp(false);
     }
@@ -41,7 +40,6 @@ export default function SignupPage() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setMessage("");
     const formEl = event.currentTarget;
 
     const form = new FormData(formEl);
@@ -53,18 +51,11 @@ export default function SignupPage() {
     };
 
     try {
-      const result = await authClient.signup(payload);
-      const params = new URLSearchParams({
-        email: payload.email,
-      });
-
-      if (result.verificationCodeHint) {
-        params.set("codeHint", result.verificationCodeHint);
-      }
-
-      router.push(`/auth/verify-email?${params.toString()}`);
+      await authClient.signup(payload);
+      showToast({ message: "Account created — sign in to continue.", kind: "success" });
+      router.push("/auth/login");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Signup failed.");
+      showToast({ message: error instanceof Error ? error.message : "Signup failed.", kind: "error" });
     } finally {
       setLoading(false);
     }
@@ -73,7 +64,7 @@ export default function SignupPage() {
   return (
     <AuthShell
       title="Create your partner account"
-      description="Use your business email and phone, request signup OTP, then create account."
+      description="Enter your business email and phone, verify with the OTP sent to your email, then set your password."
       footer={
         <>
           Already have an account? <Link className="underline" href="/auth/login">Sign in</Link>
@@ -92,12 +83,17 @@ export default function SignupPage() {
         </label>
 
         <button
-          className="tm-btn tm-btn-outline w-full"
-          disabled={requestingOtp}
+          className="tm-btn tm-btn-outline w-full disabled:opacity-60 disabled:cursor-not-allowed"
+          disabled={requestingOtp || loading}
           onClick={onRequestOtp}
           type="button"
         >
-          {requestingOtp ? "Requesting OTP..." : "Send OTP"}
+          {requestingOtp ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              Sending code…
+            </span>
+          ) : "Send OTP to email"}
         </button>
 
         <label className="block">
@@ -114,15 +110,19 @@ export default function SignupPage() {
         </label>
 
         <button
-          disabled={loading}
-          className="tm-btn tm-btn-primary w-full disabled:opacity-70"
+          disabled={loading || requestingOtp}
+          className="tm-btn tm-btn-primary w-full disabled:opacity-60 disabled:cursor-not-allowed"
           type="submit"
         >
-          {loading ? "Creating account..." : "Create account"}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              Creating account…
+            </span>
+          ) : "Create account"}
         </button>
       </form>
 
-      {message ? <p className="tm-note text-sm">{message}</p> : null}
     </AuthShell>
   );
 }

@@ -61,6 +61,9 @@ describe("mockProfileApi", () => {
       payoutSchedule: "weekly",
     });
 
+    const saved = await mockProfileApi.getOnboarding("u1");
+    expect(saved.status).toBe("in_progress");
+
     const final = await mockProfileApi.submitOnboarding("u1");
     expect(final.status).toBe("completed");
     expect(final.completedSteps).toEqual(["business", "contact", "operations"]);

@@ -1,69 +1,54 @@
 import { expect, test } from "@playwright/test";
 
-function createPartnerCredentials() {
-  const email = `partner+${Date.now()}@example.com`;
-  const phone = "+2348000000000";
-  const password = "Password123!";
+async function signupAndLogin(
+  page: import("@playwright/test").Page,
+  email: string,
+  phone: string,
+  password: string,
+) {
+  await page.goto("/auth/signup");
+  await page.waitForLoadState("networkidle");
 
-  return { email, phone, password };
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Phone").fill(phone);
+  await page.getByRole("button", { name: "Send OTP" }).click();
+  await expect(page.getByText(/Signup OTP sent/i)).toBeVisible();
+
+  const otpMessage = await page.getByText(/Signup OTP sent/i).textContent();
+  const signupOtp = otpMessage?.match(/(\d{6})/)?.[1];
+  expect(signupOtp).toMatch(/^\d{6}$/);
+
+  await page.getByLabel("Signup OTP").fill(signupOtp ?? "");
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Create account" }).click();
+
+  await expect(page).toHaveURL(/\/auth\/verify-email/);
+  const verificationCode = new URL(page.url()).searchParams.get("codeHint");
+  expect(verificationCode).toMatch(/^\d{6}$/);
+
+  await page.getByPlaceholder("Verification code").fill(verificationCode ?? "");
+  await page.getByRole("button", { name: "Verify email" }).click();
+  await expect(page.getByText("Email verified successfully. You can now sign in.")).toBeVisible();
+
+  await page.goto("/auth/login");
+  await page.waitForLoadState("networkidle");
+  await page.getByPlaceholder("Email").fill(email);
+  await page.getByPlaceholder("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+
+  await expect(page).toHaveURL("/onboarding");
 }
 
 test.describe("TravelMate Partner implemented UI flows (2.2-2.5)", () => {
   test("completes onboarding, verification, dashboard, and stay lifecycle in UI", async ({
     page,
   }) => {
-    const creds = createPartnerCredentials();
+    const email = `partner+${Date.now()}@example.com`;
+    const phone = "+2348000000000";
+    const password = "Password123!";
 
-    await page.goto("/auth/login");
-    await page.waitForLoadState("networkidle");
+    await signupAndLogin(page, email, phone, password);
 
-    await page.evaluate(({ email, phone, password }) => {
-      const key = "tm_partner_mock_state_v1";
-      const token = `token-${Date.now()}`;
-      const userId = `user-${Date.now()}`;
-      const now = new Date().toISOString();
-
-      const state = {
-        users: [
-          {
-            id: userId,
-            email: email.toLowerCase(),
-            phone,
-            password,
-            emailVerified: true,
-            otpEnabled: false,
-            createdAt: now,
-            updatedAt: now,
-            verificationCode: "",
-            knownFingerprints: [],
-          },
-        ],
-        sessions: [
-          {
-            id: `session-${Date.now()}`,
-            userId,
-            token,
-            fingerprint: "en-US::e2e",
-            createdAt: now,
-            lastSeenAt: now,
-          },
-        ],
-        signupOtps: [],
-        currentToken: token,
-      };
-
-      window.localStorage.setItem(key, JSON.stringify(state));
-    }, creds);
-    await page.context().addCookies([
-      {
-        name: "tm_partner_session",
-        value: "1",
-        domain: "127.0.0.1",
-        path: "/",
-      },
-    ]);
-
-    await page.goto("/onboarding");
     await expect(page.getByText("Partner Onboarding")).toBeVisible();
 
     await page.getByLabel("Business Type").selectOption("business");

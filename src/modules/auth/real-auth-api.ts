@@ -28,7 +28,12 @@ export const realAuthApi: AuthApi = {
   async signup(input: SignupInput) {
     const response = await apiRequest<Envelope<{ verification_code_hint?: string }>>("/auth/signup", {
       method: "POST",
-      body: input,
+      body: {
+        email: input.email,
+        phone: input.phone,
+        password: input.password,
+        otp_code: input.otpCode,
+      },
     });
 
     return {
@@ -68,7 +73,11 @@ export const realAuthApi: AuthApi = {
   async resetPassword(input: ResetPasswordInput) {
     await apiRequest<Envelope<EmptyData>>("/auth/reset-password", {
       method: "POST",
-      body: input,
+      body: {
+        email: input.email,
+        reset_code: input.resetCode,
+        new_password: input.newPassword,
+      },
     });
   },
 

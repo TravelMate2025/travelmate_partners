@@ -1,94 +1,21 @@
 import { expect, test } from "@playwright/test";
+import { signupAndLoginGetUserId, seedProfileAndVerification } from "./helpers";
 
 test.describe("TravelMate Partner implemented UI flows (2.6-2.10)", () => {
   test("covers pricing, transfer scheduling, and data quality interactions", async ({ page }) => {
-    const userId = `user-${Date.now()}`;
+    const email = `flow26+${Date.now()}@example.com`;
+    const phone = "+2348000000000";
+    const password = "Password123!";
     const stayId = `stay-${Date.now()}`;
     const transferId = `transfer-${Date.now()}`;
     const now = new Date().toISOString();
 
-    await page.goto("/auth/login");
-    await page.waitForLoadState("networkidle");
+    const userId = await signupAndLoginGetUserId(page, email, phone, password);
+
+    await seedProfileAndVerification(page, userId, now);
 
     await page.evaluate(
-      ({ userId: seededUserId, stayId: seededStayId, transferId: seededTransferId, ts }) => {
-        const token = `token-${Date.now()}`;
-
-        window.localStorage.setItem(
-          "tm_partner_mock_state_v1",
-          JSON.stringify({
-            users: [
-              {
-                id: seededUserId,
-                email: "flow26@example.com",
-                phone: "+2348000000000",
-                password: "Password123!",
-                emailVerified: true,
-                otpEnabled: false,
-                createdAt: ts,
-                updatedAt: ts,
-                verificationCode: "",
-                knownFingerprints: [],
-              },
-            ],
-            sessions: [
-              {
-                id: `session-${Date.now()}`,
-                userId: seededUserId,
-                token,
-                fingerprint: "en-US::e2e",
-                createdAt: ts,
-                lastSeenAt: ts,
-              },
-            ],
-            signupOtps: [],
-            currentToken: token,
-          }),
-        );
-
-        window.localStorage.setItem(
-          "tm_partner_profile_state_v1",
-          JSON.stringify({
-            onboardingByUserId: {
-              [seededUserId]: {
-                userId: seededUserId,
-                data: {
-                  businessType: "business",
-                  legalName: "TravelMate Ltd",
-                  tradeName: "TravelMate",
-                  registrationNumber: "RC123456",
-                  primaryContactName: "Jane Doe",
-                  primaryContactEmail: "jane@example.com",
-                  supportContactEmail: "support@example.com",
-                  serviceRegions: ["Lagos"],
-                  operatingCities: ["Lekki"],
-                  payoutSchedule: "weekly",
-                },
-                completedSteps: ["business", "contact", "operations"],
-                status: "completed",
-                updatedAt: ts,
-              },
-            },
-          }),
-        );
-
-        window.localStorage.setItem(
-          "tm_partner_verification_state_v1",
-          JSON.stringify({
-            byUserId: {
-              [seededUserId]: {
-                userId: seededUserId,
-                status: "approved",
-                documents: [],
-                submissionCount: 2,
-                submittedAt: ts,
-                decidedAt: ts,
-                updatedAt: ts,
-              },
-            },
-          }),
-        );
-
+      ({ seededUserId, seededStayId, seededTransferId, ts }) => {
         window.localStorage.setItem(
           "tm_partner_stays_state_v1",
           JSON.stringify({
@@ -151,22 +78,8 @@ test.describe("TravelMate Partner implemented UI flows (2.6-2.10)", () => {
           }),
         );
       },
-      {
-        userId: userId,
-        stayId: stayId,
-        transferId: transferId,
-        ts: now,
-      },
+      { seededUserId: userId, seededStayId: stayId, seededTransferId: transferId, ts: now },
     );
-
-    await page.context().addCookies([
-      {
-        name: "tm_partner_session",
-        value: "1",
-        domain: "127.0.0.1",
-        path: "/",
-      },
-    ]);
 
     await page.goto("/pricing-availability");
     await expect(page.getByRole("heading", { name: "Pricing & Availability" })).toBeVisible();

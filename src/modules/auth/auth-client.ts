@@ -4,7 +4,7 @@ import { mockAuthApi } from "@/modules/auth/mock-auth-api";
 import { realAuthApi } from "@/modules/auth/real-auth-api";
 import { setPartnerSessionCookie } from "@/modules/auth/session-cookie";
 
-const baseClient: AuthApi = appConfig.useMockApi ? mockAuthApi : realAuthApi;
+const baseClient: AuthApi = appConfig.useRealAuthApi || !appConfig.useMockApi ? realAuthApi : mockAuthApi;
 
 export const authClient: AuthApi = {
   requestSignupOtp: (input) => baseClient.requestSignupOtp(input),

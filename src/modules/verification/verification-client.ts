@@ -4,5 +4,7 @@ import { mockVerificationApi } from "@/modules/verification/mock-verification-ap
 import { realVerificationApi } from "@/modules/verification/real-verification-api";
 
 export const verificationClient: VerificationApi = appConfig.useMockApi
-  ? mockVerificationApi
+  ? appConfig.useRealVerificationApi
+    ? realVerificationApi
+    : mockVerificationApi
   : realVerificationApi;
