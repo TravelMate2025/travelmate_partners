@@ -18,32 +18,38 @@ describe("realProfileApi", () => {
   it("loads onboarding from the backend contract", async () => {
     fetchMock.mockResolvedValue({
       ok: true,
-      json: async () => ({
-        data: {
-          userId: "42",
+      text: async () =>
+        JSON.stringify({
           data: {
-            businessType: "business",
-            legalName: "TravelMate Ltd",
-            tradeName: "TravelMate",
-            registrationNumber: "RC123456",
-            primaryContactName: "",
-            primaryContactEmail: "",
-            supportContactEmail: "",
-            serviceRegions: [],
-            operatingCities: [],
-            payoutSchedule: "",
+            userId: "42",
+            data: {
+              businessType: "business",
+              legalName: "TravelMate Ltd",
+              tradeName: "TravelMate",
+              registrationNumber: "RC123456",
+              primaryContactName: "",
+              primaryContactEmail: "",
+              supportContactEmail: "",
+              operatingCountries: [],
+              operatingRegions: [],
+              operatingCities: [],
+              coverageNotes: "",
+              payoutMethod: "",
+              settlementCurrency: "",
+              payoutSchedule: "",
+              settlementTrigger: "service_completion",
+            },
+            completedSteps: ["business"],
+            status: "in_progress",
+            updatedAt: "2026-04-23T00:00:00.000Z",
           },
-          completedSteps: ["business"],
-          status: "in_progress",
-          updatedAt: "2026-04-23T00:00:00.000Z",
-        },
-      }),
+        }),
     });
 
     const onboarding = await realProfileApi.getOnboarding("42");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8000/api/v1/partners/42/onboarding",
+      "http://localhost:8000/api/v1/partners/42/onboarding",
       expect.objectContaining({
         method: "GET",
         credentials: "include",
@@ -56,26 +62,32 @@ describe("realProfileApi", () => {
   it("submits step updates with the expected payload", async () => {
     fetchMock.mockResolvedValue({
       ok: true,
-      json: async () => ({
-        data: {
-          userId: "42",
+      text: async () =>
+        JSON.stringify({
           data: {
-            businessType: "business",
-            legalName: "TravelMate Ltd",
-            tradeName: "TravelMate",
-            registrationNumber: "RC123456",
-            primaryContactName: "",
-            primaryContactEmail: "",
-            supportContactEmail: "",
-            serviceRegions: [],
-            operatingCities: [],
-            payoutSchedule: "",
+            userId: "42",
+            data: {
+              businessType: "business",
+              legalName: "TravelMate Ltd",
+              tradeName: "TravelMate",
+              registrationNumber: "RC123456",
+              primaryContactName: "",
+              primaryContactEmail: "",
+              supportContactEmail: "",
+              operatingCountries: [],
+              operatingRegions: [],
+              operatingCities: [],
+              coverageNotes: "",
+              payoutMethod: "",
+              settlementCurrency: "",
+              payoutSchedule: "",
+              settlementTrigger: "service_completion",
+            },
+            completedSteps: ["business"],
+            status: "in_progress",
+            updatedAt: "2026-04-23T00:00:00.000Z",
           },
-          completedSteps: ["business"],
-          status: "in_progress",
-          updatedAt: "2026-04-23T00:00:00.000Z",
-        },
-      }),
+        }),
     });
 
     await realProfileApi.saveStep("42", "business", {
@@ -85,7 +97,7 @@ describe("realProfileApi", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8000/api/v1/partners/42/onboarding",
+      "http://localhost:8000/api/v1/partners/42/onboarding",
       expect.objectContaining({
         method: "PATCH",
         body: JSON.stringify({
@@ -104,9 +116,10 @@ describe("realProfileApi", () => {
     fetchMock.mockResolvedValue({
       ok: false,
       status: 400,
-      json: async () => ({
-        message: "Complete all onboarding steps before submission.",
-      }),
+      text: async () =>
+        JSON.stringify({
+          message: "Complete all onboarding steps before submission.",
+        }),
     });
 
     await expect(realProfileApi.submitOnboarding("42")).rejects.toEqual(

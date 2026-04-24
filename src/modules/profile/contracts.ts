@@ -8,14 +8,26 @@ export type PartnerProfileData = {
   primaryContactName: string;
   primaryContactEmail: string;
   supportContactEmail: string;
-  serviceRegions: string[];
+  operatingCountries: string[];
+  operatingRegions: string[];
   operatingCities: string[];
-  payoutSchedule: "weekly" | "bi-weekly" | "monthly" | "";
+  coverageNotes: string;
+  payoutMethod: "bank_transfer" | "mobile_money" | "";
+  settlementCurrency: "GBP" | "NGN" | "USD" | "";
+  payoutSchedule: "manual" | "daily" | "weekly" | "";
+  settlementTrigger?: "service_completion";
+};
+
+export type PartnerLocationOptions = {
+  supportedCountries: string[];
+  regionsByCountry: Record<string, string[]>;
+  citiesByRegion: Record<string, string[]>;
 };
 
 export type PartnerOnboarding = {
   userId: string;
   data: PartnerProfileData;
+  options?: PartnerLocationOptions;
   completedSteps: OnboardingStepKey[];
   status: "not_started" | "in_progress" | "completed";
   updatedAt: string;

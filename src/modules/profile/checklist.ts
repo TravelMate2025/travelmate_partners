@@ -3,7 +3,14 @@ import type { OnboardingStepKey, PartnerProfileData } from "@/modules/profile/co
 const REQUIRED_BY_STEP: Record<OnboardingStepKey, Array<keyof PartnerProfileData>> = {
   business: ["businessType", "legalName", "registrationNumber"],
   contact: ["primaryContactName", "primaryContactEmail"],
-  operations: ["serviceRegions", "operatingCities", "payoutSchedule"],
+  operations: [
+    "operatingCountries",
+    "operatingRegions",
+    "operatingCities",
+    "payoutMethod",
+    "settlementCurrency",
+    "payoutSchedule",
+  ],
 };
 
 function hasValue(value: unknown): boolean {

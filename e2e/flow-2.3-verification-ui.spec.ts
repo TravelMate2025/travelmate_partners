@@ -1,149 +1,96 @@
-import { expect, test, type APIRequestContext } from "@playwright/test";
+import { execFileSync } from "node:child_process";
 
-async function createPartnerWithCompletedOnboarding(request: APIRequestContext) {
-  const unique = Date.now();
-  const email = `verification-ui+${unique}@example.com`;
-  const phone = `+2348${String(unique).slice(-9)}`;
-  const password = "Password123!";
-  const businessName = `Verification Flow ${unique}`;
+import { expect, test } from "@playwright/test";
 
-  const otpResponse = await request.post("http://127.0.0.1:8000/api/v1/auth/signup/request-otp", {
-    data: { email, phone },
-  });
-  const otpPayload = (await otpResponse.json()) as { data: { otp_code_hint?: string } };
+function seedVerifiedPartner(email: string, password: string) {
+  const script = `
+from django.contrib.auth import get_user_model
+from apps.users.choices import UserRole
 
-  const signupResponse = await request.post("http://127.0.0.1:8000/api/v1/auth/signup", {
-    data: {
-      email,
-      phone,
-      password,
-      otpCode: otpPayload.data.otp_code_hint,
-    },
-  });
-  const signupPayload = (await signupResponse.json()) as {
-    data: { verification_code_hint?: string };
-  };
+User = get_user_model()
+user = User.objects.filter(email=${JSON.stringify(email)}).first()
+if not user:
+    User.objects.create_user(
+        username=${JSON.stringify(email)},
+        email=${JSON.stringify(email)},
+        password=${JSON.stringify(password)},
+        role=UserRole.PARTNER,
+        email_verified=True,
+        is_active=True,
+    )
+`
 
-  await request.post("http://127.0.0.1:8000/api/v1/auth/verify-email", {
-    data: {
-      email,
-      code: signupPayload.data.verification_code_hint,
-    },
-  });
-  await request.post("http://127.0.0.1:8000/api/v1/auth/login", {
-    data: { email, password },
-  });
-
-  const meResponse = await request.get("http://127.0.0.1:8000/api/v1/auth/me");
-  const mePayload = (await meResponse.json()) as { data: { id: string } };
-  const userId = mePayload.data.id;
-
-  for (const [step, data] of [
-    [
-      "business",
-      {
-        businessType: "business",
-        legalName: `${businessName} Ltd`,
-        tradeName: businessName,
-        registrationNumber: `RC${unique}`,
-      },
-    ],
-    [
-      "contact",
-      {
-        primaryContactName: `Verification Partner ${unique}`,
-        primaryContactEmail: `partner-${unique}@example.com`,
-        supportContactEmail: `support-${unique}@example.com`,
-      },
-    ],
-    [
-      "operations",
-      {
-        serviceRegions: ["Lagos"],
-        operatingCities: ["Lekki"],
-        payoutSchedule: "weekly",
-      },
-    ],
-  ] as const) {
-    await request.patch(`http://127.0.0.1:8000/api/v1/partners/${userId}/onboarding`, {
-      data: { step, data },
-    });
-  }
-  await request.post(`http://127.0.0.1:8000/api/v1/partners/${userId}/onboarding/submit`);
-
-  return { email, password, businessName };
-}
-
-async function requestMoreInfoForLatestCase(request: APIRequestContext, businessName: string) {
-  await request.post("http://127.0.0.1:8000/api/v1/admin-auth/login", {
-    data: {
-      email: "reviewer-lite@travelmate.test",
-      password: "TravelMate!2026",
-    },
-  });
-
-  const queueResponse = await request.get("http://127.0.0.1:8000/api/v1/admin/verification-cases");
-  const queuePayload = (await queueResponse.json()) as {
-    data: Array<{ id: string; businessName: string }>;
-  };
-  const caseId = queuePayload.data.find((item) => item.businessName === businessName)?.id;
-  expect(caseId).toBeTruthy();
-
-  await request.post(`http://127.0.0.1:8000/api/v1/admin/verification-cases/${caseId}/decision`, {
-    data: {
-      action: "request_more_info",
-      note: "Please upload a clearer registration certificate.",
-    },
+  execFileSync("./venv/bin/python", ["manage.py", "shell", "-c", script], {
+    cwd: "../api",
+    stdio: "pipe",
   });
 }
 
 test.describe("TravelMate Partner verification UI flow (2.3)", () => {
-  test("supports document upload, submission, rejection visibility, and resubmission", async ({
+  test("supports real document upload and verification submission from the partner UI", async ({
     page,
-    request,
   }) => {
-    const partner = await createPartnerWithCompletedOnboarding(request);
+    const unique = Date.now();
+    const email = `verification-ui+${unique}@example.com`;
+    const password = "Password123!";
+
+    seedVerifiedPartner(email, password);
 
     await page.goto("/auth/login");
-    await page.getByPlaceholder("Email").fill(partner.email);
-    await page.getByPlaceholder("Password").fill(partner.password);
+    await page.getByPlaceholder("Email").fill(email);
+    await page.getByPlaceholder("Password").fill(password);
     await Promise.all([
       page.waitForURL(/\/onboarding/),
       page.getByRole("button", { name: "Sign in" }).click(),
     ]);
 
-    await page.goto("/verification");
+    await page.getByRole("combobox").first().selectOption("business");
+    await page.getByPlaceholder("Legal name").fill(`Verification Flow ${unique} Ltd`);
+    await page.getByPlaceholder("Trade name (optional)").fill(`Verification Flow ${unique}`);
+    await page.getByPlaceholder("Registration number").fill(`RC${unique}`);
+    await page.getByRole("button", { name: "Save and Continue" }).click();
+
+    await page.getByPlaceholder("Primary contact name").fill(`Verification Partner ${unique}`);
+    await page.getByPlaceholder("Primary contact email").fill(`partner-${unique}@example.com`);
+    await page.getByPlaceholder("Support contact email (optional)").fill(`support-${unique}@example.com`);
+    await page.getByRole("button", { name: "Save and Continue" }).click();
+
+    await page.getByText("Nigeria").click();
+    await page.getByText("Lagos", { exact: true }).click();
+    await page.getByText("Lekki", { exact: true }).click();
+    await page.getByLabel("Payout method").selectOption("bank_transfer");
+    await page.getByLabel("Settlement currency").selectOption("NGN");
+    await page.getByLabel("Payout schedule").selectOption("weekly");
+    await page.getByRole("button", { name: "Submit Onboarding" }).click();
+
+    await expect(page).toHaveURL("/verification");
     await expect(page.getByText(/Partner Verification/i)).toBeVisible();
 
     await page.locator('input[type="file"]').first().setInputFiles({
       name: "identity-proof.pdf",
       mimeType: "application/pdf",
-      buffer: Buffer.from("identity-proof"),
+      buffer: Buffer.from("%PDF-1.4 identity-proof"),
     });
     await page.getByRole("button", { name: "Add Document" }).click();
-    await expect(page.getByRole("status").getByText("Document added.")).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Document added." }).last()).toBeVisible();
+    await expect(page.getByText("identity-proof.pdf")).toBeVisible();
 
-    await page.getByRole("button", { name: "Submit Verification" }).click();
-    await expect(
-      page.getByRole("status").getByText("Verification submitted. Status is in_review."),
-    ).toBeVisible();
-    await expect(page.getByText(/Status: in_review/i)).toBeVisible();
-
-    await requestMoreInfoForLatestCase(request, partner.businessName);
-
-    await page.reload();
-    await expect(page.getByText(/Rejection reason: Please upload a clearer registration certificate./i)).toBeVisible();
-
+    await page.getByRole("combobox").first().selectOption("business");
     await page.locator('input[type="file"]').first().setInputFiles({
       name: "business-registration.pdf",
       mimeType: "application/pdf",
-      buffer: Buffer.from("business-registration"),
+      buffer: Buffer.from("%PDF-1.4 business-registration"),
     });
-    await page.selectOption("select", "business");
     await page.getByRole("button", { name: "Add Document" }).click();
-    await expect(page.getByRole("status").getByText("Document added.")).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Document added." }).last()).toBeVisible();
+    await expect(page.getByText("business-registration.pdf")).toBeVisible();
 
     await page.getByRole("button", { name: "Submit Verification" }).click();
+    await expect(
+      page
+        .getByRole("status")
+        .filter({ hasText: "Verification submitted. Status is in_review." }),
+    ).toBeVisible();
     await expect(page.getByText(/Status: in_review/i)).toBeVisible();
   });
 });

@@ -8,6 +8,16 @@ import type {
 
 type Envelope<T> = { data: T };
 
+function buildDocumentFormData(input: AddVerificationDocumentInput | ReplaceVerificationDocumentInput) {
+  const formData = new FormData();
+  formData.set("category", input.category);
+  if (!input.file) {
+    throw new Error("Select a file to upload.");
+  }
+  formData.set("file", input.file);
+  return formData;
+}
+
 export const realVerificationApi: VerificationApi = {
   async getVerification(userId: string) {
     const response = await apiRequest<Envelope<PartnerVerification>>(`/partners/${userId}/verification`);
@@ -17,7 +27,7 @@ export const realVerificationApi: VerificationApi = {
   async addDocument(userId: string, input: AddVerificationDocumentInput) {
     const response = await apiRequest<Envelope<PartnerVerification>>(`/partners/${userId}/verification/documents`, {
       method: "POST",
-      body: input,
+      body: buildDocumentFormData(input),
     });
 
     return response.data;
@@ -39,7 +49,7 @@ export const realVerificationApi: VerificationApi = {
       `/partners/${userId}/verification/documents/${documentId}`,
       {
         method: "PUT",
-        body: input,
+        body: buildDocumentFormData(input),
       },
     );
 

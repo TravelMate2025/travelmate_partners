@@ -23,6 +23,7 @@ export type PartnerVerification = {
 
 export type AddVerificationDocumentInput = {
   category: VerificationDocCategory;
+  file?: File;
   fileName: string;
   fileType: string;
   fileSize: number;

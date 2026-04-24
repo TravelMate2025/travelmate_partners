@@ -1,6 +1,8 @@
 import { expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+
 /**
  * Does a full real-API signup → verify email → login flow.
  * Returns the real userId from /auth/me so callers can key mock
@@ -39,13 +41,13 @@ export async function signupAndLoginGetUserId(
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL("/onboarding");
 
-  const userId = await page.evaluate(async () => {
-    const response = await fetch("http://127.0.0.1:8000/api/v1/auth/me", {
+  const userId = await page.evaluate(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/auth/me`, {
       credentials: "include",
     });
     const payload = (await response.json()) as { data: { id: string } };
     return String(payload.data.id);
-  });
+  }, apiBaseUrl);
 
   return userId;
 }
@@ -71,9 +73,13 @@ export function seedProfileAndVerification(
                 primaryContactName: "Jane Doe",
                 primaryContactEmail: "jane@example.com",
                 supportContactEmail: "support@example.com",
-                serviceRegions: ["Lagos"],
+                operatingCountries: ["Nigeria"],
+                operatingRegions: ["Lagos"],
                 operatingCities: ["Lekki"],
-                payoutSchedule: "weekly",
+                coverageNotes: "",
+                payoutMethod: "bank_transfer",
+                settlementCurrency: "NGN",
+                disbursementCadence: "weekly",
               },
               completedSteps: ["business", "contact", "operations"],
               status: "completed",

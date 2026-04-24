@@ -8,6 +8,7 @@ import { PartnerShell } from "@/components/common/partner-shell";
 import { SessionManager } from "@/components/common/session-manager";
 import type { PartnerUser } from "@/modules/auth/contracts";
 import { authClient } from "@/modules/auth/auth-client";
+import { getErrorMessage, isAuthenticationError } from "@/modules/auth/http-errors";
 import type { PartnerDashboardData, QuickActionType } from "@/modules/dashboard/contracts";
 import { dashboardClient } from "@/modules/dashboard/dashboard-client";
 import { profileClient } from "@/modules/profile/profile-client";
@@ -17,14 +18,15 @@ export default function DashboardPage() {
   const [user, setUser] = useState<PartnerUser | null>(null);
   const [dashboardData, setDashboardData] = useState<PartnerDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const router = useRouter();
 
   useEffect(() => {
     let active = true;
 
-    authClient
-      .me()
-      .then(async (currentUser) => {
+    async function load() {
+      try {
+        const currentUser = await authClient.me();
         const onboarding = await profileClient.getOnboarding(currentUser.id);
 
         if (!active) {
@@ -46,13 +48,24 @@ export default function DashboardPage() {
 
         setUser(currentUser);
         setDashboardData(dashboard);
+        setLoadError("");
         setLoading(false);
-      })
-      .catch(() => {
-        if (active) {
-          router.replace("/auth/login");
+      } catch (error) {
+        if (!active) {
+          return;
         }
-      });
+
+        if (isAuthenticationError(error)) {
+          router.replace("/auth/login");
+          return;
+        }
+
+        setLoadError(getErrorMessage(error, "Failed to load dashboard."));
+        setLoading(false);
+      }
+    }
+
+    void load();
 
     return () => {
       active = false;
@@ -60,6 +73,19 @@ export default function DashboardPage() {
   }, [router]);
 
   if (loading || !dashboardData) {
+    if (!loading && loadError) {
+      return (
+        <main className="tm-page">
+          <div className="tm-shell tm-panel mx-auto max-w-5xl p-6">
+            <p className="text-sm font-medium text-rose-700">{loadError}</p>
+            <p className="mt-2 text-sm text-slate-600">
+              Your session is still intact. Retry once the dependent API route is healthy.
+            </p>
+          </div>
+        </main>
+      );
+    }
+
     return (
       <main className="tm-page">
         <div className="tm-shell tm-panel mx-auto max-w-5xl p-6">

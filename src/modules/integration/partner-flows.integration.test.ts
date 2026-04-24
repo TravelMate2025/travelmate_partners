@@ -99,8 +99,12 @@ describe("partner app flow integrations (2.1 - 2.5)", () => {
     expect(onboarding.status).toBe("in_progress");
 
     onboarding = await profileClient.saveStep(user.id, "operations", {
-      serviceRegions: ["Lagos", "Abuja"],
-      operatingCities: ["Ikeja", "Lekki"],
+      operatingCountries: ["Nigeria"],
+      operatingRegions: ["Lagos", "Federal Capital Territory"],
+      operatingCities: ["Ikeja", "Abuja"],
+      coverageNotes: "",
+      payoutMethod: "bank_transfer",
+      settlementCurrency: "NGN",
       payoutSchedule: "weekly",
     });
     expect(onboarding.status).toBe("in_progress");
@@ -152,8 +156,12 @@ describe("partner app flow integrations (2.1 - 2.5)", () => {
       supportContactEmail: "support@example.com",
     });
     await profileClient.saveStep(user.id, "operations", {
-      serviceRegions: ["Lagos"],
+      operatingCountries: ["Nigeria"],
+      operatingRegions: ["Lagos"],
       operatingCities: ["Lekki"],
+      coverageNotes: "",
+      payoutMethod: "bank_transfer",
+      settlementCurrency: "NGN",
       payoutSchedule: "weekly",
     });
     await profileClient.submitOnboarding(user.id);

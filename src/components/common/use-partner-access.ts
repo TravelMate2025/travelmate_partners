@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { authClient } from "@/modules/auth/auth-client";
 import type { PartnerUser } from "@/modules/auth/contracts";
+import { isAuthenticationError } from "@/modules/auth/http-errors";
 import { profileClient } from "@/modules/profile/profile-client";
 import { verificationClient } from "@/modules/verification/verification-client";
 
@@ -49,8 +50,12 @@ export function usePartnerAccess(options?: UsePartnerAccessOptions) {
         setUser(currentUser);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((error) => {
         if (active) {
+          if (!isAuthenticationError(error)) {
+            setLoading(false);
+            return;
+          }
           router.replace("/auth/login");
         }
       });

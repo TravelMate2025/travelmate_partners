@@ -56,8 +56,12 @@ describe("mockProfileApi", () => {
     });
 
     await mockProfileApi.saveStep("u1", "operations", {
-      serviceRegions: ["Lagos"],
+      operatingCountries: ["Nigeria"],
+      operatingRegions: ["Lagos"],
       operatingCities: ["Ikeja"],
+      coverageNotes: "",
+      payoutMethod: "bank_transfer",
+      settlementCurrency: "NGN",
       payoutSchedule: "weekly",
     });
 

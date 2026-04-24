@@ -11,6 +11,39 @@ export class HttpError extends Error {
   }
 }
 
+function parseResponsePayload(rawText: string): unknown {
+  if (!rawText) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(rawText) as unknown;
+  } catch {
+    return rawText;
+  }
+}
+
+function extractErrorMessage(payload: unknown, fallbackStatus: number): string {
+  if (payload && typeof payload === "object") {
+    const data = payload as { message?: string; error?: { message?: string } };
+    return data.message ?? data.error?.message ?? `Request failed with status ${fallbackStatus}.`;
+  }
+
+  if (typeof payload === "string") {
+    const titleMatch = payload.match(/<title>(.*?)<\/title>/i);
+    if (titleMatch?.[1]?.trim()) {
+      return titleMatch[1].trim();
+    }
+
+    const stripped = payload.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    if (stripped) {
+      return stripped;
+    }
+  }
+
+  return `Request failed with status ${fallbackStatus}.`;
+}
+
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
@@ -18,31 +51,68 @@ type RequestOptions = {
   token?: string;
 };
 
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const cookie = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`));
+
+  if (!cookie) {
+    return null;
+  }
+
+  return decodeURIComponent(cookie.slice(name.length + 1));
+}
+
+function isUnsafeMethod(method: RequestOptions["method"]): boolean {
+  return method === "POST" || method === "PUT" || method === "PATCH" || method === "DELETE";
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const url = `${appConfig.apiBaseUrl}${path}`;
+  const method = options.method ?? "GET";
+  const isFormDataBody = typeof FormData !== "undefined" && options.body instanceof FormData;
+  let requestBody: BodyInit | undefined;
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...(options.headers ?? {}),
   };
+
+  if (!isFormDataBody) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (options.token) {
     headers.Authorization = `Bearer ${options.token}`;
   }
 
+  if (isUnsafeMethod(method)) {
+    const csrfToken = readCookie("csrftoken");
+    if (csrfToken) {
+      headers["X-CSRFToken"] = csrfToken;
+    }
+  }
+
+  if (options.body) {
+    requestBody = isFormDataBody ? (options.body as FormData) : JSON.stringify(options.body);
+  }
+
   const response = await fetch(url, {
-    method: options.method ?? "GET",
+    method,
     credentials: "include",
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: requestBody,
   });
 
-  const data = await response.json().catch(() => ({}));
+  const rawText = await response.text();
+  const data = parseResponsePayload(rawText);
 
   if (!response.ok) {
     throw new HttpError(
-      (data as { message?: string; error?: { message?: string } })?.message ??
-        (data as { error?: { message?: string } })?.error?.message ??
-        "Request failed",
+      extractErrorMessage(data, response.status),
       response.status,
       data,
     );

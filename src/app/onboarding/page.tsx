@@ -4,8 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { authClient } from "@/modules/auth/auth-client";
+import { getErrorMessage, isAuthenticationError } from "@/modules/auth/http-errors";
 import { onboardingProgress } from "@/modules/profile/checklist";
 import type { OnboardingStepKey, PartnerOnboarding, PartnerProfileData } from "@/modules/profile/contracts";
+import {
+  operatingCityOptionsByRegion,
+  operatingCountryOptions,
+  operatingRegionOptionsByCountry,
+  payoutScheduleOptions,
+  payoutMethodOptions,
+  settlementCurrencyOptions,
+} from "@/modules/profile/location-options";
 import { profileClient } from "@/modules/profile/profile-client";
 
 const STEP_ORDER: OnboardingStepKey[] = ["business", "contact", "operations"];
@@ -16,30 +25,22 @@ const STEP_LABELS: Record<OnboardingStepKey, string> = {
   operations: "Operations & Settlement",
 };
 
-function splitCsv(value: string) {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
-}
-
 export default function OnboardingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [loadError, setLoadError] = useState("");
   const [stepIndex, setStepIndex] = useState(0);
   const [onboarding, setOnboarding] = useState<PartnerOnboarding | null>(null);
   const [formData, setFormData] = useState<PartnerProfileData | null>(null);
-  const [serviceRegionsInput, setServiceRegionsInput] = useState("");
-  const [operatingCitiesInput, setOperatingCitiesInput] = useState("");
 
   useEffect(() => {
     let active = true;
 
-    authClient
-      .me()
-      .then(async (user) => {
+    async function load() {
+      try {
+        const user = await authClient.me();
         const data = await profileClient.getOnboarding(user.id);
 
         if (!active) {
@@ -53,15 +54,24 @@ export default function OnboardingPage() {
 
         setOnboarding(data);
         setFormData(data.data);
-        setServiceRegionsInput(data.data.serviceRegions.join(", "));
-        setOperatingCitiesInput(data.data.operatingCities.join(", "));
+        setLoadError("");
         setLoading(false);
-      })
-      .catch(() => {
-        if (active) {
-          router.replace("/auth/login");
+      } catch (error) {
+        if (!active) {
+          return;
         }
-      });
+
+        if (isAuthenticationError(error)) {
+          router.replace("/auth/login");
+          return;
+        }
+
+        setLoadError(getErrorMessage(error, "Failed to load onboarding."));
+        setLoading(false);
+      }
+    }
+
+    void load();
 
     return () => {
       active = false;
@@ -70,8 +80,44 @@ export default function OnboardingPage() {
 
   const progress = useMemo(() => onboardingProgress(onboarding?.completedSteps ?? []), [onboarding]);
   const currentStep = STEP_ORDER[stepIndex];
+  const countryOptions = onboarding?.options?.supportedCountries ?? [...operatingCountryOptions];
+  const availableRegions = useMemo(
+    () =>
+      formData
+        ? formData.operatingCountries.flatMap(
+            (country) =>
+              onboarding?.options?.regionsByCountry[country] ??
+              [...(operatingRegionOptionsByCountry[country as keyof typeof operatingRegionOptionsByCountry] ?? [])],
+          )
+        : [],
+    [formData, onboarding],
+  );
+  const availableCities = useMemo(
+    () =>
+      formData
+        ? formData.operatingRegions.flatMap(
+            (region) =>
+              onboarding?.options?.citiesByRegion[region] ??
+              [...(operatingCityOptionsByRegion[region as keyof typeof operatingCityOptionsByRegion] ?? [])],
+          )
+        : [],
+    [formData, onboarding],
+  );
 
   if (loading || !onboarding || !formData) {
+    if (!loading && loadError) {
+      return (
+        <main className="tm-page">
+          <div className="tm-shell tm-panel mx-auto max-w-5xl p-6">
+            <p className="text-sm font-medium text-rose-700">{loadError}</p>
+            <p className="mt-2 text-sm text-slate-600">
+              We kept you signed in. Refresh after the profile API is available again.
+            </p>
+          </div>
+        </main>
+      );
+    }
+
     return (
       <main className="tm-page">
         <div className="tm-shell tm-panel mx-auto max-w-5xl p-6">
@@ -107,16 +153,18 @@ export default function OnboardingPage() {
                 supportContactEmail: currentData.supportContactEmail,
               }
             : {
-                serviceRegions: splitCsv(serviceRegionsInput),
-                operatingCities: splitCsv(operatingCitiesInput),
+                operatingCountries: currentData.operatingCountries,
+                operatingRegions: currentData.operatingRegions,
+                operatingCities: currentData.operatingCities,
+                coverageNotes: currentData.coverageNotes,
+                payoutMethod: currentData.payoutMethod,
+                settlementCurrency: currentData.settlementCurrency,
                 payoutSchedule: currentData.payoutSchedule,
               };
 
       const updated = await profileClient.saveStep(currentOnboarding.userId, currentStep, payload);
       setOnboarding(updated);
       setFormData(updated.data);
-      setServiceRegionsInput(updated.data.serviceRegions.join(", "));
-      setOperatingCitiesInput(updated.data.operatingCities.join(", "));
 
       if (typeof nextIndex === "number") {
         setStepIndex(nextIndex);
@@ -148,6 +196,52 @@ export default function OnboardingPage() {
       setMessage(error instanceof Error ? error.message : "Failed to submit onboarding.");
       setSaving(false);
     }
+  }
+
+  function toggleListValue(field: "operatingCountries" | "operatingRegions" | "operatingCities", value: string) {
+    setFormData((prev) => {
+      if (!prev) return prev;
+      const current = prev[field];
+      const nextValues = current.includes(value) ? current.filter((entry) => entry !== value) : [...current, value];
+
+      if (field === "operatingCountries") {
+        const allowedRegions: string[] = nextValues.flatMap(
+          (country) =>
+            onboarding?.options?.regionsByCountry[country] ??
+            [...(operatingRegionOptionsByCountry[country as keyof typeof operatingRegionOptionsByCountry] ?? [])],
+        );
+        const filteredRegions = prev.operatingRegions.filter((region) => allowedRegions.includes(region));
+        const allowedCities: string[] = filteredRegions.flatMap(
+          (region) =>
+            onboarding?.options?.citiesByRegion[region] ??
+            [...(operatingCityOptionsByRegion[region as keyof typeof operatingCityOptionsByRegion] ?? [])],
+        );
+        return {
+          ...prev,
+          operatingCountries: nextValues,
+          operatingRegions: filteredRegions,
+          operatingCities: prev.operatingCities.filter((city) => allowedCities.includes(city)),
+        };
+      }
+
+      if (field === "operatingRegions") {
+        const allowedCities: string[] = nextValues.flatMap(
+          (region) =>
+            onboarding?.options?.citiesByRegion[region] ??
+            [...(operatingCityOptionsByRegion[region as keyof typeof operatingCityOptionsByRegion] ?? [])],
+        );
+        return {
+          ...prev,
+          operatingRegions: nextValues,
+          operatingCities: prev.operatingCities.filter((city) => allowedCities.includes(city)),
+        };
+      }
+
+      return {
+        ...prev,
+        operatingCities: nextValues,
+      };
+    });
   }
 
   return (
@@ -229,20 +323,125 @@ export default function OnboardingPage() {
 
             {currentStep === "operations" ? (
               <div className="mt-4 space-y-3">
-                <input
-                  className="tm-input"
-                  placeholder="Service regions (comma separated)"
-                  value={serviceRegionsInput}
-                  onChange={(event) => setServiceRegionsInput(event.target.value)}
-                />
-                <input
-                  className="tm-input"
-                  placeholder="Operating cities (comma separated)"
-                  value={operatingCitiesInput}
-                  onChange={(event) => setOperatingCitiesInput(event.target.value)}
-                />
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                  <p className="text-sm font-semibold text-slate-900">Operating coverage</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Select the countries, regions, and cities you actively serve. This keeps coverage structured for routing, compliance, and reporting.
+                  </p>
+                </div>
                 <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-slate-700">Settlement Preference</span>
+                  <span className="mb-2 block text-sm font-medium text-slate-700">Operating countries</span>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {countryOptions.map((country) => (
+                      <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700" key={country}>
+                        <input
+                          checked={formData.operatingCountries.includes(country)}
+                          onChange={() => toggleListValue("operatingCountries", country)}
+                          type="checkbox"
+                        />
+                        <span>{country}</span>
+                      </label>
+                    ))}
+                  </div>
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-medium text-slate-700">Operating states / regions</span>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {availableRegions.length > 0 ? (
+                      availableRegions.map((region) => (
+                        <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700" key={region}>
+                          <input
+                            checked={formData.operatingRegions.includes(region)}
+                            onChange={() => toggleListValue("operatingRegions", region)}
+                            type="checkbox"
+                          />
+                          <span>{region}</span>
+                        </label>
+                      ))
+                    ) : (
+                      <p className="text-sm text-slate-500">Select at least one country to choose states or regions.</p>
+                    )}
+                  </div>
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-medium text-slate-700">Operating cities</span>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {availableCities.length > 0 ? (
+                      availableCities.map((city) => (
+                        <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700" key={city}>
+                          <input
+                            checked={formData.operatingCities.includes(city)}
+                            onChange={() => toggleListValue("operatingCities", city)}
+                            type="checkbox"
+                          />
+                          <span>{city}</span>
+                        </label>
+                      ))
+                    ) : (
+                      <p className="text-sm text-slate-500">Select at least one region to choose cities.</p>
+                    )}
+                  </div>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Coverage notes (optional)</span>
+                  <textarea
+                    className="tm-input min-h-[110px]"
+                    placeholder="Add exceptions or service-area notes that are not captured by the structured selections."
+                    value={formData.coverageNotes}
+                    onChange={(event) => setFormData((prev) => (prev ? { ...prev, coverageNotes: event.target.value } : prev))}
+                  />
+                </label>
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4">
+                  <p className="text-sm font-semibold text-slate-900">Payout setup</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Earnings become available only after completed service events, such as a guest checking out or a transfer being completed. Your payout schedule only controls when available balances are sent.
+                  </p>
+                </div>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Payout method</span>
+                  <select
+                    className="tm-input"
+                    value={formData.payoutMethod}
+                    onChange={(event) =>
+                      setFormData((prev) =>
+                        prev ? { ...prev, payoutMethod: event.target.value as PartnerProfileData["payoutMethod"] } : prev,
+                      )
+                    }
+                  >
+                    <option value="">Select payout method</option>
+                    {payoutMethodOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Settlement currency</span>
+                  <select
+                    className="tm-input"
+                    value={formData.settlementCurrency}
+                    onChange={(event) =>
+                      setFormData((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              settlementCurrency: event.target.value as PartnerProfileData["settlementCurrency"],
+                            }
+                          : prev,
+                      )
+                    }
+                  >
+                    <option value="">Select settlement currency</option>
+                    {settlementCurrencyOptions.map((currency) => (
+                      <option key={currency} value={currency}>
+                        {currency}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Payout schedule</span>
                   <select
                     className="tm-input"
                     value={formData.payoutSchedule}
@@ -257,10 +456,12 @@ export default function OnboardingPage() {
                       )
                     }
                   >
-                    <option value="">Select settlement preference</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="bi-weekly">Bi-weekly</option>
-                    <option value="monthly">Monthly</option>
+                    <option value="">Select payout schedule</option>
+                    {payoutScheduleOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
               </div>

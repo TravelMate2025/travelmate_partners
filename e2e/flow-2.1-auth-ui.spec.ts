@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+
 test.describe("TravelMate Partner auth UI flow (2.1)", () => {
   test("supports signup, email verification, and login via UI", async ({ page }) => {
     const email = `auth+${Date.now()}@example.com`;
@@ -73,8 +75,8 @@ test.describe("TravelMate Partner auth UI flow (2.1)", () => {
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL("/onboarding");
 
-    await page.evaluate(async () => {
-      const meResponse = await fetch("http://127.0.0.1:8000/api/v1/auth/me", {
+    await page.evaluate(async (baseUrl) => {
+      const meResponse = await fetch(`${baseUrl}/auth/me`, {
         credentials: "include",
       });
       const mePayload = (await meResponse.json()) as { data: { id: string } };
@@ -94,9 +96,13 @@ test.describe("TravelMate Partner auth UI flow (2.1)", () => {
                 primaryContactName: "Auth Reset",
                 primaryContactEmail: "ops@example.com",
                 supportContactEmail: "support@example.com",
-                serviceRegions: ["Lagos"],
+                operatingCountries: ["Nigeria"],
+                operatingRegions: ["Lagos"],
                 operatingCities: ["Ikeja"],
-                payoutSchedule: "weekly",
+                coverageNotes: "",
+                payoutMethod: "bank_transfer",
+                settlementCurrency: "NGN",
+                disbursementCadence: "weekly",
               },
               completedSteps: ["business", "contact", "operations"],
               status: "completed",
@@ -120,7 +126,7 @@ test.describe("TravelMate Partner auth UI flow (2.1)", () => {
           },
         }),
       );
-    });
+    }, apiBaseUrl);
 
     await page.goto("/dashboard");
     await page.waitForLoadState("networkidle");

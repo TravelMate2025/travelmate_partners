@@ -32,11 +32,12 @@ Set these in `.env.local`:
 
 ```bash
 NEXT_PUBLIC_USE_MOCK_API=true
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
 ```
 
 - `NEXT_PUBLIC_USE_MOCK_API=true`: use frontend mock data adapter.
 - `NEXT_PUBLIC_USE_MOCK_API=false`: call real backend APIs at `NEXT_PUBLIC_API_BASE_URL`.
+- Keep the frontend and API on matching hostnames in local development (`localhost` with `localhost`, or `127.0.0.1` with `127.0.0.1`) so session and CSRF cookies work for document uploads and other unsafe requests.
 
 ## Current Implemented Routes
 
@@ -173,10 +174,11 @@ Onboarding behavior implemented:
 When Django APIs are ready, keep UI unchanged and map the real adapter contract to backend endpoints.
 
 Verification behavior implemented:
-- Upload identity/business/address/permit metadata with file validation (type/size/count).
+- Upload identity/business/address/permit files with validation (type/size/count).
 - Replace and remove previously uploaded verification documents.
 - Submit verification and track status transitions (`pending`, `in_review`, `rejected`, `approved`).
 - Rejection reasons displayed and re-submission supported.
+- Storage direction: verification evidence should use private S3-compatible storage in production for upload, preview, and download.
 
 Dashboard behavior implemented:
 - Summary cards for active listings, pending approvals, and total views.
@@ -191,7 +193,9 @@ Stay listing behavior implemented:
 - Property details editing, amenities CSV parsing, and policy fields.
 - Room/unit add and remove workflow.
 - Image metadata upload validation, replace, reorder, and remove workflow.
+- Storage direction: stay listing media should use Cloudinary in production.
 - Listing status transitions: `draft`, `pending`, `approved`, `live`, `paused`, `rejected`, `archived`.
 
 Transfer listing behavior implemented:
 - Transfer image metadata upload validation, replace, reorder, and remove workflow.
+- Storage direction: transfer listing media should use Cloudinary in production.

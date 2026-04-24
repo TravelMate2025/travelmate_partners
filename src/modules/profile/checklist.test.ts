@@ -12,8 +12,12 @@ function emptyData(): PartnerProfileData {
     primaryContactName: "",
     primaryContactEmail: "",
     supportContactEmail: "",
-    serviceRegions: [],
+    operatingCountries: [],
+    operatingRegions: [],
     operatingCities: [],
+    coverageNotes: "",
+    payoutMethod: "",
+    settlementCurrency: "",
     payoutSchedule: "",
   };
 }
@@ -32,8 +36,11 @@ describe("profile checklist", () => {
     data.primaryContactEmail = "amina@example.com";
     expect(computeCompletedSteps(data)).toEqual(["business", "contact"]);
 
-    data.serviceRegions = ["Lagos"];
+    data.operatingCountries = ["Nigeria"];
+    data.operatingRegions = ["Lagos"];
     data.operatingCities = ["Ikeja"];
+    data.payoutMethod = "bank_transfer";
+    data.settlementCurrency = "NGN";
     data.payoutSchedule = "weekly";
     expect(computeCompletedSteps(data)).toEqual(["business", "contact", "operations"]);
   });

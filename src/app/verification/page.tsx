@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { authClient } from "@/modules/auth/auth-client";
 import type { PartnerUser } from "@/modules/auth/contracts";
+import { getErrorMessage, isAuthenticationError } from "@/modules/auth/http-errors";
 import type {
   PartnerVerification,
   VerificationDocCategory,
@@ -24,6 +25,7 @@ export default function VerificationPage() {
   const [user, setUser] = useState<PartnerUser | null>(null);
   const [verification, setVerification] = useState<PartnerVerification | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   useToastMessage(message);
@@ -34,9 +36,9 @@ export default function VerificationPage() {
   useEffect(() => {
     let active = true;
 
-    authClient
-      .me()
-      .then(async (currentUser) => {
+    async function load() {
+      try {
+        const currentUser = await authClient.me();
         const item = await verificationClient.getVerification(currentUser.id);
         if (!active) {
           return;
@@ -44,13 +46,24 @@ export default function VerificationPage() {
 
         setUser(currentUser);
         setVerification(item);
+        setLoadError("");
         setLoading(false);
-      })
-      .catch(() => {
-        if (active) {
-          router.replace("/auth/login");
+      } catch (error) {
+        if (!active) {
+          return;
         }
-      });
+
+        if (isAuthenticationError(error)) {
+          router.replace("/auth/login");
+          return;
+        }
+
+        setLoadError(getErrorMessage(error, "Failed to load verification."));
+        setLoading(false);
+      }
+    }
+
+    void load();
 
     return () => {
       active = false;
@@ -73,6 +86,19 @@ export default function VerificationPage() {
   }, [verification?.status]);
 
   if (loading || !user || !verification) {
+    if (!loading && loadError) {
+      return (
+        <main className="tm-page">
+          <div className="tm-shell tm-panel mx-auto max-w-5xl p-6">
+            <p className="text-sm font-medium text-rose-700">{loadError}</p>
+            <p className="mt-2 text-sm text-slate-600">
+              We could not load your verification data yet, but you were not signed out.
+            </p>
+          </div>
+        </main>
+      );
+    }
+
     return (
       <main className="tm-page">
         <div className="tm-shell tm-panel mx-auto max-w-5xl p-6">
@@ -108,6 +134,7 @@ export default function VerificationPage() {
     try {
       const item = await verificationClient.addDocument(user.id, {
         category,
+        file: selectedFile,
         fileName: selectedFile.name,
         fileType: selectedFile.type,
         fileSize: selectedFile.size,
@@ -156,6 +183,7 @@ export default function VerificationPage() {
     try {
       const item = await verificationClient.replaceDocument(user.id, id, {
         category: categoryForDocument,
+        file,
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,

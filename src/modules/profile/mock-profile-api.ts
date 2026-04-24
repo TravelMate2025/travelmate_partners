@@ -5,6 +5,11 @@ import type {
   PartnerProfileData,
   ProfileApi,
 } from "@/modules/profile/contracts";
+import {
+  operatingCityOptionsByRegion,
+  operatingCountryOptions,
+  operatingRegionOptionsByCountry,
+} from "@/modules/profile/location-options";
 
 type MockProfileState = {
   onboardingByUserId: Record<string, PartnerOnboarding>;
@@ -25,8 +30,12 @@ function createDefaultData(): PartnerProfileData {
     primaryContactName: "",
     primaryContactEmail: "",
     supportContactEmail: "",
-    serviceRegions: [],
+    operatingCountries: [],
+    operatingRegions: [],
     operatingCities: [],
+    coverageNotes: "",
+    payoutMethod: "",
+    settlementCurrency: "",
     payoutSchedule: "",
   };
 }
@@ -35,9 +44,32 @@ function createOnboarding(userId: string): PartnerOnboarding {
   return {
     userId,
     data: createDefaultData(),
+    options: {
+      supportedCountries: [...operatingCountryOptions],
+      regionsByCountry: Object.fromEntries(
+        Object.entries(operatingRegionOptionsByCountry).map(([country, regions]) => [country, [...regions]]),
+      ),
+      citiesByRegion: Object.fromEntries(
+        Object.entries(operatingCityOptionsByRegion).map(([region, cities]) => [region, [...cities]]),
+      ),
+    },
     completedSteps: [],
     status: "not_started",
     updatedAt: nowIso(),
+  };
+}
+
+function normalizeOnboardingRecord(onboarding: PartnerOnboarding): PartnerOnboarding {
+  const rawData = onboarding.data as PartnerProfileData & { disbursementCadence?: PartnerProfileData["payoutSchedule"] };
+
+  return {
+    ...onboarding,
+    data: {
+      ...createDefaultData(),
+      ...rawData,
+      payoutSchedule: rawData.payoutSchedule ?? rawData.disbursementCadence ?? "",
+    },
+    options: onboarding.options ?? createOnboarding(onboarding.userId).options,
   };
 }
 
@@ -68,7 +100,12 @@ function readState(): MockProfileState {
     return {
       onboardingByUserId:
         parsed && parsed.onboardingByUserId && typeof parsed.onboardingByUserId === "object"
-          ? parsed.onboardingByUserId
+          ? Object.fromEntries(
+              Object.entries(parsed.onboardingByUserId).map(([userId, onboarding]) => [
+                userId,
+                normalizeOnboardingRecord(onboarding as PartnerOnboarding),
+              ]),
+            )
           : {},
     };
   } catch {
@@ -96,14 +133,20 @@ function mergeData(current: PartnerProfileData, incoming: Partial<PartnerProfile
   return {
     ...current,
     ...incoming,
-    serviceRegions:
-      incoming.serviceRegions !== undefined
-        ? normalizeStringList(incoming.serviceRegions)
-        : current.serviceRegions,
+    operatingCountries:
+      incoming.operatingCountries !== undefined
+        ? normalizeStringList(incoming.operatingCountries)
+        : current.operatingCountries,
+    operatingRegions:
+      incoming.operatingRegions !== undefined
+        ? normalizeStringList(incoming.operatingRegions)
+        : current.operatingRegions,
     operatingCities:
       incoming.operatingCities !== undefined
         ? normalizeStringList(incoming.operatingCities)
         : current.operatingCities,
+    coverageNotes:
+      incoming.coverageNotes !== undefined ? String(incoming.coverageNotes).trim() : current.coverageNotes,
   };
 }
 
