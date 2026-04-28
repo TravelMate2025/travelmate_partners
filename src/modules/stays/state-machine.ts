@@ -6,6 +6,7 @@ const ALLOWED_NEXT: Record<StayStatus, StayStatus[]> = {
   approved: ["live", "paused", "archived"],
   live: ["paused", "archived"],
   paused: ["live", "archived"],
+  paused_by_admin: [],
   rejected: ["draft", "pending", "archived"],
   archived: ["draft"],
 };

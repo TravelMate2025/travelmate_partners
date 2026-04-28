@@ -480,4 +480,24 @@ export const mockStaysApi: StaysApi = {
     writeState(state);
     return next;
   },
+
+  async submitAppeal(userId, stayId, message) {
+    return {
+      id: `mock-appeal-${stayId}`,
+      listingKind: "stay" as const,
+      listingId: stayId,
+      partnerId: userId,
+      message,
+      status: "pending" as const,
+      resolution: null,
+      resolutionNote: "",
+      resolvedAt: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  },
+
+  async getAppeal(_userId, _stayId) {
+    return null;
+  },
 };

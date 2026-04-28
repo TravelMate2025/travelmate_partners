@@ -129,15 +129,24 @@ export default function TransfersPage() {
                     {item.transferType || "Transfer type not set"} • {item.pickupPoint || "Pickup"} to{" "}
                     {item.dropoffPoint || "Dropoff"}
                   </p>
-                  <p className="tm-status-inline mt-2">Status: {item.status}</p>
-                  {item.moderationFeedback ? (
+                  <p className="tm-status-inline mt-2">
+                    Status: {item.status === "paused_by_admin" ? "Suspended by platform" : item.status}
+                  </p>
+                  {item.status === "paused_by_admin" ? (
+                    <p className="mt-2 text-xs text-amber-700">
+                      {item.moderationFeedback
+                        ? `Reason: ${item.moderationFeedback}`
+                        : "This listing has been suspended by the platform. Contact support if you believe this is an error."}
+                    </p>
+                  ) : null}
+                  {item.status === "rejected" && item.moderationFeedback ? (
                     <p className="mt-2 text-xs text-rose-700">Feedback: {item.moderationFeedback}</p>
                   ) : null}
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   <Link href={`/transfers/${item.id}`} className="tm-btn tm-btn-outline">
-                    Edit
+                    {item.status === "paused_by_admin" ? "View" : "Edit"}
                   </Link>
 
                   {(item.status === "draft" || item.status === "rejected") ? (
@@ -184,7 +193,7 @@ export default function TransfersPage() {
                     </button>
                   ) : null}
 
-                  {item.status !== "archived" ? (
+                  {item.status !== "archived" && item.status !== "paused_by_admin" ? (
                     <button
                       className="tm-btn tm-btn-outline"
                       disabled={busyId === item.id}

@@ -1,4 +1,21 @@
-export type StayStatus = "draft" | "pending" | "approved" | "live" | "paused" | "rejected" | "archived";
+export type StayStatus = "draft" | "pending" | "approved" | "live" | "paused" | "paused_by_admin" | "rejected" | "archived";
+
+export type ListingAppealStatus = "pending" | "under_review" | "resolved";
+export type ListingAppealResolution = "reinstated" | "dismissed";
+
+export type ListingAppeal = {
+  id: string;
+  listingKind: "stay" | "transfer";
+  listingId: string;
+  partnerId: string;
+  message: string;
+  status: ListingAppealStatus;
+  resolution: ListingAppealResolution | null;
+  resolutionNote: string;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export type StayImage = {
   id: string;
@@ -120,4 +137,6 @@ export type StaysApi = {
   upsertRoom(userId: string, stayId: string, input: UpsertStayRoomInput): Promise<StayListing>;
   removeRoom(userId: string, stayId: string, roomId: string): Promise<StayListing>;
   archiveStay(userId: string, stayId: string): Promise<StayListing>;
+  submitAppeal(userId: string, stayId: string, message: string): Promise<ListingAppeal>;
+  getAppeal(userId: string, stayId: string): Promise<ListingAppeal | null>;
 };

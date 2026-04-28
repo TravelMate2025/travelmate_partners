@@ -37,7 +37,8 @@
 - Edit stay listing details
 - Save as draft before submitting
 - Delete/archive listing
-- Listing status management (draft, pending, approved, live, paused, rejected)
+- Listing status management (draft, pending, approved, live, paused, paused_by_admin, rejected, archived)
+  - `paused_by_admin`: platform suspension set by admin emergency unpublish; partner has no self-service actions; UI shows "Suspended by platform" label and moderation reason; Archive button suppressed
 - Multi-image upload and gallery ordering
 - Property information management:
   - Property type (hotel, apartment, villa, etc.)
@@ -138,6 +139,16 @@
 - Validation messages for invalid or unsupported account formats
 - Submission history for settlement account updates
 - Alert notifications when settlement account details are updated
+
+### 1.16 Listing Suspension Appeal
+- "Submit Appeal" action available on a listing detail page when the listing is in `paused_by_admin` state and no active appeal already exists
+- Appeal form: free-text message field explaining why the listing should be reinstated; submit triggers `POST /stays/{stayId}/appeal` or `POST /transfers/{transferId}/appeal`
+- Appeal status display: once submitted, the listing detail view shows an appeal status badge — `pending` ("Appeal submitted — awaiting review") or `under_review` ("Appeal under review") — instead of the submit button
+- Resolution outcome:
+  - `reinstated`: listing transitions to `approved` and the standard status display takes over; no explicit reinstatement banner needed
+  - `dismissed`: amber notice displays "Appeal dismissed" with the admin's resolution note if provided; partner is directed to contact support for further questions
+- Duplicate prevention: the "Submit Appeal" button is hidden when an active appeal (`pending` or `under_review`) already exists for the listing
+- Partner is notified of appeal resolution via in-app notification
 
 ## 2. Feature Flows (Partner App)
 
@@ -244,6 +255,18 @@
 - On updates, system triggers re-verification and alerts.
 - Django-backed verification integration is deferred to the backend phase.
 
+### 2.16 Listing Suspension Appeal Flow
+- Partner opens a listing detail page for a listing in `paused_by_admin` state.
+- Partner sees "Suspended by platform" notice with the moderation feedback reason.
+- If no active appeal exists, partner sees "Submit Appeal" button.
+- Partner opens appeal form, writes a message, and submits.
+- System validates listing is still `paused_by_admin`, partner owns the listing, and no duplicate active appeal exists.
+- On success, partner sees the appeal status badge replacing the submit button.
+- Admin reviews the appeal and resolves (reinstate or dismiss).
+- If reinstated: listing transitions to `approved`; partner receives notification and listing status display updates.
+- If dismissed: partner receives notification; listing remains `paused_by_admin`; dismissal notice with resolution note shown on listing detail.
+- Backend API wiring (`/stays/{stayId}/appeal`, `/transfers/{transferId}/appeal`) is deferred to slice 62b in the backend phase.
+
 ## Project Status
 
 - Flow 2.1 Authentication and Account Access: `Completed`
@@ -261,6 +284,7 @@
 - Flow 2.13 Partner Support and Settings: `Completed`
 - Flow 2.14 Wallet, Earnings, and Booking Settlement: `Completed and strict-alignment confirmed (frontend/module-first)`
 - Flow 2.15 Settlement Account (Payout Method) Details and Verification: `Completed (frontend/module-first)`
+- Flow 2.16 Listing Suspension Appeal: `Not started` (backend API slice 62b required; frontend UI deferred to backend phase)
 
 Latest completion notes:
 - Auth flow includes signup OTP, email verification, login/logout, password reset, session management, and logout-all-devices.

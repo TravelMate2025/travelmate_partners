@@ -33,7 +33,8 @@ Use these terms consistently across code, UI text, and docs:
 - `Stay` (for accommodation inventory)
 - `Transfer` (for taxi/ride inventory)
 - `Verification` statuses: `pending`, `in_review`, `approved`, `rejected`
-- Listing statuses: `draft`, `pending`, `approved`, `live`, `paused`, `rejected`, `archived`
+- Listing statuses: `draft`, `pending`, `approved`, `live`, `paused`, `paused_by_admin`, `rejected`, `archived`
+  - `paused_by_admin` is a platform-controlled restriction set by admin emergency unpublish. The partner has no self-service actions on a listing in this state. The UI must display "Suspended by platform", show the moderation feedback reason if present, and suppress all action buttons including Archive. Only admin reinstatement (`approve`) or archival can move a listing out of this state.
 - Settlement statuses: `pending_completion`, `processing`, `paid`, `failed`, `reversed`
 - Refund statuses: `requested`, `partner_notified`, `refunded`, `disputed`, `recovered`
 

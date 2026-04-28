@@ -136,6 +136,7 @@ function createFromInput(userId: string, input: CreateTransferInput): TransferLi
     currency: "NGN",
     baseFare: input.baseFare ?? 0,
     nightSurcharge: 0,
+    cancellationPolicy: "",
     images: [],
     createdAt: ts,
     updatedAt: ts,
@@ -364,5 +365,25 @@ export const mockTransfersApi: TransfersApi = {
     items[index] = next;
     writeState(state);
     return next;
+  },
+
+  async submitAppeal(userId, transferId, message) {
+    return {
+      id: `mock-appeal-${transferId}`,
+      listingKind: "transfer" as const,
+      listingId: transferId,
+      partnerId: userId,
+      message,
+      status: "pending" as const,
+      resolution: null,
+      resolutionNote: "",
+      resolvedAt: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  },
+
+  async getAppeal(_userId, _transferId) {
+    return null;
   },
 };

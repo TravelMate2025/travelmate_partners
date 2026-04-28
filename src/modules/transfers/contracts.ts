@@ -4,8 +4,11 @@ export type TransferStatus =
   | "approved"
   | "live"
   | "paused"
+  | "paused_by_admin"
   | "rejected"
   | "archived";
+
+export type { ListingAppeal, ListingAppealStatus, ListingAppealResolution } from "@/modules/stays/contracts";
 
 export type TransferType = "one_way" | "return" | "hourly" | "airport";
 
@@ -109,4 +112,6 @@ export type TransfersApi = {
   removeImage(userId: string, transferId: string, imageId: string): Promise<TransferListing>;
   reorderImages(userId: string, transferId: string, imageIds: string[]): Promise<TransferListing>;
   archiveTransfer(userId: string, transferId: string): Promise<TransferListing>;
+  submitAppeal(userId: string, transferId: string, message: string): Promise<import("@/modules/stays/contracts").ListingAppeal>;
+  getAppeal(userId: string, transferId: string): Promise<import("@/modules/stays/contracts").ListingAppeal | null>;
 };

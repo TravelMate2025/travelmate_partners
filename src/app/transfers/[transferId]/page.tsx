@@ -9,7 +9,7 @@ import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import { localityOptionsByCountry, operatingCountryOptions } from "@/modules/profile/location-options";
-import type { TransferListing, TransferStatus, TransferType } from "@/modules/transfers/contracts";
+import type { ListingAppeal, TransferListing, TransferStatus, TransferType } from "@/modules/transfers/contracts";
 import { transfersClient } from "@/modules/transfers/transfers-client";
 import {
   normalizeTransferVehicleClass,
@@ -120,6 +120,10 @@ export default function TransferDetailPage() {
   const [selectedCity, setSelectedCity] = useState("");
   const [citySearch, setCitySearch] = useState("");
   const [selectedVehicleClass, setSelectedVehicleClass] = useState("");
+  const [appeal, setAppeal] = useState<ListingAppeal | null>(null);
+  const [showAppealForm, setShowAppealForm] = useState(false);
+  const [appealMessage, setAppealMessage] = useState("");
+  const [submittingAppeal, setSubmittingAppeal] = useState(false);
   const [vehicleClassOptions, setVehicleClassOptions] = useState<Array<{ value: string; label: string }>>(
     [...transferVehicleClassOptions],
   );
@@ -174,6 +178,12 @@ export default function TransferDetailPage() {
         setSelectedCity(parsedCoverage?.city ?? "");
         setCitySearch("");
         setSelectedVehicleClass(normalizeTransferVehicleClass(normalizedResult.vehicleClass));
+        if (normalizedResult.status === "paused_by_admin") {
+          const existingAppeal = await transfersClient.getAppeal(user.id, normalizedResult.id);
+          setAppeal(existingAppeal);
+        } else {
+          setAppeal(null);
+        }
       })
       .catch((error) => {
         if (!active) {
@@ -194,6 +204,10 @@ export default function TransferDetailPage() {
   }, [router, transferId, user]);
 
   const canSubmit = useMemo(
+    () => item?.status === "draft" || item?.status === "rejected",
+    [item?.status],
+  );
+  const canEditDetails = useMemo(
     () => item?.status === "draft" || item?.status === "rejected",
     [item?.status],
   );
@@ -243,6 +257,10 @@ export default function TransferDetailPage() {
     const form = new FormData(event.currentTarget);
 
     try {
+      if (!canEditDetails) {
+        throw new Error("Only draft or rejected transfers can be edited. Move listing to draft and try again.");
+      }
+
       const updated = await transfersClient.updateTransfer(user.id, item.id, {
         name: String(form.get("name") ?? ""),
         description: String(form.get("description") ?? ""),
@@ -302,6 +320,9 @@ export default function TransferDetailPage() {
   }
 
   function toggleFeature(value: string) {
+    if (!canEditDetails) {
+      return;
+    }
     setSelectedFeatures((prev) =>
       prev.includes(value) ? prev.filter((f) => f !== value) : [...prev, value],
     );
@@ -395,18 +416,104 @@ export default function TransferDetailPage() {
     syncTransfer(updated);
   }
 
+  async function submitAppeal() {
+    if (!user || !item || !appealMessage.trim()) {
+      return;
+    }
+    setSubmittingAppeal(true);
+    try {
+      const submitted = await transfersClient.submitAppeal(user.id, item.id, appealMessage.trim());
+      setAppeal(submitted);
+      setShowAppealForm(false);
+      setAppealMessage("");
+      setMessage("Appeal submitted. We will review it and notify you of the outcome.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to submit appeal. Please try again.");
+    } finally {
+      setSubmittingAppeal(false);
+    }
+  }
+
   return (
     <PartnerShell
       title={item.name || "Transfer Draft"}
       description="Edit route, vehicle, pricing, and listing lifecycle details."
-      headerExtra={<p className="tm-muted text-sm">Status: {item.status}</p>}
+      headerExtra={
+        <p className="tm-muted text-sm">
+          Status: {item.status === "paused_by_admin" ? "Suspended by platform" : item.status}
+        </p>
+      }
     >
       <section className="tm-panel p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="tm-section-title">Listing Actions</h2>
-            {item.moderationFeedback ? (
+            {item.status === "paused_by_admin" ? (
+              <div className="mt-2 space-y-3">
+                <p className="text-sm text-amber-700">
+                  {item.moderationFeedback
+                    ? `Reason: ${item.moderationFeedback}`
+                    : "This listing has been suspended by the platform. No changes can be made until the restriction is lifted."}
+                </p>
+                {appeal === null ? (
+                  showAppealForm ? (
+                    <div className="space-y-2">
+                      <textarea
+                        className="tm-input w-full text-sm"
+                        placeholder="Explain why this listing should be reinstated..."
+                        rows={3}
+                        value={appealMessage}
+                        onChange={(event) => setAppealMessage(event.target.value)}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          className="tm-btn tm-btn-primary text-sm"
+                          disabled={submittingAppeal || !appealMessage.trim()}
+                          onClick={() => void submitAppeal()}
+                          type="button"
+                        >
+                          {submittingAppeal ? "Submitting..." : "Submit Appeal"}
+                        </button>
+                        <button
+                          className="tm-btn tm-btn-outline text-sm"
+                          disabled={submittingAppeal}
+                          onClick={() => {
+                            setShowAppealForm(false);
+                            setAppealMessage("");
+                          }}
+                          type="button"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      className="tm-btn tm-btn-outline text-sm"
+                      onClick={() => setShowAppealForm(true)}
+                      type="button"
+                    >
+                      Submit Appeal
+                    </button>
+                  )
+                ) : appeal.status === "resolved" && appeal.resolution === "dismissed" ? (
+                  <p className="text-sm text-rose-700">
+                    Appeal dismissed.{appeal.resolutionNote ? ` Note: ${appeal.resolutionNote}` : ""} Contact support for further assistance.
+                  </p>
+                ) : (
+                  <p className="text-sm text-amber-600">
+                    Appeal {appeal.status === "under_review" ? "under review" : "submitted - awaiting review"}.
+                  </p>
+                )}
+              </div>
+            ) : null}
+            {item.status === "rejected" && item.moderationFeedback ? (
               <p className="mt-2 text-sm text-rose-700">Feedback: {item.moderationFeedback}</p>
+            ) : null}
+            {!canEditDetails ? (
+              <p className="mt-2 text-sm text-amber-700">
+                Editing is only available in draft or rejected status. Move this listing to draft before editing.
+              </p>
             ) : null}
           </div>
 
@@ -451,7 +558,17 @@ export default function TransferDetailPage() {
                 Resume
               </button>
             ) : null}
-            {item.status !== "archived" ? (
+            {item.status === "paused" ? (
+              <button
+                className="tm-btn tm-btn-outline"
+                disabled={saving}
+                onClick={() => void changeStatus("draft")}
+                type="button"
+              >
+                Move to Draft
+              </button>
+            ) : null}
+            {item.status !== "archived" && item.status !== "paused_by_admin" ? (
               <button className="tm-btn tm-btn-outline" disabled={saving} onClick={() => void archive()} type="button">
                 Archive
               </button>
@@ -509,6 +626,11 @@ export default function TransferDetailPage() {
             Correction workflow: apply moderation feedback, resolve quality warnings, then re-submit.
           </p>
         ) : null}
+        {item.status === "paused_by_admin" ? (
+          <p className="mt-3 text-sm text-amber-700">
+            This listing is suspended. Quality improvements cannot be submitted until the platform releases the restriction.
+          </p>
+        ) : null}
       </section>
 
       <form className="tm-panel p-6" onSubmit={saveDetails}>
@@ -516,15 +638,15 @@ export default function TransferDetailPage() {
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <label className="tm-field">
             <span className="tm-field-label">Name</span>
-            <input className="tm-input" name="name" defaultValue={item.name} placeholder="Transfer name" />
+            <input className="tm-input" name="name" defaultValue={item.name} disabled={!canEditDetails || saving} placeholder="Transfer name" />
           </label>
           <label className="tm-field">
             <span className="tm-field-label">Base Fare</span>
-            <input className="tm-input" name="baseFare" defaultValue={item.baseFare} placeholder="Base fare" type="number" />
+            <input className="tm-input" name="baseFare" defaultValue={item.baseFare} disabled={!canEditDetails || saving} placeholder="Base fare" type="number" />
           </label>
           <label className="tm-field">
             <span className="tm-field-label">Transfer Type</span>
-            <select className="tm-input" name="transferType" defaultValue={item.transferType || ""}>
+            <select className="tm-input" name="transferType" defaultValue={item.transferType || ""} disabled={!canEditDetails || saving}>
               <option value="">Select transfer type</option>
               <option value="one_way">One-way</option>
               <option value="return">Return</option>
@@ -534,11 +656,11 @@ export default function TransferDetailPage() {
           </label>
           <label className="tm-field">
             <span className="tm-field-label">Pickup Point</span>
-            <input className="tm-input" name="pickupPoint" defaultValue={item.pickupPoint} placeholder="Pickup point" />
+            <input className="tm-input" name="pickupPoint" defaultValue={item.pickupPoint} disabled={!canEditDetails || saving} placeholder="Pickup point" />
           </label>
           <label className="tm-field">
             <span className="tm-field-label">Dropoff Point</span>
-            <input className="tm-input" name="dropoffPoint" defaultValue={item.dropoffPoint} placeholder="Dropoff point" />
+            <input className="tm-input" name="dropoffPoint" defaultValue={item.dropoffPoint} disabled={!canEditDetails || saving} placeholder="Dropoff point" />
           </label>
           <label className="tm-field">
             <span className="tm-field-label">Vehicle Class</span>
@@ -546,6 +668,7 @@ export default function TransferDetailPage() {
               className="tm-input"
               name="vehicleClass"
               value={selectedVehicleClass}
+              disabled={!canEditDetails || saving}
               onChange={(event) => setSelectedVehicleClass(event.target.value)}
               required
             >
@@ -570,6 +693,7 @@ export default function TransferDetailPage() {
               className="tm-input"
               name="country"
               value={selectedCountry}
+              disabled={!canEditDetails || saving}
               onChange={(event) => {
                 const nextCountry = event.target.value;
                 setSelectedCountry(nextCountry);
@@ -594,12 +718,14 @@ export default function TransferDetailPage() {
               className="tm-input mb-2"
               placeholder="Search city"
               value={citySearch}
+              disabled={!canEditDetails || saving}
               onChange={(event) => setCitySearch(event.target.value)}
             />
             <select
               className="tm-input"
               name="city"
               value={selectedCity}
+              disabled={!canEditDetails || saving}
               onChange={(event) => setSelectedCity(event.target.value)}
               required
             >
@@ -623,6 +749,7 @@ export default function TransferDetailPage() {
               className="tm-input"
               name="passengerCapacity"
               defaultValue={item.passengerCapacity}
+              disabled={!canEditDetails || saving}
               placeholder="Passenger capacity"
               type="number"
             />
@@ -633,6 +760,7 @@ export default function TransferDetailPage() {
               className="tm-input"
               name="luggageCapacity"
               defaultValue={item.luggageCapacity}
+              disabled={!canEditDetails || saving}
               placeholder="Luggage capacity"
               type="number"
             />
@@ -643,6 +771,7 @@ export default function TransferDetailPage() {
               <select
                 className="tm-input flex-1"
                 value={openTime}
+                disabled={!canEditDetails || saving}
                 onChange={(event) => setOpenTime(event.target.value)}
               >
                 {openTime && !knownTimeValues.has(openTime) ? (
@@ -658,6 +787,7 @@ export default function TransferDetailPage() {
               <select
                 className="tm-input flex-1"
                 value={closeTime}
+                disabled={!canEditDetails || saving}
                 onChange={(event) => setCloseTime(event.target.value)}
               >
                 {closeTime && !knownTimeValues.has(closeTime) ? (
@@ -676,6 +806,7 @@ export default function TransferDetailPage() {
             <select
               className="tm-input"
               value={selectedCurrency}
+              disabled={!canEditDetails || saving}
               onChange={(event) => setSelectedCurrency(event.target.value)}
             >
               {CURRENCY_OPTIONS.map((opt) => (
@@ -694,6 +825,7 @@ export default function TransferDetailPage() {
               className="tm-input"
               name="nightSurcharge"
               defaultValue={item.nightSurcharge}
+              disabled={!canEditDetails || saving}
               placeholder="Night surcharge"
               type="number"
             />
@@ -705,6 +837,7 @@ export default function TransferDetailPage() {
             className="tm-input min-h-24"
             name="description"
             defaultValue={item.description}
+            disabled={!canEditDetails || saving}
             placeholder="Description"
           />
         </label>
@@ -714,6 +847,7 @@ export default function TransferDetailPage() {
             className="tm-input min-h-20"
             name="cancellationPolicy"
             defaultValue={item.cancellationPolicy}
+            disabled={!canEditDetails || saving}
             placeholder="Describe your cancellation terms (e.g. free cancellation up to 24 hours before pickup)"
           />
         </label>
@@ -724,6 +858,7 @@ export default function TransferDetailPage() {
               <label key={opt.value} className="tm-tag-pill flex items-center gap-2">
                 <input
                   checked={selectedFeatures.includes(opt.value)}
+                  disabled={!canEditDetails || saving}
                   onChange={() => toggleFeature(opt.value)}
                   type="checkbox"
                 />
@@ -734,7 +869,7 @@ export default function TransferDetailPage() {
               .filter((value) => !knownFeatureValues.has(value))
               .map((value) => (
                 <label key={value} className="tm-tag-pill flex items-center gap-2">
-                  <input checked onChange={() => toggleFeature(value)} type="checkbox" />
+                  <input checked disabled={!canEditDetails || saving} onChange={() => toggleFeature(value)} type="checkbox" />
                   {value}
                 </label>
               ))}
@@ -742,7 +877,7 @@ export default function TransferDetailPage() {
         </div>
 
         <div className="mt-4">
-          <button className="tm-btn tm-btn-primary" disabled={saving} type="submit">
+          <button className="tm-btn tm-btn-primary" disabled={saving || !canEditDetails} type="submit">
             {saving ? "Saving..." : "Save Details"}
           </button>
         </div>

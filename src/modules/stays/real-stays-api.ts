@@ -2,6 +2,7 @@ import { apiRequest } from "@/lib/http-client";
 import type {
   AddStayImageInput,
   CreateStayInput,
+  ListingAppeal,
   ReplaceStayImageInput,
   StayListing,
   StayStatus,
@@ -138,5 +139,24 @@ export const realStaysApi: StaysApi = {
       method: "POST",
     });
     return response.data;
+  },
+
+  async submitAppeal(userId, stayId, message) {
+    const response = await apiRequest<Envelope<ListingAppeal>>(
+      `/partners/${userId}/stays/${stayId}/appeal`,
+      { method: "POST", body: { message } },
+    );
+    return response.data;
+  },
+
+  async getAppeal(userId, stayId) {
+    try {
+      const response = await apiRequest<Envelope<ListingAppeal>>(
+        `/partners/${userId}/stays/${stayId}/appeal`,
+      );
+      return response.data;
+    } catch {
+      return null;
+    }
   },
 };

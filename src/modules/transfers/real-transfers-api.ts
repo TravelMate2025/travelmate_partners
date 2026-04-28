@@ -8,6 +8,7 @@ import type {
   TransfersApi,
   UpdateTransferInput,
 } from "@/modules/transfers/contracts";
+import type { ListingAppeal } from "@/modules/stays/contracts";
 
 type Envelope<T> = { data: T };
 
@@ -110,5 +111,24 @@ export const realTransfersApi: TransfersApi = {
       },
     );
     return response.data;
+  },
+
+  async submitAppeal(userId, transferId, message) {
+    const response = await apiRequest<Envelope<ListingAppeal>>(
+      `/partners/${userId}/transfers/${transferId}/appeal`,
+      { method: "POST", body: { message } },
+    );
+    return response.data;
+  },
+
+  async getAppeal(userId, transferId) {
+    try {
+      const response = await apiRequest<Envelope<ListingAppeal>>(
+        `/partners/${userId}/transfers/${transferId}/appeal`,
+      );
+      return response.data;
+    } catch {
+      return null;
+    }
   },
 };

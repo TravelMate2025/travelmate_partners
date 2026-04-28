@@ -157,15 +157,24 @@ export default function StaysPage() {
                     <p className="text-sm text-slate-600">
                       {stay.propertyType || "Property type not set"} • {stay.city || "City"}, {stay.country || "Country"}
                     </p>
-                    <p className="tm-status-inline mt-2">Status: {stay.status}</p>
-                    {stay.moderationFeedback ? (
+                    <p className="tm-status-inline mt-2">
+                      Status: {stay.status === "paused_by_admin" ? "Suspended by platform" : stay.status}
+                    </p>
+                    {stay.status === "paused_by_admin" ? (
+                      <p className="mt-2 text-xs text-amber-700">
+                        {stay.moderationFeedback
+                          ? `Reason: ${stay.moderationFeedback}`
+                          : "This listing has been suspended by the platform. Contact support if you believe this is an error."}
+                      </p>
+                    ) : null}
+                    {stay.status === "rejected" && stay.moderationFeedback ? (
                       <p className="mt-2 text-xs text-rose-700">Feedback: {stay.moderationFeedback}</p>
                     ) : null}
                   </div>
 
                   <div className="flex flex-wrap gap-2">
                     <Link href={`/stays/${stay.id}`} className="tm-btn tm-btn-outline">
-                      Edit
+                      {stay.status === "paused_by_admin" ? "View" : "Edit"}
                     </Link>
 
                     {(stay.status === "draft" || stay.status === "rejected") ? (
@@ -192,7 +201,7 @@ export default function StaysPage() {
                       </button>
                     ) : null}
 
-                    {stay.status !== "archived" ? (
+                    {stay.status !== "archived" && stay.status !== "paused_by_admin" ? (
                       <button className="tm-btn tm-btn-outline" disabled={busyId === stay.id} onClick={() => void archive(stay.id)} type="button">
                         Archive
                       </button>

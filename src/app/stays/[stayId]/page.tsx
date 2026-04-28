@@ -16,7 +16,7 @@ import { stayAmenityOptions } from "@/modules/stays/amenity-options";
 import { normalizeStayPropertyType, stayPropertyTypeOptions } from "@/modules/stays/property-type-options";
 import { stayTimeOptions } from "@/modules/stays/time-options";
 import { staysClient } from "@/modules/stays/stays-client";
-import type { StayListing, StayStatus } from "@/modules/stays/contracts";
+import type { ListingAppeal, StayListing, StayStatus } from "@/modules/stays/contracts";
 import { verificationClient } from "@/modules/verification/verification-client";
 
 const COUNTRY_ALIASES: Record<string, string> = {
@@ -54,6 +54,10 @@ export default function StayDetailPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   useToastMessage(message);
+  const [appeal, setAppeal] = useState<ListingAppeal | null>(null);
+  const [appealMessage, setAppealMessage] = useState("");
+  const [submittingAppeal, setSubmittingAppeal] = useState(false);
+  const [showAppealForm, setShowAppealForm] = useState(false);
   const [uploadState, setUploadState] = useState<"idle" | "uploading">("idle");
 
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -144,6 +148,11 @@ export default function StayDetailPage() {
         setUser(currentUser);
         setStay(item);
         setAllStays(listings);
+
+        if (item.status === "paused_by_admin") {
+          const existingAppeal = await staysClient.getAppeal(currentUser.id, stayId).catch(() => null);
+          if (active) setAppeal(existingAppeal);
+        }
         setSelectedAmenities(item.amenities);
         setSelectedPropertyType(normalizeStayPropertyType(item.propertyType));
         const normalizedCountry = normalizeCountry(item.country);
@@ -186,6 +195,10 @@ export default function StayDetailPage() {
   }, [router, stayId]);
 
   const canSubmit = useMemo(() => stay?.status === "draft" || stay?.status === "rejected", [stay?.status]);
+  const canEditDetails = useMemo(
+    () => stay?.status === "draft" || stay?.status === "rejected",
+    [stay?.status],
+  );
   const qualityReport = useMemo(() => {
     if (!stay) {
       return null;
@@ -257,6 +270,10 @@ export default function StayDetailPage() {
     const form = new FormData(event.currentTarget);
 
     try {
+      if (!canEditDetails) {
+        throw new Error("Only draft or rejected stays can be edited. Move listing to draft and try again.");
+      }
+
       const updated = await staysClient.updateStay(user.id, stay.id, {
         propertyType: selectedPropertyType,
         name: String(form.get("name") ?? ""),
@@ -453,7 +470,13 @@ export default function StayDetailPage() {
       syncStay(updated);
       setMessage(`Status updated to ${updated.status}.`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Status change failed.");
+      const fallback = "Status change failed.";
+      const rawMessage = error instanceof Error ? error.message : fallback;
+      if (rawMessage.toLowerCase().includes("cannot transition stay")) {
+        setMessage(`${rawMessage} Use the allowed workflow actions on this page.`);
+      } else {
+        setMessage(rawMessage);
+      }
     } finally {
       setSaving(false);
     }
@@ -464,23 +487,117 @@ export default function StayDetailPage() {
       return;
     }
 
-    const updated = await staysClient.archiveStay(user.id, stay.id);
-    syncStay(updated);
-    setMessage("Stay archived.");
+    try {
+      const updated = await staysClient.archiveStay(user.id, stay.id);
+      syncStay(updated);
+      setMessage("Stay archived.");
+    } catch (error) {
+      const fallback = "Archive failed.";
+      const rawMessage = error instanceof Error ? error.message : fallback;
+      if (rawMessage.toLowerCase().includes("cannot archive a stay with status")) {
+        setMessage(`${rawMessage} Move the listing to an allowed state first.`);
+      } else {
+        setMessage(rawMessage);
+      }
+    }
+  }
+
+  async function submitAppeal() {
+    if (!user || !stay || !appealMessage.trim()) {
+      return;
+    }
+    setSubmittingAppeal(true);
+    try {
+      const submitted = await staysClient.submitAppeal(user.id, stay.id, appealMessage.trim());
+      setAppeal(submitted);
+      setShowAppealForm(false);
+      setAppealMessage("");
+      setMessage("Appeal submitted. We will review it and notify you of the outcome.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to submit appeal. Please try again.");
+    } finally {
+      setSubmittingAppeal(false);
+    }
   }
 
   return (
     <PartnerShell
       title={stay.name || "Stay Draft"}
       description="Edit listing details, media, rooms, and lifecycle status."
-      headerExtra={<p className="tm-muted text-sm">Status: {stay.status}</p>}
+      headerExtra={
+        <p className="tm-muted text-sm">
+          Status: {stay.status === "paused_by_admin" ? "Suspended by platform" : stay.status}
+        </p>
+      }
     >
         <section className="tm-panel p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="tm-section-title">Listing Actions</h2>
-              {stay.moderationFeedback ? (
+              {stay.status === "paused_by_admin" ? (
+                <div className="mt-2 space-y-3">
+                  <p className="text-sm text-amber-700">
+                    {stay.moderationFeedback
+                      ? `Reason: ${stay.moderationFeedback}`
+                      : "This listing has been suspended by the platform. No changes can be made until the restriction is lifted."}
+                  </p>
+                  {appeal === null ? (
+                    showAppealForm ? (
+                      <div className="space-y-2">
+                        <textarea
+                          className="tm-input w-full text-sm"
+                          placeholder="Explain why this listing should be reinstated…"
+                          rows={3}
+                          value={appealMessage}
+                          onChange={(e) => setAppealMessage(e.target.value)}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            className="tm-btn tm-btn-primary text-sm"
+                            disabled={submittingAppeal || !appealMessage.trim()}
+                            onClick={() => void submitAppeal()}
+                            type="button"
+                          >
+                            {submittingAppeal ? "Submitting…" : "Submit Appeal"}
+                          </button>
+                          <button
+                            className="tm-btn tm-btn-outline text-sm"
+                            disabled={submittingAppeal}
+                            onClick={() => { setShowAppealForm(false); setAppealMessage(""); }}
+                            type="button"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        className="tm-btn tm-btn-outline text-sm"
+                        onClick={() => setShowAppealForm(true)}
+                        type="button"
+                      >
+                        Submit Appeal
+                      </button>
+                    )
+                  ) : appeal.status === "resolved" && appeal.resolution === "dismissed" ? (
+                    <p className="text-sm text-rose-700">
+                      Appeal dismissed.{appeal.resolutionNote ? ` Note: ${appeal.resolutionNote}` : ""}{" "}
+                      Contact support for further assistance.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-amber-600">
+                      Appeal {appeal.status === "under_review" ? "under review" : "submitted — awaiting review"}.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+              {stay.status === "rejected" && stay.moderationFeedback ? (
                 <p className="mt-2 text-sm text-rose-700">Feedback: {stay.moderationFeedback}</p>
+              ) : null}
+              {!canEditDetails ? (
+                <p className="mt-2 text-sm text-amber-700">
+                  Editing is only available in draft or rejected status. Move this listing to draft before editing.
+                </p>
               ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -504,7 +621,17 @@ export default function StayDetailPage() {
                   Resume
                 </button>
               ) : null}
-              {stay.status !== "archived" ? (
+              {stay.status === "paused" ? (
+                <button
+                  className="tm-btn tm-btn-outline"
+                  disabled={saving}
+                  onClick={() => void changeStatus("draft")}
+                  type="button"
+                >
+                  Move to Draft
+                </button>
+              ) : null}
+              {stay.status !== "archived" && stay.status !== "paused_by_admin" && stay.status !== "paused" ? (
                 <button className="tm-btn tm-btn-outline" disabled={saving} onClick={() => void archive()} type="button">
                   Archive
                 </button>
@@ -553,6 +680,11 @@ export default function StayDetailPage() {
               Correction workflow: apply moderation feedback, resolve quality warnings, then re-submit.
             </p>
           ) : null}
+          {stay.status === "paused_by_admin" ? (
+            <p className="mt-3 text-sm text-amber-700">
+              This listing is suspended. Quality improvements cannot be submitted until the platform releases the restriction.
+            </p>
+          ) : null}
         </section>
 
         <section className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
@@ -567,6 +699,7 @@ export default function StayDetailPage() {
                     name="propertyType"
                     value={selectedPropertyType}
                     onChange={(event) => setSelectedPropertyType(event.target.value)}
+                    disabled={!canEditDetails || saving}
                     required
                   >
                     <option value="" disabled>
@@ -586,15 +719,15 @@ export default function StayDetailPage() {
                 </label>
                 <label className="tm-field">
                   <span className="tm-field-label">Stay Name</span>
-                  <input className="tm-input" name="name" defaultValue={stay.name} placeholder="Stay name" />
+                  <input className="tm-input" name="name" defaultValue={stay.name} disabled={!canEditDetails || saving} placeholder="Stay name" />
                 </label>
                 <label className="tm-field">
                   <span className="tm-field-label">Description</span>
-                  <textarea className="tm-input min-h-28" name="description" defaultValue={stay.description} placeholder="Description" />
+                  <textarea className="tm-input min-h-28" name="description" defaultValue={stay.description} disabled={!canEditDetails || saving} placeholder="Description" />
                 </label>
                 <label className="tm-field">
                   <span className="tm-field-label">Address</span>
-                  <input className="tm-input" name="address" defaultValue={stay.address} placeholder="Address" />
+                  <input className="tm-input" name="address" defaultValue={stay.address} disabled={!canEditDetails || saving} placeholder="Address" />
                 </label>
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="tm-field">
@@ -603,12 +736,14 @@ export default function StayDetailPage() {
                       className="tm-input mb-2"
                       placeholder="Search city"
                       value={citySearch}
+                      disabled={!canEditDetails || saving}
                       onChange={(event) => setCitySearch(event.target.value)}
                     />
                     <select
                       className="tm-input"
                       name="city"
                       value={selectedCity}
+                      disabled={!canEditDetails || saving}
                       onChange={(event) => setSelectedCity(event.target.value)}
                       required
                     >
@@ -628,6 +763,7 @@ export default function StayDetailPage() {
                       className="tm-input"
                       name="country"
                       value={selectedCountry}
+                      disabled={!canEditDetails || saving}
                       onChange={(event) => {
                         const nextCountry = event.target.value;
                         setSelectedCountry(nextCountry);
@@ -650,11 +786,11 @@ export default function StayDetailPage() {
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="tm-field">
                     <span className="tm-field-label">Latitude</span>
-                    <input className="tm-input" name="latitude" defaultValue={stay.latitude ?? ""} placeholder="Latitude (optional)" />
+                    <input className="tm-input" name="latitude" defaultValue={stay.latitude ?? ""} disabled={!canEditDetails || saving} placeholder="Latitude (optional)" />
                   </label>
                   <label className="tm-field">
                     <span className="tm-field-label">Longitude</span>
-                    <input className="tm-input" name="longitude" defaultValue={stay.longitude ?? ""} placeholder="Longitude (optional)" />
+                    <input className="tm-input" name="longitude" defaultValue={stay.longitude ?? ""} disabled={!canEditDetails || saving} placeholder="Longitude (optional)" />
                   </label>
                 </div>
                 <label className="tm-field">
@@ -664,6 +800,7 @@ export default function StayDetailPage() {
                       <label key={amenity.value} className="tm-tag-pill flex items-center gap-2">
                         <input
                           checked={selectedAmenities.includes(amenity.value)}
+                          disabled={!canEditDetails || saving}
                           onChange={() => toggleAmenity(amenity.value)}
                           type="checkbox"
                         />
@@ -676,6 +813,7 @@ export default function StayDetailPage() {
                         <label key={value} className="tm-tag-pill flex items-center gap-2">
                           <input
                             checked
+                            disabled={!canEditDetails || saving}
                             onChange={() => toggleAmenity(value)}
                             type="checkbox"
                           />
@@ -686,12 +824,12 @@ export default function StayDetailPage() {
                 </label>
                 <label className="tm-field">
                   <span className="tm-field-label">House Rules</span>
-                  <textarea className="tm-input min-h-20" name="houseRules" defaultValue={stay.houseRules} placeholder="House rules" />
+                  <textarea className="tm-input min-h-20" name="houseRules" defaultValue={stay.houseRules} disabled={!canEditDetails || saving} placeholder="House rules" />
                 </label>
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="tm-field">
                     <span className="tm-field-label">Check-in Time</span>
-                    <select className="tm-input" name="checkInTime" defaultValue={stay.checkInTime || ""}>
+                    <select className="tm-input" name="checkInTime" defaultValue={stay.checkInTime || ""} disabled={!canEditDetails || saving}>
                       <option value="">Select check-in time</option>
                       {stay.checkInTime && !knownTimeValues.has(stay.checkInTime) ? (
                         <option value={stay.checkInTime}>{stay.checkInTime}</option>
@@ -705,7 +843,7 @@ export default function StayDetailPage() {
                   </label>
                   <label className="tm-field">
                     <span className="tm-field-label">Check-out Time</span>
-                    <select className="tm-input" name="checkOutTime" defaultValue={stay.checkOutTime || ""}>
+                    <select className="tm-input" name="checkOutTime" defaultValue={stay.checkOutTime || ""} disabled={!canEditDetails || saving}>
                       <option value="">Select check-out time</option>
                       {stay.checkOutTime && !knownTimeValues.has(stay.checkOutTime) ? (
                         <option value={stay.checkOutTime}>{stay.checkOutTime}</option>
@@ -720,11 +858,11 @@ export default function StayDetailPage() {
                 </div>
                 <label className="tm-field">
                   <span className="tm-field-label">Cancellation Policy</span>
-                  <textarea className="tm-input min-h-20" name="cancellationPolicy" defaultValue={stay.cancellationPolicy} placeholder="Cancellation policy" />
+                  <textarea className="tm-input min-h-20" name="cancellationPolicy" defaultValue={stay.cancellationPolicy} disabled={!canEditDetails || saving} placeholder="Cancellation policy" />
                 </label>
               </div>
               <div className="tm-inline-actions mt-4">
-                <button className="tm-btn tm-btn-primary" disabled={saving} type="submit">
+                <button className="tm-btn tm-btn-primary" disabled={saving || !canEditDetails} type="submit">
                   {saving ? "Saving..." : "Save Details"}
                 </button>
                 <button className="tm-btn tm-btn-outline" disabled={saving} onClick={() => void refresh()} type="button">
