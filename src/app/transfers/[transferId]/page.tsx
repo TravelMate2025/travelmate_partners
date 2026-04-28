@@ -3,19 +3,53 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+import { fetchCatalogOptions } from "@/modules/catalog/catalog-options-client";
 import { buildTransferQualityReport } from "@/modules/data-quality/listing-quality";
 import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
+import { localityOptionsByCountry, operatingCountryOptions } from "@/modules/profile/location-options";
 import type { TransferListing, TransferStatus, TransferType } from "@/modules/transfers/contracts";
 import { transfersClient } from "@/modules/transfers/transfers-client";
+import {
+  normalizeTransferVehicleClass,
+  transferVehicleClassOptions,
+} from "@/modules/transfers/vehicle-options";
+import { stayTimeOptions } from "@/modules/stays/time-options";
 
-function splitCsv(value: string) {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
+const DEFAULT_OPEN = "06:00";
+const DEFAULT_CLOSE = "23:00";
+const knownTimeValues = new Set(stayTimeOptions.map((opt) => opt.value));
+
+function parseOperatingHours(value: string): { open: string; close: string } {
+  const parts = value.trim().split("-");
+  if (parts.length === 2) {
+    const [open, close] = parts.map((p) => p.trim());
+    const valid = (t: string) => /^\d{2}:\d{2}$/.test(t);
+    if (valid(open) && valid(close)) {
+      return { open, close };
+    }
+  }
+  return { open: DEFAULT_OPEN, close: DEFAULT_CLOSE };
 }
+
+const TRANSFER_FEATURE_OPTIONS = [
+  { value: "AC", label: "Air Conditioning" },
+  { value: "Wi-Fi", label: "Wi-Fi" },
+  { value: "Child seat", label: "Child Seat" },
+  { value: "Meet and greet", label: "Meet & Greet" },
+  { value: "Airport signage", label: "Airport Signage" },
+  { value: "Luggage assistance", label: "Luggage Assistance" },
+  { value: "Wheelchair accessible", label: "Wheelchair Accessible" },
+  { value: "Professional driver", label: "Professional Driver" },
+  { value: "Water onboard", label: "Water Onboard" },
+];
+
+const CURRENCY_OPTIONS = [
+  { value: "NGN", label: "NGN — Nigerian Naira" },
+  { value: "USD", label: "USD — US Dollar" },
+  { value: "GBP", label: "GBP — British Pound" },
+];
 
 function normalizeTransferListing(entry: TransferListing): TransferListing {
   return {
@@ -23,6 +57,47 @@ function normalizeTransferListing(entry: TransferListing): TransferListing {
     features: Array.isArray(entry.features) ? entry.features : [],
     images: Array.isArray(entry.images) ? entry.images : [],
   };
+}
+
+const COUNTRY_ALIASES: Record<string, string> = {
+  ng: "Nigeria",
+  nigeria: "Nigeria",
+  us: "United States",
+  usa: "United States",
+  "united states": "United States",
+  uk: "United Kingdom",
+  gb: "United Kingdom",
+  "united kingdom": "United Kingdom",
+};
+
+function normalizeCountry(value: string): string {
+  const raw = value.trim();
+  if (!raw) {
+    return "";
+  }
+  const aliased = COUNTRY_ALIASES[raw.toLowerCase()];
+  if (aliased) {
+    return aliased;
+  }
+  return operatingCountryOptions.find((country) => country.toLowerCase() === raw.toLowerCase()) ?? "";
+}
+
+function parseCoverageArea(value: string): { country: string; city: string } | null {
+  const parts = value.split(",").map((segment) => segment.trim());
+  if (parts.length !== 2) {
+    return null;
+  }
+  const [cityRaw, countryRaw] = parts;
+  const country = normalizeCountry(countryRaw);
+  if (!country) {
+    return null;
+  }
+  const localities = localityOptionsByCountry[country as keyof typeof localityOptionsByCountry] ?? [];
+  const city = localities.find((entry) => entry.toLowerCase() === cityRaw.toLowerCase()) ?? "";
+  if (!city) {
+    return null;
+  }
+  return { country, city };
 }
 
 export default function TransferDetailPage() {
@@ -37,7 +112,26 @@ export default function TransferDetailPage() {
   const [message, setMessage] = useState("");
   useToastMessage(message);
   const [uploadState, setUploadState] = useState<"idle" | "uploading">("idle");
-  const [featuresText, setFeaturesText] = useState("");
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [selectedCurrency, setSelectedCurrency] = useState("NGN");
+  const [openTime, setOpenTime] = useState(DEFAULT_OPEN);
+  const [closeTime, setCloseTime] = useState(DEFAULT_CLOSE);
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [citySearch, setCitySearch] = useState("");
+  const [selectedVehicleClass, setSelectedVehicleClass] = useState("");
+  const [vehicleClassOptions, setVehicleClassOptions] = useState<Array<{ value: string; label: string }>>(
+    [...transferVehicleClassOptions],
+  );
+
+  const availableCities = selectedCountry
+    ? (localityOptionsByCountry[selectedCountry as keyof typeof localityOptionsByCountry] ?? [])
+    : [];
+  const knownVehicleClassValues = new Set(vehicleClassOptions.map((item) => item.value));
+  const knownFeatureValues = new Set(TRANSFER_FEATURE_OPTIONS.map((opt) => opt.value));
+  const filteredCities = citySearch.trim()
+    ? availableCities.filter((city) => city.toLowerCase().includes(citySearch.trim().toLowerCase()))
+    : availableCities;
 
   useEffect(() => {
     if (!user) {
@@ -45,6 +139,19 @@ export default function TransferDetailPage() {
     }
 
     let active = true;
+    fetchCatalogOptions().then((catalogOptions) => {
+      if (!active) {
+        return;
+      }
+      if (catalogOptions.vehicleClasses.length > 0) {
+        setVehicleClassOptions(
+          catalogOptions.vehicleClasses.map((item) => ({
+            value: item.code,
+            label: item.label,
+          })),
+        );
+      }
+    });
     transfersClient
       .listTransfers(user.id)
       .then(async (listings) => {
@@ -55,9 +162,18 @@ export default function TransferDetailPage() {
         }
         const normalizedResult = normalizeTransferListing(result);
         const normalizedListings = listings.map(normalizeTransferListing);
+        const parsedCoverage = parseCoverageArea(normalizedResult.coverageArea);
         setItem(normalizedResult);
         setAllTransfers(normalizedListings.length > 0 ? normalizedListings : [normalizedResult]);
-        setFeaturesText(normalizedResult.features.join(", "));
+        setSelectedFeatures(normalizedResult.features);
+        setSelectedCurrency(normalizedResult.currency || "NGN");
+        const parsedHours = parseOperatingHours(normalizedResult.operatingHours);
+        setOpenTime(parsedHours.open);
+        setCloseTime(parsedHours.close);
+        setSelectedCountry(parsedCoverage?.country ?? "");
+        setSelectedCity(parsedCoverage?.city ?? "");
+        setCitySearch("");
+        setSelectedVehicleClass(normalizeTransferVehicleClass(normalizedResult.vehicleClass));
       })
       .catch((error) => {
         if (!active) {
@@ -90,6 +206,7 @@ export default function TransferDetailPage() {
 
   function syncTransfer(updated: TransferListing) {
     const normalized = normalizeTransferListing(updated);
+    setSelectedVehicleClass(normalizeTransferVehicleClass(normalized.vehicleClass));
     setItem(normalized);
     setAllTransfers((prev) => {
       const index = prev.findIndex((entry) => entry.id === normalized.id);
@@ -132,15 +249,16 @@ export default function TransferDetailPage() {
         transferType: String(form.get("transferType") ?? "") as TransferType,
         pickupPoint: String(form.get("pickupPoint") ?? ""),
         dropoffPoint: String(form.get("dropoffPoint") ?? ""),
-        vehicleClass: String(form.get("vehicleClass") ?? ""),
+        vehicleClass: selectedVehicleClass,
         passengerCapacity: Number(form.get("passengerCapacity") ?? 0),
         luggageCapacity: Number(form.get("luggageCapacity") ?? 0),
-        features: splitCsv(featuresText),
-        coverageArea: String(form.get("coverageArea") ?? ""),
-        operatingHours: String(form.get("operatingHours") ?? ""),
-        currency: String(form.get("currency") ?? ""),
+        features: selectedFeatures,
+        coverageArea: `${selectedCity}, ${selectedCountry}`,
+        operatingHours: `${openTime}-${closeTime}`,
+        currency: selectedCurrency,
         baseFare: Number(form.get("baseFare") ?? 0),
         nightSurcharge: Number(form.get("nightSurcharge") ?? 0),
+        cancellationPolicy: String(form.get("cancellationPolicy") ?? ""),
       });
       syncTransfer(updated);
       setMessage("Transfer details saved.");
@@ -181,6 +299,12 @@ export default function TransferDetailPage() {
     const updated = await transfersClient.archiveTransfer(user.id, item.id);
     syncTransfer(updated);
     setMessage("Transfer archived.");
+  }
+
+  function toggleFeature(value: string) {
+    setSelectedFeatures((prev) =>
+      prev.includes(value) ? prev.filter((f) => f !== value) : [...prev, value],
+    );
   }
 
   async function addImage(file: File) {
@@ -332,6 +456,16 @@ export default function TransferDetailPage() {
                 Archive
               </button>
             ) : null}
+            {item.status === "archived" ? (
+              <button
+                className="tm-btn tm-btn-outline"
+                disabled={saving}
+                onClick={() => void changeStatus("draft")}
+                type="button"
+              >
+                Restore to Draft
+              </button>
+            ) : null}
             <button
               className="tm-btn tm-btn-outline"
               onClick={() =>
@@ -408,12 +542,81 @@ export default function TransferDetailPage() {
           </label>
           <label className="tm-field">
             <span className="tm-field-label">Vehicle Class</span>
-            <input className="tm-input" name="vehicleClass" defaultValue={item.vehicleClass} placeholder="Vehicle class/type" />
+            <select
+              className="tm-input"
+              name="vehicleClass"
+              value={selectedVehicleClass}
+              onChange={(event) => setSelectedVehicleClass(event.target.value)}
+              required
+            >
+              <option value="" disabled>
+                Select vehicle class
+              </option>
+              {selectedVehicleClass && !knownVehicleClassValues.has(selectedVehicleClass) ? (
+                <option value={selectedVehicleClass}>
+                  {selectedVehicleClass.replace(/_/g, " ")}
+                </option>
+              ) : null}
+              {vehicleClassOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="tm-field">
-            <span className="tm-field-label">Coverage Area</span>
-            <input className="tm-input" name="coverageArea" defaultValue={item.coverageArea} placeholder="Coverage area" />
+            <span className="tm-field-label">Country</span>
+            <select
+              className="tm-input"
+              name="country"
+              value={selectedCountry}
+              onChange={(event) => {
+                const nextCountry = event.target.value;
+                setSelectedCountry(nextCountry);
+                setSelectedCity("");
+                setCitySearch("");
+              }}
+              required
+            >
+              <option value="" disabled>
+                Select country
+              </option>
+              {operatingCountryOptions.map((country) => (
+                <option key={country} value={country}>
+                  {country}
+                </option>
+              ))}
+            </select>
           </label>
+          <label className="tm-field">
+            <span className="tm-field-label">City</span>
+            <input
+              className="tm-input mb-2"
+              placeholder="Search city"
+              value={citySearch}
+              onChange={(event) => setCitySearch(event.target.value)}
+            />
+            <select
+              className="tm-input"
+              name="city"
+              value={selectedCity}
+              onChange={(event) => setSelectedCity(event.target.value)}
+              required
+            >
+              <option value="" disabled>
+                Select city
+              </option>
+              {filteredCities.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="tm-field">
+            <span className="tm-field-label">Coverage Area</span>
+            <p className="tm-input">{selectedCity && selectedCountry ? `${selectedCity}, ${selectedCountry}` : "Select city and country"}</p>
+          </div>
           <label className="tm-field">
             <span className="tm-field-label">Passenger Capacity</span>
             <input
@@ -434,13 +637,56 @@ export default function TransferDetailPage() {
               type="number"
             />
           </label>
-          <label className="tm-field">
+          <div className="tm-field">
             <span className="tm-field-label">Operating Hours</span>
-            <input className="tm-input" name="operatingHours" defaultValue={item.operatingHours} placeholder="06:00-23:00" />
-          </label>
+            <div className="mt-1 flex items-center gap-2">
+              <select
+                className="tm-input flex-1"
+                value={openTime}
+                onChange={(event) => setOpenTime(event.target.value)}
+              >
+                {openTime && !knownTimeValues.has(openTime) ? (
+                  <option value={openTime}>{openTime}</option>
+                ) : null}
+                {stayTimeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <span className="shrink-0 text-sm text-slate-500">to</span>
+              <select
+                className="tm-input flex-1"
+                value={closeTime}
+                onChange={(event) => setCloseTime(event.target.value)}
+              >
+                {closeTime && !knownTimeValues.has(closeTime) ? (
+                  <option value={closeTime}>{closeTime}</option>
+                ) : null}
+                {stayTimeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           <label className="tm-field">
             <span className="tm-field-label">Currency</span>
-            <input className="tm-input" name="currency" defaultValue={item.currency} placeholder="NGN, USD, GBP" />
+            <select
+              className="tm-input"
+              value={selectedCurrency}
+              onChange={(event) => setSelectedCurrency(event.target.value)}
+            >
+              {CURRENCY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+              {!CURRENCY_OPTIONS.some((opt) => opt.value === selectedCurrency) ? (
+                <option value={selectedCurrency}>{selectedCurrency}</option>
+              ) : null}
+            </select>
           </label>
           <label className="tm-field">
             <span className="tm-field-label">Night Surcharge</span>
@@ -463,14 +709,37 @@ export default function TransferDetailPage() {
           />
         </label>
         <label className="tm-field mt-3 block">
-          <span className="tm-field-label">Features</span>
+          <span className="tm-field-label">Cancellation Policy</span>
           <textarea
             className="tm-input min-h-20"
-            value={featuresText}
-            onChange={(event) => setFeaturesText(event.target.value)}
-            placeholder="Comma separated: AC, Wi-Fi, child seat..."
+            name="cancellationPolicy"
+            defaultValue={item.cancellationPolicy}
+            placeholder="Describe your cancellation terms (e.g. free cancellation up to 24 hours before pickup)"
           />
         </label>
+        <div className="tm-field mt-3">
+          <span className="tm-field-label">Features</span>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {TRANSFER_FEATURE_OPTIONS.map((opt) => (
+              <label key={opt.value} className="tm-tag-pill flex items-center gap-2">
+                <input
+                  checked={selectedFeatures.includes(opt.value)}
+                  onChange={() => toggleFeature(opt.value)}
+                  type="checkbox"
+                />
+                {opt.label}
+              </label>
+            ))}
+            {selectedFeatures
+              .filter((value) => !knownFeatureValues.has(value))
+              .map((value) => (
+                <label key={value} className="tm-tag-pill flex items-center gap-2">
+                  <input checked onChange={() => toggleFeature(value)} type="checkbox" />
+                  {value}
+                </label>
+              ))}
+          </div>
+        </div>
 
         <div className="mt-4">
           <button className="tm-btn tm-btn-primary" disabled={saving} type="submit">

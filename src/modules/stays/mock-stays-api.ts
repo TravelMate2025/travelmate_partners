@@ -250,6 +250,8 @@ export const mockStaysApi: StaysApi = {
       fileType: input.fileType,
       fileSize: input.fileSize,
       order: current.images.length,
+      roomId: input.roomId ?? null,
+      spaceType: input.spaceType ?? null,
       uploadedAt: nowIso(),
     };
 
@@ -313,6 +315,50 @@ export const mockStaysApi: StaysApi = {
       updatedAt: nowIso(),
     };
 
+    const index = items.findIndex((item) => item.id === stayId);
+    items[index] = next;
+    writeState(state);
+    return next;
+  },
+
+  async assignImageSpaceType(userId, stayId, imageId, spaceType) {
+    const state = readState();
+    const items = ensure(state, userId);
+    const current = findStay(items, stayId);
+
+    const targetIndex = current.images.findIndex((img) => img.id === imageId);
+    if (targetIndex === -1) {
+      throw new Error("Image not found.");
+    }
+
+    const images = [...current.images];
+    images[targetIndex] = { ...images[targetIndex], spaceType: spaceType ?? null };
+
+    const next = { ...current, images, updatedAt: nowIso() };
+    const index = items.findIndex((item) => item.id === stayId);
+    items[index] = next;
+    writeState(state);
+    return next;
+  },
+
+  async assignImageToRoom(userId, stayId, imageId, roomId) {
+    const state = readState();
+    const items = ensure(state, userId);
+    const current = findStay(items, stayId);
+
+    const targetIndex = current.images.findIndex((img) => img.id === imageId);
+    if (targetIndex === -1) {
+      throw new Error("Image not found.");
+    }
+
+    if (roomId !== null && !current.rooms.find((r) => r.id === roomId)) {
+      throw new Error("Room not found.");
+    }
+
+    const images = [...current.images];
+    images[targetIndex] = { ...images[targetIndex], roomId: roomId ?? null };
+
+    const next = { ...current, images, updatedAt: nowIso() };
     const index = items.findIndex((item) => item.id === stayId);
     items[index] = next;
     writeState(state);
@@ -411,6 +457,9 @@ export const mockStaysApi: StaysApi = {
     const next = {
       ...current,
       rooms: current.rooms.filter((room) => room.id !== roomId),
+      images: current.images.map((img) =>
+        img.roomId === roomId ? { ...img, roomId: null } : img,
+      ),
       updatedAt: nowIso(),
     };
 

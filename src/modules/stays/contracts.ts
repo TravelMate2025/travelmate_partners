@@ -6,6 +6,8 @@ export type StayImage = {
   fileType: string;
   fileSize: number;
   order: number;
+  roomId: string | null;
+  spaceType: string | null;
   uploadedAt: string;
 };
 
@@ -74,9 +76,11 @@ export type AddStayImageInput = {
   fileName: string;
   fileType: string;
   fileSize: number;
+  roomId?: string | null;
+  spaceType?: string | null;
 };
 
-export type ReplaceStayImageInput = AddStayImageInput;
+export type ReplaceStayImageInput = Omit<AddStayImageInput, "roomId">;
 
 export type UpsertStayRoomInput = {
   id?: string;
@@ -101,6 +105,18 @@ export type StaysApi = {
   ): Promise<StayListing>;
   removeImage(userId: string, stayId: string, imageId: string): Promise<StayListing>;
   reorderImages(userId: string, stayId: string, imageIds: string[]): Promise<StayListing>;
+  assignImageToRoom(
+    userId: string,
+    stayId: string,
+    imageId: string,
+    roomId: string | null,
+  ): Promise<StayListing>;
+  assignImageSpaceType(
+    userId: string,
+    stayId: string,
+    imageId: string,
+    spaceType: string | null,
+  ): Promise<StayListing>;
   upsertRoom(userId: string, stayId: string, input: UpsertStayRoomInput): Promise<StayListing>;
   removeRoom(userId: string, stayId: string, roomId: string): Promise<StayListing>;
   archiveStay(userId: string, stayId: string): Promise<StayListing>;

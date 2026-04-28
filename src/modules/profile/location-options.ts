@@ -195,6 +195,16 @@ export const operatingCityOptionsByRegion = {
   Wyoming: ["Cheyenne", "Casper"],
 } as const;
 
+const uniqueSorted = (values: string[]) => [...new Set(values)].sort((a, b) => a.localeCompare(b));
+
+export const localityOptionsByCountry = Object.fromEntries(
+  operatingCountryOptions.map((country) => {
+    const regions = [...operatingRegionOptionsByCountry[country]];
+    const cities = regions.flatMap((region) => [...operatingCityOptionsByRegion[region]]);
+    return [country, uniqueSorted([...regions, ...cities])];
+  }),
+) as Record<(typeof operatingCountryOptions)[number], string[]>;
+
 export const payoutMethodOptions = [
   { value: "bank_transfer", label: "Bank transfer" },
   { value: "mobile_money", label: "Mobile money" },

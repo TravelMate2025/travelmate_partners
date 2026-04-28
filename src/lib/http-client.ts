@@ -100,12 +100,20 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     requestBody = isFormDataBody ? (options.body as FormData) : JSON.stringify(options.body);
   }
 
-  const response = await fetch(url, {
-    method,
-    credentials: "include",
-    headers,
-    body: requestBody,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      credentials: "include",
+      headers,
+      body: requestBody,
+    });
+  } catch {
+    throw new HttpError(
+      `Unable to reach API at ${appConfig.apiBaseUrl}. Ensure the backend server is running and reachable.`,
+      0,
+    );
+  }
 
   const rawText = await response.text();
   const data = parseResponsePayload(rawText);

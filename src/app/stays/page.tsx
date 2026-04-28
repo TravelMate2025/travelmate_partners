@@ -8,6 +8,7 @@ import { authClient } from "@/modules/auth/auth-client";
 import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import type { PartnerUser } from "@/modules/auth/contracts";
+import { HttpError } from "@/lib/http-client";
 import { profileClient } from "@/modules/profile/profile-client";
 import { staysClient } from "@/modules/stays/stays-client";
 import type { StayListing, StayStatus } from "@/modules/stays/contracts";
@@ -49,10 +50,16 @@ export default function StaysPage() {
         setItems(stays);
         setLoading(false);
       })
-      .catch(() => {
-        if (active) {
-          router.replace("/auth/login");
+      .catch((error) => {
+        if (!active) {
+          return;
         }
+        if (error instanceof HttpError && (error.status === 401 || error.status === 403)) {
+          router.replace("/auth/login");
+          return;
+        }
+        setMessage(error instanceof Error ? error.message : "Failed to load stays. Please refresh.");
+        setLoading(false);
       });
 
     return () => {

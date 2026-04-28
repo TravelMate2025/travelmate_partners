@@ -4,10 +4,14 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { authClient } from "@/modules/auth/auth-client";
+import { fetchCatalogOptions } from "@/modules/catalog/catalog-options-client";
 import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import type { PartnerUser } from "@/modules/auth/contracts";
+import { HttpError } from "@/lib/http-client";
 import { profileClient } from "@/modules/profile/profile-client";
+import { localityOptionsByCountry, operatingCountryOptions } from "@/modules/profile/location-options";
+import { stayPropertyTypeOptions } from "@/modules/stays/property-type-options";
 import { staysClient } from "@/modules/stays/stays-client";
 import { verificationClient } from "@/modules/verification/verification-client";
 
@@ -18,6 +22,20 @@ export default function NewStayPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   useToastMessage(message);
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [citySearch, setCitySearch] = useState("");
+  const [selectedPropertyType, setSelectedPropertyType] = useState("");
+  const [propertyTypeOptions, setPropertyTypeOptions] = useState<Array<{ value: string; label: string }>>(
+    [...stayPropertyTypeOptions],
+  );
+
+  const availableCities = selectedCountry
+    ? (localityOptionsByCountry[selectedCountry as keyof typeof localityOptionsByCountry] ?? [])
+    : [];
+  const filteredCities = citySearch.trim()
+    ? availableCities.filter((city) => city.toLowerCase().includes(citySearch.trim().toLowerCase()))
+    : availableCities;
 
   useEffect(() => {
     let active = true;
@@ -25,6 +43,18 @@ export default function NewStayPage() {
     authClient
       .me()
       .then(async (currentUser) => {
+        const catalogOptions = await fetchCatalogOptions();
+        if (!active) {
+          return;
+        }
+        if (catalogOptions.propertyTypes.length > 0) {
+          setPropertyTypeOptions(
+            catalogOptions.propertyTypes.map((item) => ({
+              value: item.code,
+              label: item.label,
+            })),
+          );
+        }
         const onboarding = await profileClient.getOnboarding(currentUser.id);
         if (onboarding.status !== "completed") {
           router.replace("/onboarding");
@@ -44,10 +74,16 @@ export default function NewStayPage() {
         setUser(currentUser);
         setLoading(false);
       })
-      .catch(() => {
-        if (active) {
-          router.replace("/auth/login");
+      .catch((error) => {
+        if (!active) {
+          return;
         }
+        if (error instanceof HttpError && (error.status === 401 || error.status === 403)) {
+          router.replace("/auth/login");
+          return;
+        }
+        setMessage(error instanceof Error ? error.message : "Failed to load page. Please refresh.");
+        setLoading(false);
       });
 
     return () => {
@@ -68,12 +104,12 @@ export default function NewStayPage() {
 
     try {
       const stay = await staysClient.createStay(user.id, {
-        propertyType: String(form.get("propertyType") ?? ""),
+        propertyType: selectedPropertyType,
         name: String(form.get("name") ?? ""),
         description: String(form.get("description") ?? ""),
         address: String(form.get("address") ?? ""),
-        city: String(form.get("city") ?? ""),
-        country: String(form.get("country") ?? ""),
+        city: selectedCity,
+        country: selectedCountry,
       });
 
       router.push(`/stays/${stay.id}`);
@@ -106,7 +142,22 @@ export default function NewStayPage() {
           <form className="tm-field-grid mt-4" onSubmit={onSubmit}>
             <label className="tm-field">
               <span className="tm-field-label">Property Type</span>
-              <input className="tm-input" name="propertyType" placeholder="Hotel, apartment, villa..." required />
+              <select
+                className="tm-input"
+                name="propertyType"
+                value={selectedPropertyType}
+                onChange={(event) => setSelectedPropertyType(event.target.value)}
+                required
+              >
+                <option value="" disabled>
+                  Select property type
+                </option>
+                {propertyTypeOptions.map((propertyType) => (
+                  <option key={propertyType.value} value={propertyType.value}>
+                    {propertyType.label}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="tm-field">
               <span className="tm-field-label">Stay Name</span>
@@ -123,11 +174,52 @@ export default function NewStayPage() {
             <div className="grid gap-3 md:grid-cols-2">
               <label className="tm-field">
                 <span className="tm-field-label">City</span>
-                <input className="tm-input" name="city" placeholder="City" required />
+                <input
+                  className="tm-input mb-2"
+                  placeholder="Search city"
+                  value={citySearch}
+                  onChange={(event) => setCitySearch(event.target.value)}
+                />
+                <select
+                  className="tm-input"
+                  name="city"
+                  value={selectedCity}
+                  onChange={(event) => setSelectedCity(event.target.value)}
+                  required
+                >
+                  <option value="" disabled>
+                    Select city
+                  </option>
+                  {filteredCities.map((city) => (
+                    <option key={city} value={city}>
+                      {city}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="tm-field">
                 <span className="tm-field-label">Country</span>
-                <input className="tm-input" name="country" placeholder="Country" required />
+                <select
+                  className="tm-input"
+                  name="country"
+                  value={selectedCountry}
+                  onChange={(event) => {
+                    const nextCountry = event.target.value;
+                    setSelectedCountry(nextCountry);
+                    setSelectedCity("");
+                    setCitySearch("");
+                  }}
+                  required
+                >
+                  <option value="" disabled>
+                    Select country
+                  </option>
+                  {operatingCountryOptions.map((country) => (
+                    <option key={country} value={country}>
+                      {country}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
 

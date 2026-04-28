@@ -273,6 +273,8 @@ Latest completion notes:
 - Partner app shell now includes sectioned navigation for broader plan modules with scaffold pages for future flows, so IA and route structure remain stable as implementation continues beyond 2.5.
 - Flow 2.6 page is implemented with currency + base/weekday/weekend pricing, min/max stay rules, seasonal override date-range conflict validation, blackout date validation, and persisted module state (mock + real API adapters).
 - Flow 2.7 transfer module is implemented with create/edit flows, route and vehicle metadata, submission and moderation lifecycle transitions, and archive controls (mock + real API adapters).
+- Phase 3 locality hardening is added so stay and transfer drafts use supported country/city pickers from the location catalog with searchable city lookup, while street-level pickup/dropoff and property address remain free text.
+- Transfer draft/detail flows now use standardized vehicle class categories instead of free-text vehicle type entry.
 - Flow 2.8 transfer pricing and scheduling is implemented with fare model fields, schedule windows, blackout dates, overlap validation by day/time, and persisted module state (mock + real API adapters).
 - Flow 2.9 media/document management is implemented across stay, transfer, and verification editors with shared file validation rules (type/size/count), metadata persistence, replace/remove actions, and image reordering for listing media.
 - Transfer listing detail editor now includes direct image upload, replace, reorder, and remove controls aligned with stay image lifecycle behavior.

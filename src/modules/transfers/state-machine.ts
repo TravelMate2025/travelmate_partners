@@ -7,7 +7,7 @@ const ALLOWED_NEXT: Record<TransferStatus, TransferStatus[]> = {
   live: ["paused", "archived"],
   paused: ["live", "archived"],
   rejected: ["draft", "pending", "archived"],
-  archived: [],
+  archived: ["draft"],
 };
 
 export function canTransitionTransfer(from: TransferStatus, to: TransferStatus) {

@@ -7,7 +7,7 @@ const ALLOWED_NEXT: Record<StayStatus, StayStatus[]> = {
   live: ["paused", "archived"],
   paused: ["live", "archived"],
   rejected: ["draft", "pending", "archived"],
-  archived: [],
+  archived: ["draft"],
 };
 
 export function canTransition(from: StayStatus, to: StayStatus) {

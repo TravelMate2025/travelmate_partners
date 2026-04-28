@@ -4,20 +4,42 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { authClient } from "@/modules/auth/auth-client";
+import { FALLBACK_SPACE_TYPES, fetchCatalogOptions } from "@/modules/catalog/catalog-options-client";
 import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import type { PartnerUser } from "@/modules/auth/contracts";
+import { HttpError } from "@/lib/http-client";
 import { buildStayQualityReport } from "@/modules/data-quality/listing-quality";
+import { localityOptionsByCountry, operatingCountryOptions } from "@/modules/profile/location-options";
 import { profileClient } from "@/modules/profile/profile-client";
+import { stayAmenityOptions } from "@/modules/stays/amenity-options";
+import { normalizeStayPropertyType, stayPropertyTypeOptions } from "@/modules/stays/property-type-options";
+import { stayTimeOptions } from "@/modules/stays/time-options";
 import { staysClient } from "@/modules/stays/stays-client";
 import type { StayListing, StayStatus } from "@/modules/stays/contracts";
 import { verificationClient } from "@/modules/verification/verification-client";
 
-function splitCsv(value: string) {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
+const COUNTRY_ALIASES: Record<string, string> = {
+  ng: "Nigeria",
+  nigeria: "Nigeria",
+  us: "United States",
+  usa: "United States",
+  "united states": "United States",
+  uk: "United Kingdom",
+  gb: "United Kingdom",
+  "united kingdom": "United Kingdom",
+};
+
+function normalizeCountry(value: string): string {
+  const raw = value.trim();
+  if (!raw) {
+    return "";
+  }
+  const aliased = COUNTRY_ALIASES[raw.toLowerCase()];
+  if (aliased) {
+    return aliased;
+  }
+  return operatingCountryOptions.find((country) => country.toLowerCase() === raw.toLowerCase()) ?? "";
 }
 
 export default function StayDetailPage() {
@@ -34,11 +56,34 @@ export default function StayDetailPage() {
   useToastMessage(message);
   const [uploadState, setUploadState] = useState<"idle" | "uploading">("idle");
 
-  const [amenitiesText, setAmenitiesText] = useState("");
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [roomName, setRoomName] = useState("");
   const [roomOccupancy, setRoomOccupancy] = useState("2");
   const [roomBed, setRoomBed] = useState("");
   const [roomRate, setRoomRate] = useState("0");
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [citySearch, setCitySearch] = useState("");
+  const [selectedPropertyType, setSelectedPropertyType] = useState("");
+  const [propertyTypeOptions, setPropertyTypeOptions] = useState<Array<{ value: string; label: string }>>(
+    [...stayPropertyTypeOptions],
+  );
+  const [amenityOptions, setAmenityOptions] = useState<Array<{ value: string; label: string }>>(
+    [...stayAmenityOptions],
+  );
+  const [spaceTypeOptions, setSpaceTypeOptions] = useState<Array<{ value: string; label: string }>>(
+    FALLBACK_SPACE_TYPES.map((item) => ({ value: item.code, label: item.label })),
+  );
+
+  const availableCities = selectedCountry
+    ? (localityOptionsByCountry[selectedCountry as keyof typeof localityOptionsByCountry] ?? [])
+    : [];
+  const knownPropertyTypeValues = new Set(propertyTypeOptions.map((item) => item.value));
+  const knownAmenityValues = new Set(amenityOptions.map((item) => item.value));
+  const knownTimeValues = new Set(stayTimeOptions.map((item) => item.value));
+  const filteredCities = citySearch.trim()
+    ? availableCities.filter((city) => city.toLowerCase().includes(citySearch.trim().toLowerCase()))
+    : availableCities;
 
   useEffect(() => {
     let active = true;
@@ -46,6 +91,35 @@ export default function StayDetailPage() {
     authClient
       .me()
       .then(async (currentUser) => {
+        const catalogOptions = await fetchCatalogOptions();
+        if (!active) {
+          return;
+        }
+        if (catalogOptions.propertyTypes.length > 0) {
+          setPropertyTypeOptions(
+            catalogOptions.propertyTypes.map((item) => ({
+              value: item.code,
+              label: item.label,
+            })),
+          );
+        }
+        if (catalogOptions.amenities.length > 0) {
+          setAmenityOptions(
+            catalogOptions.amenities.map((item) => ({
+              value: item.code,
+              label: item.label,
+            })),
+          );
+        }
+        if (catalogOptions.spaceTypes.length > 0) {
+          setSpaceTypeOptions(
+            catalogOptions.spaceTypes.map((item) => ({
+              value: item.code,
+              label: item.label,
+            })),
+          );
+        }
+
         const onboarding = await profileClient.getOnboarding(currentUser.id);
         if (onboarding.status !== "completed") {
           router.replace("/onboarding");
@@ -70,7 +144,21 @@ export default function StayDetailPage() {
         setUser(currentUser);
         setStay(item);
         setAllStays(listings);
-        setAmenitiesText(item.amenities.join(", "));
+        setSelectedAmenities(item.amenities);
+        setSelectedPropertyType(normalizeStayPropertyType(item.propertyType));
+        const normalizedCountry = normalizeCountry(item.country);
+        setSelectedCountry(normalizedCountry);
+        if (normalizedCountry) {
+          const localities =
+            localityOptionsByCountry[normalizedCountry as keyof typeof localityOptionsByCountry] ?? [];
+          setSelectedCity(
+            localities.find((locality) => locality.toLowerCase() === item.city.trim().toLowerCase()) ?? "",
+          );
+          setCitySearch("");
+        } else {
+          setSelectedCity("");
+          setCitySearch("");
+        }
         setLoading(false);
       })
       .catch((error) => {
@@ -83,7 +171,13 @@ export default function StayDetailPage() {
           return;
         }
 
-        router.replace("/auth/login");
+        if (error instanceof HttpError && (error.status === 401 || error.status === 403)) {
+          router.replace("/auth/login");
+          return;
+        }
+
+        setMessage(error instanceof Error ? error.message : "Failed to load stay. Please refresh.");
+        setLoading(false);
       });
 
     return () => {
@@ -133,7 +227,21 @@ export default function StayDetailPage() {
     ]);
     setStay(item);
     setAllStays(listings);
-    setAmenitiesText(item.amenities.join(", "));
+    setSelectedAmenities(item.amenities);
+    setSelectedPropertyType(normalizeStayPropertyType(item.propertyType));
+    const normalizedCountry = normalizeCountry(item.country);
+    setSelectedCountry(normalizedCountry);
+    if (normalizedCountry) {
+      const localities =
+        localityOptionsByCountry[normalizedCountry as keyof typeof localityOptionsByCountry] ?? [];
+      setSelectedCity(
+        localities.find((locality) => locality.toLowerCase() === item.city.trim().toLowerCase()) ?? "",
+      );
+      setCitySearch("");
+    } else {
+      setSelectedCity("");
+      setCitySearch("");
+    }
   }
 
   async function saveDetails(event: FormEvent<HTMLFormElement>) {
@@ -150,15 +258,15 @@ export default function StayDetailPage() {
 
     try {
       const updated = await staysClient.updateStay(user.id, stay.id, {
-        propertyType: String(form.get("propertyType") ?? ""),
+        propertyType: selectedPropertyType,
         name: String(form.get("name") ?? ""),
         description: String(form.get("description") ?? ""),
         address: String(form.get("address") ?? ""),
-        city: String(form.get("city") ?? ""),
-        country: String(form.get("country") ?? ""),
+        city: selectedCity,
+        country: selectedCountry,
         latitude: String(form.get("latitude") ?? ""),
         longitude: String(form.get("longitude") ?? ""),
-        amenities: splitCsv(amenitiesText),
+        amenities: selectedAmenities,
         houseRules: String(form.get("houseRules") ?? ""),
         checkInTime: String(form.get("checkInTime") ?? ""),
         checkOutTime: String(form.get("checkOutTime") ?? ""),
@@ -175,7 +283,15 @@ export default function StayDetailPage() {
     }
   }
 
-  async function addImage(file: File) {
+  function toggleAmenity(value: string) {
+    setSelectedAmenities((prev) => (
+      prev.includes(value)
+        ? prev.filter((item) => item !== value)
+        : [...prev, value]
+    ));
+  }
+
+  async function addImage(file: File, roomId?: string) {
     if (!user || !stay) {
       return;
     }
@@ -189,14 +305,49 @@ export default function StayDetailPage() {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
+        roomId: roomId ?? null,
       });
       syncStay(updated);
-      setMessage("Image added.");
+      setMessage(roomId ? "Room image added." : "Property image added.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to add image.");
     } finally {
       setSaving(false);
       setUploadState("idle");
+    }
+  }
+
+  async function assignImageToRoom(imageId: string, roomId: string | null) {
+    if (!user || !stay) {
+      return;
+    }
+    setSaving(true);
+    setMessage("");
+    try {
+      const updated = await staysClient.assignImageToRoom(user.id, stay.id, imageId, roomId);
+      syncStay(updated);
+      setMessage(roomId ? "Image assigned to room." : "Image moved to property gallery.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to reassign image.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function assignImageSpaceType(imageId: string, spaceType: string | null) {
+    if (!user || !stay) {
+      return;
+    }
+    setSaving(true);
+    setMessage("");
+    try {
+      const updated = await staysClient.assignImageSpaceType(user.id, stay.id, imageId, spaceType);
+      syncStay(updated);
+      setMessage(spaceType ? `Space type set to "${spaceType}".` : "Space type cleared.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to update space type.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -358,6 +509,16 @@ export default function StayDetailPage() {
                   Archive
                 </button>
               ) : null}
+              {stay.status === "archived" ? (
+                <button
+                  className="tm-btn tm-btn-outline"
+                  disabled={saving}
+                  onClick={() => void changeStatus("draft")}
+                  type="button"
+                >
+                  Restore to Draft
+                </button>
+              ) : null}
               <button className="tm-btn tm-btn-outline" onClick={() => router.push("/stays")} type="button">
                 Back to Stays
               </button>
@@ -401,7 +562,27 @@ export default function StayDetailPage() {
               <div className="tm-field-grid mt-4">
                 <label className="tm-field">
                   <span className="tm-field-label">Property Type</span>
-                  <input className="tm-input" name="propertyType" defaultValue={stay.propertyType} placeholder="Property type" />
+                  <select
+                    className="tm-input"
+                    name="propertyType"
+                    value={selectedPropertyType}
+                    onChange={(event) => setSelectedPropertyType(event.target.value)}
+                    required
+                  >
+                    <option value="" disabled>
+                      Select property type
+                    </option>
+                    {selectedPropertyType && !knownPropertyTypeValues.has(selectedPropertyType) ? (
+                      <option value={selectedPropertyType}>
+                        {selectedPropertyType.replace(/_/g, " ")}
+                      </option>
+                    ) : null}
+                    {propertyTypeOptions.map((propertyType) => (
+                      <option key={propertyType.value} value={propertyType.value}>
+                        {propertyType.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="tm-field">
                   <span className="tm-field-label">Stay Name</span>
@@ -418,11 +599,52 @@ export default function StayDetailPage() {
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="tm-field">
                     <span className="tm-field-label">City</span>
-                    <input className="tm-input" name="city" defaultValue={stay.city} placeholder="City" />
+                    <input
+                      className="tm-input mb-2"
+                      placeholder="Search city"
+                      value={citySearch}
+                      onChange={(event) => setCitySearch(event.target.value)}
+                    />
+                    <select
+                      className="tm-input"
+                      name="city"
+                      value={selectedCity}
+                      onChange={(event) => setSelectedCity(event.target.value)}
+                      required
+                    >
+                      <option value="" disabled>
+                        Select city
+                      </option>
+                      {filteredCities.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <label className="tm-field">
                     <span className="tm-field-label">Country</span>
-                    <input className="tm-input" name="country" defaultValue={stay.country} placeholder="Country" />
+                    <select
+                      className="tm-input"
+                      name="country"
+                      value={selectedCountry}
+                      onChange={(event) => {
+                        const nextCountry = event.target.value;
+                        setSelectedCountry(nextCountry);
+                        setSelectedCity("");
+                        setCitySearch("");
+                      }}
+                      required
+                    >
+                      <option value="" disabled>
+                        Select country
+                      </option>
+                      {operatingCountryOptions.map((country) => (
+                        <option key={country} value={country}>
+                          {country}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -437,7 +659,30 @@ export default function StayDetailPage() {
                 </div>
                 <label className="tm-field">
                   <span className="tm-field-label">Amenities</span>
-                  <textarea className="tm-input min-h-20" placeholder="Comma separated" value={amenitiesText} onChange={(event) => setAmenitiesText(event.target.value)} />
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {amenityOptions.map((amenity) => (
+                      <label key={amenity.value} className="tm-tag-pill flex items-center gap-2">
+                        <input
+                          checked={selectedAmenities.includes(amenity.value)}
+                          onChange={() => toggleAmenity(amenity.value)}
+                          type="checkbox"
+                        />
+                        {amenity.label}
+                      </label>
+                    ))}
+                    {selectedAmenities
+                      .filter((value) => !knownAmenityValues.has(value))
+                      .map((value) => (
+                        <label key={value} className="tm-tag-pill flex items-center gap-2">
+                          <input
+                            checked
+                            onChange={() => toggleAmenity(value)}
+                            type="checkbox"
+                          />
+                          {value.replace(/_/g, " ")}
+                        </label>
+                      ))}
+                  </div>
                 </label>
                 <label className="tm-field">
                   <span className="tm-field-label">House Rules</span>
@@ -446,11 +691,31 @@ export default function StayDetailPage() {
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="tm-field">
                     <span className="tm-field-label">Check-in Time</span>
-                    <input className="tm-input" name="checkInTime" defaultValue={stay.checkInTime} placeholder="Check-in time" />
+                    <select className="tm-input" name="checkInTime" defaultValue={stay.checkInTime || ""}>
+                      <option value="">Select check-in time</option>
+                      {stay.checkInTime && !knownTimeValues.has(stay.checkInTime) ? (
+                        <option value={stay.checkInTime}>{stay.checkInTime}</option>
+                      ) : null}
+                      {stayTimeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <label className="tm-field">
                     <span className="tm-field-label">Check-out Time</span>
-                    <input className="tm-input" name="checkOutTime" defaultValue={stay.checkOutTime} placeholder="Check-out time" />
+                    <select className="tm-input" name="checkOutTime" defaultValue={stay.checkOutTime || ""}>
+                      <option value="">Select check-out time</option>
+                      {stay.checkOutTime && !knownTimeValues.has(stay.checkOutTime) ? (
+                        <option value={stay.checkOutTime}>{stay.checkOutTime}</option>
+                      ) : null}
+                      {stayTimeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                 </div>
                 <label className="tm-field">
@@ -493,26 +758,78 @@ export default function StayDetailPage() {
               </button>
 
               <ul className="tm-list-stack mt-4">
-                {stay.rooms.map((room) => (
-                  <li key={room.id} className="tm-list-card flex flex-wrap items-center justify-between gap-2">
-                    <div className="text-sm text-slate-700">
-                      <p className="font-medium">{room.name}</p>
-                      <p className="text-xs text-slate-500">
-                        Occupancy: {room.occupancy} • {room.bedConfiguration} • Rate: {room.baseRate}
-                      </p>
-                    </div>
-                    <button className="tm-btn tm-btn-outline" onClick={() => void removeRoom(room.id)} type="button">
-                      Remove
-                    </button>
-                  </li>
-                ))}
+                {stay.rooms.map((room) => {
+                  const roomImages = [...stay.images]
+                    .filter((img) => img.roomId === room.id)
+                    .sort((a, b) => a.order - b.order);
+                  return (
+                    <li key={room.id} className="tm-list-card space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-sm text-slate-700">
+                          <p className="font-medium">{room.name}</p>
+                          <p className="text-xs text-slate-500">
+                            Occupancy: {room.occupancy} • {room.bedConfiguration} • Rate: {room.baseRate}
+                          </p>
+                        </div>
+                        <button className="tm-btn tm-btn-outline" onClick={() => void removeRoom(room.id)} type="button">
+                          Remove
+                        </button>
+                      </div>
+
+                      <div className="border-t border-slate-100 pt-3">
+                        <p className="text-xs font-medium text-slate-600">Room Images</p>
+                        <input
+                          className="tm-input mt-2"
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (file) {
+                              void addImage(file, room.id);
+                              event.currentTarget.value = "";
+                            }
+                          }}
+                        />
+                        {roomImages.length > 0 ? (
+                          <ul className="mt-2 space-y-1">
+                            {roomImages.map((img) => (
+                              <li key={img.id} className="flex flex-wrap items-center justify-between gap-2 rounded bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                                <span className="truncate font-medium">{img.fileName}</span>
+                                <div className="tm-inline-actions">
+                                  <button
+                                    className="tm-btn tm-btn-outline"
+                                    onClick={() => void assignImageToRoom(img.id, null)}
+                                    type="button"
+                                  >
+                                    Move to property
+                                  </button>
+                                  <button
+                                    className="tm-btn tm-btn-outline"
+                                    onClick={() => void removeImage(img.id)}
+                                    type="button"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="mt-1 text-xs text-slate-400">No images for this room yet.</p>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           </div>
 
           <section className="tm-panel p-6">
-            <h2 className="tm-section-title">Images</h2>
-            <p className="mt-1 text-sm text-slate-600">PNG, JPEG, WEBP up to 8MB.</p>
+            <h2 className="tm-section-title">Property Images</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Exterior, lobby, common areas. PNG, JPEG, WEBP up to 8MB.
+            </p>
             {uploadState === "uploading" ? (
               <p className="mt-2 text-sm text-blue-700">Upload in progress...</p>
             ) : null}
@@ -532,11 +849,25 @@ export default function StayDetailPage() {
 
             <ul className="tm-list-stack mt-4">
               {[...stay.images]
+                .filter((img) => img.roomId === null)
                 .sort((a, b) => a.order - b.order)
                 .map((img, index) => (
                   <li key={img.id} className="tm-list-card">
-                    <p className="text-sm font-medium text-slate-800">{img.fileName}</p>
-                    <p className="text-xs text-slate-500">Order: {index + 1}</p>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">{img.fileName}</p>
+                        <p className="text-xs text-slate-500">Order: {index + 1}</p>
+                      </div>
+                      {img.spaceType ? (
+                        <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                          {spaceTypeOptions.find((o) => o.value === img.spaceType)?.label ?? img.spaceType}
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-dashed border-slate-300 px-2 py-0.5 text-xs text-slate-400">
+                          No space type
+                        </span>
+                      )}
+                    </div>
                     <input
                       className="hidden"
                       id={`replace-image-${img.id}`}
@@ -551,24 +882,48 @@ export default function StayDetailPage() {
                       }}
                     />
                     <div className="tm-inline-actions mt-2">
-                      <button className="tm-btn tm-btn-outline" onClick={() => void moveImage(img.id, "up")} type="button">
-                        Up
-                      </button>
-                      <button className="tm-btn tm-btn-outline" onClick={() => void moveImage(img.id, "down")} type="button">
-                        Down
-                      </button>
-                      <label className="tm-btn tm-btn-outline cursor-pointer" htmlFor={`replace-image-${img.id}`}>
-                        Replace
-                      </label>
-                      <button className="tm-btn tm-btn-outline" onClick={() => void removeImage(img.id)} type="button">
-                        Remove
-                      </button>
+                      <button className="tm-btn tm-btn-outline" onClick={() => void moveImage(img.id, "up")} type="button">Up</button>
+                      <button className="tm-btn tm-btn-outline" onClick={() => void moveImage(img.id, "down")} type="button">Down</button>
+                      <label className="tm-btn tm-btn-outline cursor-pointer" htmlFor={`replace-image-${img.id}`}>Replace</label>
+                      <select
+                        aria-label="Set space type"
+                        className="tm-input text-xs"
+                        value={img.spaceType ?? ""}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          void assignImageSpaceType(img.id, value || null);
+                        }}
+                      >
+                        <option value="">— Space type —</option>
+                        {spaceTypeOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      {stay.rooms.length > 0 ? (
+                        <select
+                          className="tm-input text-xs"
+                          defaultValue=""
+                          onChange={(event) => {
+                            const roomId = event.target.value || null;
+                            if (roomId !== "") void assignImageToRoom(img.id, roomId);
+                            event.currentTarget.value = "";
+                          }}
+                        >
+                          <option value="" disabled>Move to room…</option>
+                          {stay.rooms.map((room) => (
+                            <option key={room.id} value={room.id}>{room.name}</option>
+                          ))}
+                        </select>
+                      ) : null}
+                      <button className="tm-btn tm-btn-outline" onClick={() => void removeImage(img.id)} type="button">Remove</button>
                     </div>
                   </li>
                 ))}
             </ul>
 
-            {stay.images.length === 0 ? <p className="tm-soft-note mt-2 text-sm">No images uploaded yet.</p> : null}
+            {stay.images.filter((img) => img.roomId === null).length === 0 ? (
+              <p className="tm-soft-note mt-2 text-sm">No property images uploaded yet.</p>
+            ) : null}
           </section>
         </section>
 

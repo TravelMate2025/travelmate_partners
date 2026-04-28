@@ -36,6 +36,7 @@ export type TransferListing = {
   currency: string;
   baseFare: number;
   nightSurcharge: number;
+  cancellationPolicy: string;
   images: TransferImage[];
   moderationFeedback?: string;
   submissionCount?: number;
@@ -72,6 +73,7 @@ export type UpdateTransferInput = Partial<
     | "currency"
     | "baseFare"
     | "nightSurcharge"
+    | "cancellationPolicy"
   >
 >;
 

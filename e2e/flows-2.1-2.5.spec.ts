@@ -100,12 +100,13 @@ test.describe("TravelMate Partner implemented UI flows (2.2-2.5)", () => {
 
     await page.getByRole("button", { name: "Add Stay" }).click();
     await expect(page).toHaveURL("/stays/new");
-    await page.getByLabel("Property Type").fill("hotel");
+    await page.getByLabel("Property Type").selectOption("hotel");
     await page.getByLabel("Stay Name").fill("Ocean View Hotel");
     await page.getByLabel("Description").fill("Seaside property for guests.");
     await page.getByLabel("Address").fill("1 Marina Road");
-    await page.getByLabel("City").fill("Lagos");
-    await page.getByLabel("Country").fill("Nigeria");
+    await page.getByLabel("Country").selectOption("Nigeria");
+    await page.getByPlaceholder("Search city").fill("Lagos");
+    await page.getByLabel("City").selectOption("Lagos");
     await page.getByRole("button", { name: "Create Stay Draft" }).click();
 
     await expect(page).toHaveURL(/\/stays\/.+/);

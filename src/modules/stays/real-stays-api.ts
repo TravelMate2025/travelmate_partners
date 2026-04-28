@@ -93,6 +93,28 @@ export const realStaysApi: StaysApi = {
     return response.data;
   },
 
+  async assignImageToRoom(userId, stayId, imageId, roomId) {
+    const response = await apiRequest<Envelope<StayListing>>(
+      `/partners/${userId}/stays/${stayId}/images/${imageId}/room`,
+      {
+        method: "PATCH",
+        body: { roomId },
+      },
+    );
+    return response.data;
+  },
+
+  async assignImageSpaceType(userId, stayId, imageId, spaceType) {
+    const response = await apiRequest<Envelope<StayListing>>(
+      `/partners/${userId}/stays/${stayId}/images/${imageId}/space-type`,
+      {
+        method: "PATCH",
+        body: { spaceType },
+      },
+    );
+    return response.data;
+  },
+
   async upsertRoom(userId, stayId, input: UpsertStayRoomInput) {
     const response = await apiRequest<Envelope<StayListing>>(`/partners/${userId}/stays/${stayId}/rooms`, {
       method: "POST",

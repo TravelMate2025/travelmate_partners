@@ -1,8 +1,6 @@
-import { appConfig } from "@/lib/config";
 import type { DashboardApi } from "@/modules/dashboard/contracts";
 import { mockDashboardApi } from "@/modules/dashboard/mock-dashboard-api";
-import { realDashboardApi } from "@/modules/dashboard/real-dashboard-api";
 
-export const dashboardClient: DashboardApi = appConfig.useMockApi
-  ? mockDashboardApi
-  : realDashboardApi;
+// Backend /partners/{id}/dashboard is not yet implemented (Phase 3+).
+// Dashboard data remains on mock until the real endpoint is delivered.
+export const dashboardClient: DashboardApi = mockDashboardApi;

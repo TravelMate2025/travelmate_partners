@@ -1,13 +1,16 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
+import { fetchCatalogOptions } from "@/modules/catalog/catalog-options-client";
+import { localityOptionsByCountry, operatingCountryOptions } from "@/modules/profile/location-options";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import type { TransferType } from "@/modules/transfers/contracts";
 import { transfersClient } from "@/modules/transfers/transfers-client";
+import { transferVehicleClassOptions } from "@/modules/transfers/vehicle-options";
 
 export default function NewTransferPage() {
   const { user, loading } = usePartnerAccess();
@@ -15,6 +18,39 @@ export default function NewTransferPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   useToastMessage(message);
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [citySearch, setCitySearch] = useState("");
+  const [vehicleClassOptions, setVehicleClassOptions] = useState<Array<{ value: string; label: string }>>(
+    [...transferVehicleClassOptions],
+  );
+
+  const availableCities = selectedCountry
+    ? (localityOptionsByCountry[selectedCountry as keyof typeof localityOptionsByCountry] ?? [])
+    : [];
+  const filteredCities = citySearch.trim()
+    ? availableCities.filter((city) => city.toLowerCase().includes(citySearch.trim().toLowerCase()))
+    : availableCities;
+
+  useEffect(() => {
+    let active = true;
+    fetchCatalogOptions().then((catalogOptions) => {
+      if (!active) {
+        return;
+      }
+      if (catalogOptions.vehicleClasses.length > 0) {
+        setVehicleClassOptions(
+          catalogOptions.vehicleClasses.map((item) => ({
+            value: item.code,
+            label: item.label,
+          })),
+        );
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,7 +73,7 @@ export default function NewTransferPage() {
         vehicleClass: String(form.get("vehicleClass") ?? ""),
         passengerCapacity: Number(form.get("passengerCapacity") ?? 0),
         luggageCapacity: Number(form.get("luggageCapacity") ?? 0),
-        coverageArea: String(form.get("coverageArea") ?? ""),
+        coverageArea: `${selectedCity}, ${selectedCountry}`,
       });
 
       router.push(`/transfers/${item.id}`);
@@ -110,13 +146,74 @@ export default function NewTransferPage() {
 
           <div className="grid gap-3 md:grid-cols-2">
             <label className="tm-field">
-              <span className="tm-field-label">Vehicle Class</span>
-              <input className="tm-input" name="vehicleClass" placeholder="Vehicle class/type" required />
+              <span className="tm-field-label">Country</span>
+              <select
+                className="tm-input"
+                name="country"
+                value={selectedCountry}
+                onChange={(event) => {
+                  const nextCountry = event.target.value;
+                  setSelectedCountry(nextCountry);
+                  setSelectedCity("");
+                  setCitySearch("");
+                }}
+                required
+              >
+                <option value="" disabled>
+                  Select country
+                </option>
+                {operatingCountryOptions.map((country) => (
+                  <option key={country} value={country}>
+                    {country}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="tm-field">
-              <span className="tm-field-label">Coverage Area</span>
-              <input className="tm-input" name="coverageArea" placeholder="Coverage area" required />
+              <span className="tm-field-label">City</span>
+              <input
+                className="tm-input mb-2"
+                placeholder="Search city"
+                value={citySearch}
+                onChange={(event) => setCitySearch(event.target.value)}
+              />
+              <select
+                className="tm-input"
+                name="city"
+                value={selectedCity}
+                onChange={(event) => setSelectedCity(event.target.value)}
+                required
+              >
+                <option value="" disabled>
+                  Select city
+                </option>
+                {filteredCities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
             </label>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="tm-field">
+              <span className="tm-field-label">Vehicle Class</span>
+              <select className="tm-input" name="vehicleClass" required defaultValue="">
+                <option value="" disabled>
+                  Select vehicle class
+                </option>
+                {vehicleClassOptions.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="tm-field">
+              <span className="tm-field-label">Coverage Area</span>
+              <p className="tm-input">{selectedCity && selectedCountry ? `${selectedCity}, ${selectedCountry}` : "Select city and country"}</p>
+            </div>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
