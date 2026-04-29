@@ -22,8 +22,7 @@ describe("mockWalletPayoutsApi", () => {
     expect(updatedSettings.autoSettleOnBookingCompletion).toBe(true);
 
     const created = await mockWalletPayoutsApi.recordBookingCompletion(userId, {
-      bookingReference: "TM-BOOK-1001",
-      grossAmount: 30000,
+      bookingReference: "TM-BOOK-80014521",
     });
     expect(created.status).toBe("pending_completion");
 

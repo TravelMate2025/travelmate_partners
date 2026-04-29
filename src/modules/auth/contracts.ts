@@ -3,6 +3,7 @@ export type PartnerUser = {
   email: string;
   phone: string;
   emailVerified: boolean;
+  phoneVerified: boolean;
   otpEnabled: boolean;
   createdAt: string;
   updatedAt: string;
@@ -21,11 +22,14 @@ export type LoginInput = { email: string; password: string };
 export type RequestResetInput = { email: string };
 export type ResetPasswordInput = { email: string; resetCode: string; newPassword: string };
 export type RequestSignupOtpInput = { email: string; phone: string };
+export type VerifyPhoneInput = { code: string };
 
 export type AuthApi = {
   requestSignupOtp(input: RequestSignupOtpInput): Promise<{ otpCodeHint?: string }>;
   signup(input: SignupInput): Promise<{ verificationCodeHint?: string }>;
   verifyEmail(input: VerifyEmailInput): Promise<void>;
+  requestPhoneVerificationOtp(): Promise<void>;
+  verifyPhone(input: VerifyPhoneInput): Promise<void>;
   login(input: LoginInput): Promise<{ suspiciousLogin: boolean }>;
   requestPasswordReset(input: RequestResetInput): Promise<{ resetCodeHint?: string }>;
   resetPassword(input: ResetPasswordInput): Promise<void>;

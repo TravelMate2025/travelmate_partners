@@ -10,6 +10,8 @@ export const authClient: AuthApi = {
   requestSignupOtp: (input) => baseClient.requestSignupOtp(input),
   signup: (input) => baseClient.signup(input),
   verifyEmail: (input) => baseClient.verifyEmail(input),
+  requestPhoneVerificationOtp: () => baseClient.requestPhoneVerificationOtp(),
+  verifyPhone: (input) => baseClient.verifyPhone(input),
 
   async login(input) {
     const result = await baseClient.login(input);

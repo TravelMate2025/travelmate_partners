@@ -1,5 +1,6 @@
 import { apiRequest } from "@/lib/http-client";
 import type {
+  EligibleBookingPage,
   SettlementAccount,
   SettlementAccountHistoryEntry,
   SubmitSettlementAccountResult,
@@ -47,9 +48,35 @@ export const realWalletPayoutsApi: WalletPayoutsApi = {
       `/partners/${userId}/wallet/settlements/record-completion`,
       {
         method: "POST",
-        body: input,
+        body: { bookingReference: input.bookingReference },
       },
     );
+    return response.data;
+  },
+
+  async listEligibleBookings(userId: string, input = {}): Promise<EligibleBookingPage> {
+    const params = new URLSearchParams();
+    if (input.page) params.set("page", String(input.page));
+    if (input.pageSize) params.set("page_size", String(input.pageSize));
+    if (input.search) params.set("search", input.search);
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    const response = await apiRequest<Envelope<EligibleBookingPage>>(
+      `/partners/${userId}/wallet/eligible-bookings${suffix}`,
+    );
+    return response.data;
+  },
+
+  async createSettlementsFromBookings(userId: string, input) {
+    const response = await apiRequest<
+      Envelope<{
+        created: SettlementRecord[];
+        skipped: Array<{ bookingReference: string; reason: string }>;
+        failed: Array<{ bookingReference: string; reason: string }>;
+      }>
+    >(`/partners/${userId}/wallet/settlements/from-bookings`, {
+      method: "POST",
+      body: input,
+    });
     return response.data;
   },
 
@@ -77,6 +104,16 @@ export const realWalletPayoutsApi: WalletPayoutsApi = {
   async listSettlementAccounts(userId: string): Promise<SettlementAccount[]> {
     const response = await apiRequest<Envelope<SettlementAccount[]>>(
       `/partners/${userId}/wallet/settlement-accounts`,
+    );
+    return response.data;
+  },
+
+  async archiveSettlementAccount(userId: string, accountId: string): Promise<{ archivedAccountId: string }> {
+    const response = await apiRequest<Envelope<{ archivedAccountId: string }>>(
+      `/partners/${userId}/wallet/settlement-accounts/${accountId}`,
+      {
+        method: "DELETE",
+      },
     );
     return response.data;
   },

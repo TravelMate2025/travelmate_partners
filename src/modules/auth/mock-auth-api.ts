@@ -53,6 +53,7 @@ function normalizeState(value: unknown): MockState {
             phone: typeof user.phone === "string" ? user.phone : "",
             password: typeof user.password === "string" ? user.password : "",
             emailVerified: Boolean(user.emailVerified),
+            phoneVerified: Boolean(user.phoneVerified),
             otpEnabled: Boolean(user.otpEnabled),
             createdAt: typeof user.createdAt === "string" ? user.createdAt : nowIso(),
             updatedAt: typeof user.updatedAt === "string" ? user.updatedAt : nowIso(),
@@ -203,6 +204,7 @@ export const mockAuthApi: AuthApi = {
       phone: input.phone,
       password: input.password,
       emailVerified: false,
+      phoneVerified: false,
       otpEnabled: false,
       createdAt: ts,
       updatedAt: ts,
@@ -229,6 +231,28 @@ export const mockAuthApi: AuthApi = {
     user.verificationCode = "";
     user.updatedAt = nowIso();
 
+    writeState(state);
+  },
+
+  async requestPhoneVerificationOtp() {
+    const state = readState();
+    const { user } = requireCurrentUser(state);
+    user.otpCode = Math.floor(Math.random() * 1_000_000)
+      .toString()
+      .padStart(6, "0");
+    user.updatedAt = nowIso();
+    writeState(state);
+  },
+
+  async verifyPhone(input) {
+    const state = readState();
+    const { user } = requireCurrentUser(state);
+    if (!user.otpCode || user.otpCode !== input.code) {
+      throw new Error("Invalid verification code.");
+    }
+    user.phoneVerified = true;
+    user.otpCode = undefined;
+    user.updatedAt = nowIso();
     writeState(state);
   },
 
@@ -315,6 +339,7 @@ export const mockAuthApi: AuthApi = {
       email: user.email,
       phone: user.phone,
       emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
       otpEnabled: user.otpEnabled,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,

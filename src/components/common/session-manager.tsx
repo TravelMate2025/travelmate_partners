@@ -15,16 +15,20 @@ type Session = {
 export function SessionManager() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [message, setMessage] = useState("");
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     let active = true;
 
-    authClient
-      .listSessions()
-      .then((data) => {
+    Promise.all([authClient.listSessions(), authClient.me()])
+      .then(([sessionData, user]) => {
         if (active) {
-          setSessions(data);
+          setSessions(sessionData);
+          setPhoneVerified(Boolean(user.phoneVerified));
         }
       })
       .catch(() => {
@@ -62,8 +66,69 @@ export function SessionManager() {
     }
   }
 
+  async function requestPhoneCode() {
+    try {
+      setIsSendingCode(true);
+      setMessage("");
+      await authClient.requestPhoneVerificationOtp();
+      setMessage("Verification code sent. Check your email for now while SMS is being enabled.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to request phone verification code.");
+    } finally {
+      setIsSendingCode(false);
+    }
+  }
+
+  async function verifyPhoneCode() {
+    try {
+      setIsVerifyingCode(true);
+      setMessage("");
+      await authClient.verifyPhone({ code: verificationCode.trim() });
+      setPhoneVerified(true);
+      setVerificationCode("");
+      setMessage("Phone number verified.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to verify phone code.");
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  }
+
   return (
     <section className="tm-panel p-5">
+      <div className="mb-4 rounded-xl border border-slate-200/90 bg-white/70 p-3">
+        <h3 className="text-sm font-semibold text-slate-900">Phone Verification</h3>
+        <p className="mt-1 text-xs text-slate-600">
+          Status: {phoneVerified ? "Verified" : "Not verified"}
+        </p>
+        {phoneVerified ? null : (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              className="tm-btn tm-btn-outline px-3 py-1.5 text-xs"
+              disabled={isSendingCode}
+              onClick={requestPhoneCode}
+              type="button"
+            >
+              {isSendingCode ? "Sending..." : "Request Code"}
+            </button>
+            <input
+              className="rounded-lg border border-slate-300 px-2 py-1.5 text-xs"
+              maxLength={6}
+              onChange={(event) => setVerificationCode(event.target.value)}
+              placeholder="Enter 6-digit code"
+              value={verificationCode}
+            />
+            <button
+              className="tm-btn tm-btn-primary px-3 py-1.5 text-xs"
+              disabled={isVerifyingCode || verificationCode.trim().length !== 6}
+              onClick={verifyPhoneCode}
+              type="button"
+            >
+              {isVerifyingCode ? "Verifying..." : "Verify Phone"}
+            </button>
+          </div>
+        )}
+      </div>
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-900">Active Sessions</h2>
         <div className="flex gap-2">

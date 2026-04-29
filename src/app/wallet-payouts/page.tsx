@@ -7,6 +7,7 @@ import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import type {
+  EligibleBooking,
   RefundStatus,
   SettlementAccount,
   SettlementAccountHistoryEntry,
@@ -81,12 +82,22 @@ export default function WalletPayoutsPage() {
   const [summary, setSummary] = useState<WalletSummary | null>(null);
   const [settings, setSettings] = useState<SettlementSettings | null>(null);
   const [settlements, setSettlements] = useState<SettlementRecord[]>([]);
+  const [eligibleBookings, setEligibleBookings] = useState<EligibleBooking[]>([]);
+  const [selectedBookingRefs, setSelectedBookingRefs] = useState<string[]>([]);
+  const [eligibleSearch, setEligibleSearch] = useState("");
+  const [eligiblePage, setEligiblePage] = useState(1);
+  const [eligibleCount, setEligibleCount] = useState(0);
+  const [eligibleHasNext, setEligibleHasNext] = useState(false);
+  const [eligibleHasPrevious, setEligibleHasPrevious] = useState(false);
   const [accounts, setAccounts] = useState<SettlementAccount[]>([]);
   const [accountHistory, setAccountHistory] = useState<SettlementAccountHistoryEntry[]>([]);
+  const [showFullHistory, setShowFullHistory] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [submittingPayoutMethod, setSubmittingPayoutMethod] = useState(false);
   const [message, setMessage] = useState("");
   useToastMessage(message);
   const [statementPreview, setStatementPreview] = useState("");
+  const [showFullSettlements, setShowFullSettlements] = useState(false);
   const [selectedSettlementId, setSelectedSettlementId] = useState("");
   const [selectedAccountId, setSelectedAccountId] = useState("");
   const [otpCode, setOtpCode] = useState("");
@@ -103,6 +114,23 @@ export default function WalletPayoutsPage() {
     [accountForm.country],
   );
 
+  async function loadEligibleBookings(userId: string, page: number, search: string) {
+    const response = await walletPayoutsClient.listEligibleBookings(userId, {
+      page,
+      pageSize: eligiblePageSize,
+      search,
+    });
+    setEligibleBookings(response.results);
+    setEligibleCount(response.count);
+    setEligibleHasNext(response.hasNext);
+    setEligibleHasPrevious(response.hasPrevious);
+  }
+  const eligiblePageSize = 10;
+  const eligiblePageCount = Math.max(1, Math.ceil(eligibleCount / eligiblePageSize));
+  const allOnPageSelected =
+    eligibleBookings.length > 0 &&
+    eligibleBookings.every((item) => selectedBookingRefs.includes(item.bookingReference));
+
   useEffect(() => {
     if (!user) {
       return;
@@ -116,16 +144,22 @@ export default function WalletPayoutsPage() {
       walletPayoutsClient.getWalletSummary(user.id),
       walletPayoutsClient.getSettlementSettings(user.id),
       walletPayoutsClient.listSettlements(user.id),
+      walletPayoutsClient.listEligibleBookings(user.id),
       walletPayoutsClient.listSettlementAccounts(user.id),
       walletPayoutsClient.listSettlementAccountHistory(user.id),
     ])
-      .then(([summaryResult, settingsResult, settlementsResult, accountsResult, historyResult]) => {
+      .then(([summaryResult, settingsResult, settlementsResult, eligibleBookingsResult, accountsResult, historyResult]) => {
         if (!active) {
           return;
         }
         setSummary(summaryResult);
         setSettings(settingsResult);
         setSettlements(settlementsResult);
+        setEligibleBookings(eligibleBookingsResult.results);
+        setEligibleCount(eligibleBookingsResult.count);
+        setEligibleHasNext(eligibleBookingsResult.hasNext);
+        setEligibleHasPrevious(eligibleBookingsResult.hasPrevious);
+        setEligiblePage(1);
         setAccounts(accountsResult);
         setAccountHistory(historyResult);
         if (settlementsResult.length > 0) {
@@ -166,14 +200,20 @@ export default function WalletPayoutsPage() {
     setBusy(true);
     setMessage("");
     try {
-      const [summaryResult, settlementResult, accountsResult, historyResult] = await Promise.all([
+      const [summaryResult, settlementResult, eligibleBookingsResult, accountsResult, historyResult] = await Promise.all([
         walletPayoutsClient.getWalletSummary(user.id),
         walletPayoutsClient.listSettlements(user.id),
+        walletPayoutsClient.listEligibleBookings(user.id),
         walletPayoutsClient.listSettlementAccounts(user.id),
         walletPayoutsClient.listSettlementAccountHistory(user.id),
       ]);
       setSummary(summaryResult);
       setSettlements(settlementResult);
+      setEligibleBookings(eligibleBookingsResult.results);
+      setEligibleCount(eligibleBookingsResult.count);
+      setEligibleHasNext(eligibleBookingsResult.hasNext);
+      setEligibleHasPrevious(eligibleBookingsResult.hasPrevious);
+      setEligiblePage(1);
       setAccounts(accountsResult);
       setAccountHistory(historyResult);
       setMessage("Wallet refreshed.");
@@ -217,31 +257,36 @@ export default function WalletPayoutsPage() {
     if (!user) {
       return;
     }
-    const formElement = event.currentTarget;
 
     setBusy(true);
     setMessage("");
-    const form = new FormData(formElement);
-    const bookingReference = String(form.get("bookingReference") ?? "");
-    const grossAmount = Number(form.get("grossAmount") ?? 0);
 
     try {
-      const created = await walletPayoutsClient.recordBookingCompletion(user.id, {
-        bookingReference,
-        grossAmount,
+      const result = await walletPayoutsClient.createSettlementsFromBookings(user.id, {
+        bookingReferences: selectedBookingRefs,
       });
-      const [summaryResult, settlementResult] = await Promise.all([
+      const [summaryResult, settlementResult, eligibleBookingsResult] = await Promise.all([
         walletPayoutsClient.getWalletSummary(user.id),
         walletPayoutsClient.listSettlements(user.id),
+        walletPayoutsClient.listEligibleBookings(user.id),
       ]);
       setSummary(summaryResult);
       setSettlements(settlementResult);
-      setSelectedSettlementId(created.id);
-      setMessage("Completed booking recorded for settlement.");
-      formElement.reset();
+      setEligibleBookings(eligibleBookingsResult.results);
+      setEligibleCount(eligibleBookingsResult.count);
+      setEligibleHasNext(eligibleBookingsResult.hasNext);
+      setEligibleHasPrevious(eligibleBookingsResult.hasPrevious);
+      setSelectedBookingRefs([]);
+      setEligiblePage(1);
+      if (result.created.length > 0) {
+        setSelectedSettlementId(result.created[0].id);
+      }
+      setMessage(
+        `Settlement creation completed. Created: ${result.created.length}, Skipped: ${result.skipped.length}.`,
+      );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Failed to record booking completion.",
+        error instanceof Error ? error.message : "Failed to create settlements from selected bookings.",
       );
     } finally {
       setBusy(false);
@@ -321,6 +366,7 @@ export default function WalletPayoutsPage() {
     }
 
     setBusy(true);
+    setSubmittingPayoutMethod(true);
     setMessage("");
     try {
       const result = await walletPayoutsClient.submitSettlementAccount(user.id, {
@@ -347,10 +393,19 @@ export default function WalletPayoutsPage() {
       setSelectedAccountId(result.account.id);
       setAccountForm(mapAccountToForm(result.account));
       setOtpCode("");
-      setMessage("Settlement account submitted. Check your email for the verification code.");
+      const isDev = process.env.NODE_ENV !== "production";
+      const channels = result.otpDeliveryChannels?.length
+        ? result.otpDeliveryChannels.join(" and ")
+        : "email";
+      setMessage(
+        isDev && result.otpCodeHint
+          ? `Settlement account submitted. Verification code sent via ${channels}. Dev hint: ${result.otpCodeHint}`
+          : `Settlement account submitted. Check your ${channels} for the verification code.`,
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to submit settlement account.");
     } finally {
+      setSubmittingPayoutMethod(false);
       setBusy(false);
     }
   }
@@ -383,6 +438,31 @@ export default function WalletPayoutsPage() {
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to verify settlement account.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function archiveSettlementAccount(accountId: string) {
+    if (!user) {
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      await walletPayoutsClient.archiveSettlementAccount(user.id, accountId);
+      const [accountsResult, historyResult] = await Promise.all([
+        walletPayoutsClient.listSettlementAccounts(user.id),
+        walletPayoutsClient.listSettlementAccountHistory(user.id),
+      ]);
+      setAccounts(accountsResult);
+      setAccountHistory(historyResult);
+      if (selectedAccountId === accountId) {
+        setSelectedAccountId(accountsResult[0]?.id ?? "");
+      }
+      setMessage("Payout method archived.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to archive payout method.");
     } finally {
       setBusy(false);
     }
@@ -682,7 +762,7 @@ export default function WalletPayoutsPage() {
 
             <div className="tm-inline-actions">
               <button className="tm-btn tm-btn-accent" disabled={busy} type="submit">
-                Submit Payout Method
+                {submittingPayoutMethod ? "Submitting payout method..." : "Submit Payout Method"}
               </button>
             </div>
           </form>
@@ -750,6 +830,9 @@ export default function WalletPayoutsPage() {
                   <button className="tm-btn tm-btn-outline" type="button" onClick={() => chooseEditableAccount(account.id)}>
                     Edit
                   </button>
+                  <button className="tm-btn tm-btn-outline" type="button" disabled={busy} onClick={() => void archiveSettlementAccount(account.id)}>
+                    Archive
+                  </button>
                 </div>
               </div>
             </li>
@@ -761,9 +844,20 @@ export default function WalletPayoutsPage() {
       </section>
 
       <section className="tm-panel p-6">
-        <h2 className="tm-section-title">Payout Method History</h2>
-        <ul className="tm-list-stack mt-4">
-          {accountHistory.map((item) => (
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="tm-section-title">Payout Method History</h2>
+          {accountHistory.length > 5 ? (
+            <button
+              className="tm-btn tm-btn-outline px-3 py-1.5 text-xs"
+              onClick={() => setShowFullHistory((current) => !current)}
+              type="button"
+            >
+              {showFullHistory ? "Show Recent Only" : "Show Full History"}
+            </button>
+          ) : null}
+        </div>
+        <ul className="tm-list-stack mt-4 max-h-80 overflow-y-auto pr-1">
+          {(showFullHistory ? accountHistory : accountHistory.slice(0, 5)).map((item) => (
             <li key={item.id} className="tm-list-card">
               <p className="text-sm font-semibold text-slate-900">{item.action}</p>
               <p className="mt-1 text-sm text-slate-700">{item.message}</p>
@@ -814,23 +908,124 @@ export default function WalletPayoutsPage() {
       </form>
 
       <form className="tm-panel p-6" onSubmit={recordBookingCompletion}>
-        <h2 className="tm-section-title">Record Completed Booking</h2>
+        <h2 className="tm-section-title">Create Settlements From Completed Bookings</h2>
         <p className="tm-muted mt-1 text-sm">
-          This local/mock action simulates booking completion and triggers settlement lifecycle updates.
+          Select one or more completed bookings from the server-provided list.
         </p>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <label className="tm-field">
-            <span className="tm-field-label">Booking Reference</span>
-            <input className="tm-input" name="bookingReference" placeholder="TM-BOOK-10020030" />
-          </label>
-          <label className="tm-field">
-            <span className="tm-field-label">Gross Amount ({summary?.currency ?? "NGN"})</span>
-            <input className="tm-input" type="number" name="grossAmount" min={1} />
-          </label>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <input
+            className="tm-input max-w-sm"
+            onChange={async (event) => {
+              const nextSearch = event.target.value;
+              setEligibleSearch(nextSearch);
+              setEligiblePage(1);
+              if (user) {
+                await loadEligibleBookings(user.id, 1, nextSearch);
+              }
+            }}
+            placeholder="Search booking reference"
+            value={eligibleSearch}
+          />
+          <span className="text-xs text-slate-500">Selected: {selectedBookingRefs.length}</span>
+          <button
+            className="tm-btn tm-btn-outline px-3 py-1.5 text-xs"
+            disabled={eligibleBookings.length === 0}
+            onClick={() => {
+              if (allOnPageSelected) {
+                setSelectedBookingRefs((current) =>
+                  current.filter(
+                    (ref) => !eligibleBookings.some((item) => item.bookingReference === ref),
+                  ),
+                );
+                return;
+              }
+              setSelectedBookingRefs((current) => {
+                const next = new Set(current);
+                for (const item of eligibleBookings) {
+                  next.add(item.bookingReference);
+                }
+                return Array.from(next);
+              });
+            }}
+            type="button"
+          >
+            {allOnPageSelected ? "Clear Page" : "Select Page"}
+          </button>
         </div>
+        <div className="mt-4 space-y-2">
+          {eligibleBookings.length === 0 ? (
+            <p className="text-sm text-slate-500">No eligible completed bookings found.</p>
+          ) : (
+            eligibleBookings.map((booking) => (
+              <label className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2" key={booking.id}>
+                <span className="text-sm text-slate-700">
+                  {booking.bookingReference} • {booking.grossAmount} {booking.currency}
+                  {booking.sourceCurrency && booking.sourceCurrency !== booking.currency ? (
+                    <span className="ml-1 text-xs text-slate-500">
+                      (from {booking.sourceGrossAmount} {booking.sourceCurrency})
+                    </span>
+                  ) : null}
+                  {booking.convertible === false ? (
+                    <span className="ml-1 text-xs text-rose-700">
+                      {booking.conversionError ?? "Missing conversion rate"}
+                    </span>
+                  ) : null}
+                </span>
+                <input
+                  checked={selectedBookingRefs.includes(booking.bookingReference)}
+                  disabled={booking.convertible === false}
+                  onChange={(event) => {
+                    setSelectedBookingRefs((current) =>
+                      event.target.checked
+                        ? [...current, booking.bookingReference]
+                        : current.filter((ref) => ref !== booking.bookingReference),
+                    );
+                  }}
+                  type="checkbox"
+                />
+              </label>
+            ))
+          )}
+        </div>
+        {eligibleCount > 0 ? (
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+            <span>
+              Page {eligiblePage} of {eligiblePageCount} ({eligibleCount} booking
+              {eligibleCount === 1 ? "" : "s"})
+            </span>
+            <div className="flex gap-2">
+              <button
+                className="tm-btn tm-btn-outline px-3 py-1.5 text-xs"
+                disabled={!eligibleHasPrevious}
+                onClick={async () => {
+                  if (!user || !eligibleHasPrevious) return;
+                  const nextPage = Math.max(1, eligiblePage - 1);
+                  setEligiblePage(nextPage);
+                  await loadEligibleBookings(user.id, nextPage, eligibleSearch);
+                }}
+                type="button"
+              >
+                Previous
+              </button>
+              <button
+                className="tm-btn tm-btn-outline px-3 py-1.5 text-xs"
+                disabled={!eligibleHasNext}
+                onClick={async () => {
+                  if (!user || !eligibleHasNext) return;
+                  const nextPage = Math.min(eligiblePageCount, eligiblePage + 1);
+                  setEligiblePage(nextPage);
+                  await loadEligibleBookings(user.id, nextPage, eligibleSearch);
+                }}
+                type="button"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        ) : null}
         <div className="tm-inline-actions mt-4">
-          <button className="tm-btn tm-btn-accent" disabled={busy} type="submit">
-            Record Completion
+          <button className="tm-btn tm-btn-accent" disabled={busy || selectedBookingRefs.length === 0} type="submit">
+            Create Settlements
           </button>
         </div>
       </form>
@@ -883,9 +1078,20 @@ export default function WalletPayoutsPage() {
       </form>
 
       <section className="tm-panel p-6">
-        <h2 className="tm-section-title">Settlement History</h2>
-        <ul className="tm-list-stack mt-4">
-          {settlements.map((item) => (
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="tm-section-title">Settlement History</h2>
+          {settlements.length > 8 ? (
+            <button
+              className="tm-btn tm-btn-outline px-3 py-1.5 text-xs"
+              onClick={() => setShowFullSettlements((current) => !current)}
+              type="button"
+            >
+              {showFullSettlements ? "Show Recent Only" : "Show Full History"}
+            </button>
+          ) : null}
+        </div>
+        <ul className="tm-list-stack mt-4 max-h-[28rem] overflow-y-auto pr-1">
+          {(showFullSettlements ? settlements : settlements.slice(0, 8)).map((item) => (
             <li key={item.id} className="tm-list-card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>

@@ -27,6 +27,29 @@ export type SettlementSettings = {
   updatedAt: string;
 };
 
+export type EligibleBooking = {
+  id: number;
+  bookingReference: string;
+  grossAmount: number;
+  currency: string;
+  sourceGrossAmount?: number;
+  sourceCurrency?: string;
+  conversionRateUsed?: string;
+  convertible?: boolean;
+  conversionError?: string | null;
+  completedAt: string;
+  sourceLabel: string;
+};
+
+export type EligibleBookingPage = {
+  results: EligibleBooking[];
+  count: number;
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+};
+
 export type SettlementRecord = {
   id: string;
   bookingReference: string;
@@ -110,6 +133,7 @@ export type SettlementAccountUpsertInput = {
 export type SubmitSettlementAccountResult = {
   account: SettlementAccount;
   otpCodeHint?: string;
+  otpDeliveryChannels?: Array<"email" | "sms">;
 };
 
 export type WalletPayoutsApi = {
@@ -127,8 +151,16 @@ export type WalletPayoutsApi = {
   ): Promise<SettlementSettings>;
   recordBookingCompletion(
     userId: string,
-    input: { bookingReference: string; grossAmount: number },
+    input: { bookingReference: string; grossAmount?: number },
   ): Promise<SettlementRecord>;
+  listEligibleBookings(
+    userId: string,
+    input?: { page?: number; pageSize?: number; search?: string },
+  ): Promise<EligibleBookingPage>;
+  createSettlementsFromBookings(
+    userId: string,
+    input: { bookingReferences: string[] },
+  ): Promise<{ created: SettlementRecord[]; skipped: Array<{ bookingReference: string; reason: string }>; failed: Array<{ bookingReference: string; reason: string }> }>;
   recordCancellationRefund(
     userId: string,
     input: {
@@ -140,6 +172,7 @@ export type WalletPayoutsApi = {
   ): Promise<SettlementRecord>;
   downloadSettlementStatement(userId: string, settlementId: string): Promise<string>;
   listSettlementAccounts(userId: string): Promise<SettlementAccount[]>;
+  archiveSettlementAccount(userId: string, accountId: string): Promise<{ archivedAccountId: string }>;
   listSettlementAccountHistory(userId: string): Promise<SettlementAccountHistoryEntry[]>;
   submitSettlementAccount(
     userId: string,

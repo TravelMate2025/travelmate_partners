@@ -15,6 +15,9 @@ const listSessionsMock = vi.fn();
 const revokeSessionMock = vi.fn();
 const logoutMock = vi.fn();
 const logoutAllSessionsMock = vi.fn();
+const meMock = vi.fn();
+const requestPhoneVerificationOtpMock = vi.fn();
+const verifyPhoneMock = vi.fn();
 
 vi.mock("@/modules/auth/auth-client", () => ({
   authClient: {
@@ -22,6 +25,9 @@ vi.mock("@/modules/auth/auth-client", () => ({
     revokeSession: (...args: unknown[]) => revokeSessionMock(...args),
     logout: (...args: unknown[]) => logoutMock(...args),
     logoutAllSessions: (...args: unknown[]) => logoutAllSessionsMock(...args),
+    me: (...args: unknown[]) => meMock(...args),
+    requestPhoneVerificationOtp: (...args: unknown[]) => requestPhoneVerificationOtpMock(...args),
+    verifyPhone: (...args: unknown[]) => verifyPhoneMock(...args),
   },
 }));
 
@@ -32,6 +38,19 @@ describe("SessionManager", () => {
     revokeSessionMock.mockReset();
     logoutMock.mockReset();
     logoutAllSessionsMock.mockReset();
+    meMock.mockReset();
+    requestPhoneVerificationOtpMock.mockReset();
+    verifyPhoneMock.mockReset();
+    meMock.mockResolvedValue({
+      id: "u1",
+      email: "partner@example.com",
+      phone: "+2348012345678",
+      emailVerified: true,
+      phoneVerified: false,
+      otpEnabled: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
   });
 
   it("renders active sessions and revokes a session", async () => {
@@ -84,6 +103,26 @@ describe("SessionManager", () => {
     await waitFor(() => {
       expect(logoutAllSessionsMock).toHaveBeenCalledTimes(1);
       expect(replaceMock).toHaveBeenCalledWith("/auth/login");
+    });
+  });
+
+  it("requests and verifies phone code", async () => {
+    listSessionsMock.mockResolvedValue([]);
+    requestPhoneVerificationOtpMock.mockResolvedValue(undefined);
+    verifyPhoneMock.mockResolvedValue(undefined);
+
+    render(<SessionManager />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Request Code" }));
+    await waitFor(() => {
+      expect(requestPhoneVerificationOtpMock).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.change(screen.getByPlaceholderText("Enter 6-digit code"), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Verify Phone" }));
+    await waitFor(() => {
+      expect(verifyPhoneMock).toHaveBeenCalledWith({ code: "123456" });
+      expect(screen.getByText("Phone number verified.")).toBeInTheDocument();
     });
   });
 });

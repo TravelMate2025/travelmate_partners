@@ -1,6 +1,8 @@
 import { profileClient } from "@/modules/profile/profile-client";
 import { notificationsClient } from "@/modules/notifications/notifications-client";
 import type {
+  EligibleBooking,
+  EligibleBookingPage,
   RefundStatus,
   SettlementAccount,
   SettlementAccountHistoryEntry,
@@ -37,6 +39,7 @@ type State = {
       settlements: Array<SettlementRecord & { lifecycleStep: number }>;
       settlementAccounts: SettlementAccountInternal[];
       settlementAccountHistory: SettlementAccountHistoryEntry[];
+      eligibleBookings: EligibleBooking[];
     }
   >;
 };
@@ -182,6 +185,24 @@ function ensureUser(state: State, userId: string) {
       settlements,
       settlementAccounts: [],
       settlementAccountHistory: [],
+      eligibleBookings: [
+        {
+          id: 1,
+          bookingReference: "TM-BOOK-80014521",
+          grossAmount: 110000,
+          currency: "NGN",
+          completedAt: nowIso(),
+          sourceLabel: "mock_feed",
+        },
+        {
+          id: 2,
+          bookingReference: "TM-BOOK-80014522",
+          grossAmount: 85000,
+          currency: "NGN",
+          completedAt: nowIso(),
+          sourceLabel: "mock_feed",
+        },
+      ],
     };
   }
   return state.byUserId[userId];
@@ -321,24 +342,83 @@ export const mockWalletPayoutsApi: WalletPayoutsApi = {
     if (!input.bookingReference.trim()) {
       throw new Error("Booking reference is required.");
     }
-    if (input.grossAmount <= 0) {
-      throw new Error("Gross amount must be greater than zero.");
+    const event = userState.eligibleBookings.find(
+      (item) => item.bookingReference === input.bookingReference.trim(),
+    );
+    if (!event) {
+      throw new Error("Booking completion is not available for settlement yet.");
     }
 
     const created = makeSettlement({
       bookingReference: input.bookingReference.trim(),
-      grossAmount: input.grossAmount,
-      currency: userState.summary.currency,
+      grossAmount: event.grossAmount,
+      currency: event.currency,
       status: "pending_completion",
       lifecycleStep: 0,
     });
 
     userState.settlements.unshift(created);
+    userState.eligibleBookings = userState.eligibleBookings.filter(
+      (item) => item.bookingReference !== event.bookingReference,
+    );
     syncSummaryFromSettlements(userState.summary, userState.settlements);
     writeState(state);
 
     await emitSettlementStatus(userId, `${created.settlementReference} is pending_completion`);
     return stripLifecycle(created);
+  },
+
+  async listEligibleBookings(userId, input = {}): Promise<EligibleBookingPage> {
+    const state = readState();
+    const userState = ensureUser(state, userId);
+    const page = Math.max(1, Number(input.page ?? 1));
+    const pageSize = Math.max(1, Math.min(100, Number(input.pageSize ?? 20)));
+    const search = String(input.search ?? "").trim().toLowerCase();
+    const filtered = search
+      ? userState.eligibleBookings.filter((item) => item.bookingReference.toLowerCase().includes(search))
+      : userState.eligibleBookings;
+    const start = (page - 1) * pageSize;
+    const results = filtered.slice(start, start + pageSize);
+    writeState(state);
+    return {
+      results: [...results],
+      count: filtered.length,
+      page,
+      pageSize,
+      hasNext: start + pageSize < filtered.length,
+      hasPrevious: page > 1,
+    };
+  },
+
+  async createSettlementsFromBookings(userId, input) {
+    const state = readState();
+    const userState = ensureUser(state, userId);
+    const refs = (input.bookingReferences ?? []).map((item) => String(item).trim()).filter(Boolean);
+    if (refs.length === 0) {
+      throw new Error("Select at least one booking reference.");
+    }
+    const created: SettlementRecord[] = [];
+    const skipped: Array<{ bookingReference: string; reason: string }> = [];
+    for (const ref of refs) {
+      const event = userState.eligibleBookings.find((item) => item.bookingReference === ref);
+      if (!event) {
+        skipped.push({ bookingReference: ref, reason: "completion_event_missing" });
+        continue;
+      }
+      const settlement = makeSettlement({
+        bookingReference: event.bookingReference,
+        grossAmount: event.grossAmount,
+        currency: event.currency,
+        status: "pending_completion",
+        lifecycleStep: 0,
+      });
+      userState.settlements.unshift(settlement);
+      created.push(stripLifecycle(settlement));
+      userState.eligibleBookings = userState.eligibleBookings.filter((item) => item.bookingReference !== ref);
+    }
+    syncSummaryFromSettlements(userState.summary, userState.settlements);
+    writeState(state);
+    return { created, skipped, failed: [] };
   },
 
   async recordCancellationRefund(userId, input) {
@@ -401,6 +481,39 @@ export const mockWalletPayoutsApi: WalletPayoutsApi = {
     return userState.settlementAccounts
       .map(publicAccount)
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  },
+
+  async archiveSettlementAccount(userId, accountId) {
+    const state = readState();
+    const userState = ensureUser(state, userId);
+    const target = userState.settlementAccounts.find((item) => item.id === accountId);
+    if (!target) {
+      throw new Error("Settlement account not found.");
+    }
+    if (target.isDefault && userState.settlementAccounts.length === 1) {
+      throw new Error("Add another payout method before archiving your default method.");
+    }
+    userState.settlementAccounts = userState.settlementAccounts.filter((item) => item.id !== accountId);
+    if (target.isDefault && userState.settlementAccounts.length > 0) {
+      userState.settlementAccounts[0] = {
+        ...userState.settlementAccounts[0],
+        isDefault: true,
+        updatedAt: nowIso(),
+      };
+      userState.settlementAccountHistory.unshift(
+        makeHistoryEntry(
+          userState.settlementAccounts[0].id,
+          "set_default",
+          "Default payout method reassigned after archiving another method.",
+        ),
+      );
+    }
+    userState.settlementAccountHistory.unshift(
+      makeHistoryEntry(accountId, "updated", "Partner archived payout method."),
+    );
+    writeState(state);
+    await emitSettlementAccountStatus(userId, `${target.maskedSummary} archived`);
+    return { archivedAccountId: accountId };
   },
 
   async listSettlementAccountHistory(userId) {
@@ -507,6 +620,7 @@ export const mockWalletPayoutsApi: WalletPayoutsApi = {
     return {
       account: publicAccount(next),
       otpCodeHint: otpCode,
+      otpDeliveryChannels: ["email", "sms"],
     };
   },
 

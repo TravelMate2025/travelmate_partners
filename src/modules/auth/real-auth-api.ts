@@ -7,6 +7,7 @@ import type {
   RequestResetInput,
   ResetPasswordInput,
   SignupInput,
+  VerifyPhoneInput,
   VerifyEmailInput,
 } from "@/modules/auth/contracts";
 
@@ -43,6 +44,20 @@ export const realAuthApi: AuthApi = {
 
   async verifyEmail(input: VerifyEmailInput) {
     await apiRequest<Envelope<EmptyData>>("/auth/verify-email", {
+      method: "POST",
+      body: input,
+    });
+  },
+
+  async requestPhoneVerificationOtp() {
+    await apiRequest<Envelope<EmptyData>>("/auth/phone/request-otp", {
+      method: "POST",
+      body: {},
+    });
+  },
+
+  async verifyPhone(input: VerifyPhoneInput) {
+    await apiRequest<Envelope<EmptyData>>("/auth/phone/verify", {
       method: "POST",
       body: input,
     });
