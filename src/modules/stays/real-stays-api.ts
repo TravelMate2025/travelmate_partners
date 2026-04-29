@@ -144,7 +144,11 @@ export const realStaysApi: StaysApi = {
   async submitAppeal(userId, stayId, message) {
     const response = await apiRequest<Envelope<ListingAppeal>>(
       `/partners/${userId}/stays/${stayId}/appeal`,
-      { method: "POST", body: { message } },
+      {
+        method: "POST",
+        headers: { "X-TravelMate-Intent": "submit_listing_appeal" },
+        body: { message },
+      },
     );
     return response.data;
   },
@@ -153,6 +157,7 @@ export const realStaysApi: StaysApi = {
     try {
       const response = await apiRequest<Envelope<ListingAppeal>>(
         `/partners/${userId}/stays/${stayId}/appeal`,
+        { method: "GET" },
       );
       return response.data;
     } catch {

@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { showToast } from "@/components/common/toast";
+import { authClient } from "@/modules/auth/auth-client";
+import { notificationsClient } from "@/modules/notifications/notifications-client";
+import { maybeShowBrowserNotification } from "@/modules/notifications/realtime";
 
 type PartnerShellProps = {
   title: string;
@@ -109,6 +114,55 @@ const NAV_SECTIONS: NavSection[] = [
 
 export function PartnerShell({ title, description, children, headerExtra }: PartnerShellProps) {
   const pathname = usePathname();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const seenNotificationIds = useRef<Set<string>>(new Set());
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    async function pollNotifications() {
+      try {
+        const user = await authClient.me();
+        const items = await notificationsClient.listNotifications(user.id);
+        if (!active) {
+          return;
+        }
+
+        const unread = items.filter((item) => !item.read).length;
+        setUnreadCount(unread);
+
+        const nextSeen = new Set(items.map((item) => item.id));
+        if (!initialized.current) {
+          seenNotificationIds.current = nextSeen;
+          initialized.current = true;
+          return;
+        }
+
+        const newItems = items.filter((item) => !seenNotificationIds.current.has(item.id));
+        for (const item of [...newItems].reverse()) {
+          showToast({ message: `${item.title}: ${item.message}` });
+          maybeShowBrowserNotification(item);
+        }
+        seenNotificationIds.current = nextSeen;
+      } catch {
+        // Notifications should never block shell rendering.
+      }
+    }
+
+    void pollNotifications();
+    timer = setInterval(() => {
+      void pollNotifications();
+    }, 15000);
+
+    return () => {
+      active = false;
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, []);
 
   return (
     <main className="tm-page tm-grid-drift">
@@ -136,6 +190,11 @@ export function PartnerShell({ title, description, children, headerExtra }: Part
                         style={{ animationDelay: `${index * 35}ms` }}
                       >
                         <span>{item.label}</span>
+                        {item.href === "/notifications" && unreadCount > 0 ? (
+                          <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                            {unreadCount}
+                          </span>
+                        ) : null}
                         {item.status === "soon" ? (
                           <span className="tm-chip-soon rounded-full px-2 py-0.5 text-[10px] font-semibold">
                             Soon

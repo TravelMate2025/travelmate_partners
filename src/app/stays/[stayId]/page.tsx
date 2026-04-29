@@ -56,6 +56,7 @@ export default function StayDetailPage() {
   useToastMessage(message);
   const [appeal, setAppeal] = useState<ListingAppeal | null>(null);
   const [appealMessage, setAppealMessage] = useState("");
+  const [appealMessageTouched, setAppealMessageTouched] = useState(false);
   const [submittingAppeal, setSubmittingAppeal] = useState(false);
   const [showAppealForm, setShowAppealForm] = useState(false);
   const [uploadState, setUploadState] = useState<"idle" | "uploading">("idle");
@@ -503,7 +504,7 @@ export default function StayDetailPage() {
   }
 
   async function submitAppeal() {
-    if (!user || !stay || !appealMessage.trim()) {
+    if (!user || !stay || !showAppealForm || !appealMessageTouched || !appealMessage.trim()) {
       return;
     }
     setSubmittingAppeal(true);
@@ -512,6 +513,7 @@ export default function StayDetailPage() {
       setAppeal(submitted);
       setShowAppealForm(false);
       setAppealMessage("");
+      setAppealMessageTouched(false);
       setMessage("Appeal submitted. We will review it and notify you of the outcome.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to submit appeal. Please try again.");
@@ -541,7 +543,7 @@ export default function StayDetailPage() {
                       ? `Reason: ${stay.moderationFeedback}`
                       : "This listing has been suspended by the platform. No changes can be made until the restriction is lifted."}
                   </p>
-                  {appeal === null ? (
+                  {appeal === null || appeal.status === "resolved" ? (
                     showAppealForm ? (
                       <div className="space-y-2">
                         <textarea
@@ -549,12 +551,15 @@ export default function StayDetailPage() {
                           placeholder="Explain why this listing should be reinstated…"
                           rows={3}
                           value={appealMessage}
-                          onChange={(e) => setAppealMessage(e.target.value)}
+                          onChange={(e) => {
+                            setAppealMessage(e.target.value);
+                            if (!appealMessageTouched) setAppealMessageTouched(true);
+                          }}
                         />
                         <div className="flex gap-2">
                           <button
                             className="tm-btn tm-btn-primary text-sm"
-                            disabled={submittingAppeal || !appealMessage.trim()}
+                            disabled={submittingAppeal || !appealMessageTouched || !appealMessage.trim()}
                             onClick={() => void submitAppeal()}
                             type="button"
                           >
@@ -563,7 +568,7 @@ export default function StayDetailPage() {
                           <button
                             className="tm-btn tm-btn-outline text-sm"
                             disabled={submittingAppeal}
-                            onClick={() => { setShowAppealForm(false); setAppealMessage(""); }}
+                            onClick={() => { setShowAppealForm(false); setAppealMessage(""); setAppealMessageTouched(false); }}
                             type="button"
                           >
                             Cancel
@@ -571,22 +576,26 @@ export default function StayDetailPage() {
                         </div>
                       </div>
                     ) : (
-                      <button
-                        className="tm-btn tm-btn-outline text-sm"
-                        onClick={() => setShowAppealForm(true)}
-                        type="button"
-                      >
-                        Submit Appeal
-                      </button>
+                      <div className="space-y-2">
+                        {appeal?.resolution === "dismissed" ? (
+                          <p className="text-sm text-rose-700">
+                            Previous appeal was dismissed
+                            {appeal.resolutionNote ? ` (${appeal.resolutionNote})` : ""}.
+                          </p>
+                        ) : null}
+                        <button
+                          className="tm-btn tm-btn-outline text-sm"
+                          onClick={() => setShowAppealForm(true)}
+                          type="button"
+                        >
+                          {appeal ? "Submit New Appeal" : "Submit Appeal"}
+                        </button>
+                      </div>
                     )
-                  ) : appeal.status === "resolved" && appeal.resolution === "dismissed" ? (
-                    <p className="text-sm text-rose-700">
-                      Appeal dismissed.{appeal.resolutionNote ? ` Note: ${appeal.resolutionNote}` : ""}{" "}
-                      Contact support for further assistance.
-                    </p>
                   ) : (
                     <p className="text-sm text-amber-600">
-                      Appeal {appeal.status === "under_review" ? "under review" : "submitted — awaiting review"}.
+                      Existing appeal {appeal.status === "under_review" ? "is under review" : "is pending review"}.
+                      {" "}Submitted on {new Date(appeal.createdAt).toLocaleString()}.
                     </p>
                   )}
                 </div>

@@ -116,7 +116,11 @@ export const realTransfersApi: TransfersApi = {
   async submitAppeal(userId, transferId, message) {
     const response = await apiRequest<Envelope<ListingAppeal>>(
       `/partners/${userId}/transfers/${transferId}/appeal`,
-      { method: "POST", body: { message } },
+      {
+        method: "POST",
+        headers: { "X-TravelMate-Intent": "submit_listing_appeal" },
+        body: { message },
+      },
     );
     return response.data;
   },
@@ -125,6 +129,7 @@ export const realTransfersApi: TransfersApi = {
     try {
       const response = await apiRequest<Envelope<ListingAppeal>>(
         `/partners/${userId}/transfers/${transferId}/appeal`,
+        { method: "GET" },
       );
       return response.data;
     } catch {
