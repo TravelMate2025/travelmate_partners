@@ -49,6 +49,7 @@ function makeTransfer(overrides: Partial<TransferListing> = {}): TransferListing
     currency: "NGN",
     baseFare: 20000,
     nightSurcharge: 5000,
+    cancellationPolicy: "",
     images: [],
     createdAt: now,
     updatedAt: now,

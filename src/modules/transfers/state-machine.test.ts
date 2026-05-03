@@ -27,6 +27,8 @@ function makeTransfer(status: TransferListing["status"]): TransferListing {
     currency: "NGN",
     baseFare: 0,
     nightSurcharge: 0,
+    cancellationPolicy: "",
+    images: [],
     createdAt: now,
     updatedAt: now,
   };

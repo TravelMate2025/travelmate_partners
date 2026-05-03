@@ -19,6 +19,7 @@ export function usePartnerAccess(options?: UsePartnerAccessOptions) {
   const requireApprovedVerification = options?.requireApprovedVerification ?? true;
   const [user, setUser] = useState<PartnerUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -50,9 +51,10 @@ export function usePartnerAccess(options?: UsePartnerAccessOptions) {
         setUser(currentUser);
         setLoading(false);
       })
-      .catch((error) => {
+      .catch((err) => {
         if (active) {
-          if (!isAuthenticationError(error)) {
+          if (!isAuthenticationError(err)) {
+            setError(err instanceof Error ? err.message : "Failed to load account. Please refresh.");
             setLoading(false);
             return;
           }
@@ -65,5 +67,5 @@ export function usePartnerAccess(options?: UsePartnerAccessOptions) {
     };
   }, [requireApprovedVerification, requireCompletedOnboarding, router]);
 
-  return { user, loading };
+  return { user, loading, error };
 }

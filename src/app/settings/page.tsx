@@ -20,6 +20,7 @@ export default function SettingsPage() {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [auditItems, setAuditItems] = useState(() => [] as ReturnType<typeof listAuditEvents>);
   const [busy, setBusy] = useState(false);
+  const [submittingTicket, setSubmittingTicket] = useState(false);
   const [message, setMessage] = useState("");
   useToastMessage(message);
 
@@ -30,6 +31,7 @@ export default function SettingsPage() {
 
     let active = true;
     setBusy(true);
+    setSubmittingTicket(true);
     setMessage("");
 
     Promise.all([
@@ -97,6 +99,7 @@ export default function SettingsPage() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to save settings.");
     } finally {
+      setSubmittingTicket(false);
       setBusy(false);
     }
   }
@@ -283,8 +286,8 @@ export default function SettingsPage() {
           </label>
         </div>
         <div className="tm-inline-actions mt-4">
-          <button className="tm-btn tm-btn-accent" disabled={busy} type="submit">
-            Submit Ticket
+          <button className="tm-btn tm-btn-accent" disabled={busy || submittingTicket} type="submit">
+            {submittingTicket ? "Submitting..." : "Submit Ticket"}
           </button>
         </div>
 

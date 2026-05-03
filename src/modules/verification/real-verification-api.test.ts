@@ -105,6 +105,7 @@ describe("realVerificationApi", () => {
 
     await expect(realVerificationApi.submitVerification("42")).rejects.toEqual(
       expect.objectContaining<HttpError>({
+        name: "HttpError",
         message: "Cannot submit verification in current status or without documents.",
         status: 400,
       }),

@@ -4,11 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 import StayDetailPage from "@/app/stays/[stayId]/page";
 
 const replaceMock = vi.fn();
+let currentStayId = "stay-1";
 
 vi.mock("next/navigation", () => ({
-  useParams: () => ({ stayId: "stay-1" }),
+  useParams: () => ({ stayId: currentStayId }),
   useRouter: () => ({ replace: replaceMock, push: vi.fn() }),
-  usePathname: () => "/stays/stay-1",
+  usePathname: () => `/stays/${currentStayId}`,
 }));
 
 const meMock = vi.fn();
@@ -61,6 +62,7 @@ vi.mock("@/modules/stays/stays-client", () => ({
 
 describe("Stay detail appeal flow", () => {
   it("does not auto-submit an appeal when opening a paused_by_admin listing", async () => {
+    currentStayId = "stay-1";
     meMock.mockResolvedValue({ id: 101, role: "partner" });
     onboardingMock.mockResolvedValue({ status: "completed" });
     verificationMock.mockResolvedValue({ status: "approved" });
@@ -91,5 +93,74 @@ describe("Stay detail appeal flow", () => {
     expect(getAppealMock.mock.calls.length).toBeGreaterThanOrEqual(1);
     expect(submitAppealMock).not.toHaveBeenCalled();
     expect(replaceMock).not.toHaveBeenCalledWith("/auth/login");
+  });
+
+  it("clears stale appeal UI when navigating from suspended stay to live stay", async () => {
+    currentStayId = "stay-1";
+    meMock.mockResolvedValue({ id: 101, role: "partner" });
+    onboardingMock.mockResolvedValue({ status: "completed" });
+    verificationMock.mockResolvedValue({ status: "approved" });
+
+    getStayMock.mockImplementation(async (_userId: string, stayId: string) => {
+      if (stayId === "stay-1") {
+        return {
+          id: "stay-1",
+          status: "paused_by_admin",
+          name: "Lagoon View Suites",
+          propertyType: "apartment",
+          city: "Lagos",
+          country: "Nigeria",
+          amenities: [],
+          images: [],
+          rooms: [],
+          description: "",
+          address: "",
+          moderationFeedback: "Policy review",
+        };
+      }
+      return {
+        id: "stay-2",
+        status: "live",
+        name: "Ocean View Suites",
+        propertyType: "apartment",
+        city: "Lagos",
+        country: "Nigeria",
+        amenities: [],
+        images: [],
+        rooms: [],
+        description: "",
+        address: "",
+        moderationFeedback: "",
+      };
+    });
+    listStaysMock.mockResolvedValue([]);
+    getAppealMock.mockResolvedValue({
+      id: "appeal-1",
+      listingKind: "stay",
+      listingId: "stay-1",
+      partnerId: "101",
+      message: "Please review.",
+      status: "pending",
+      resolution: null,
+      resolutionNote: "",
+      resolvedAt: null,
+      createdAt: "2026-04-29T04:39:17Z",
+      updatedAt: "2026-04-29T04:39:17Z",
+    });
+
+    const view = render(<StayDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Existing appeal is pending review/i)).toBeInTheDocument();
+    });
+
+    currentStayId = "stay-2";
+    view.rerender(<StayDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Status: live")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Existing appeal is pending review/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Submit Appeal/i)).not.toBeInTheDocument();
   });
 });

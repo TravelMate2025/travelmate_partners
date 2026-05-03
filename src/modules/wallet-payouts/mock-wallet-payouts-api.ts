@@ -202,6 +202,22 @@ function ensureUser(state: State, userId: string) {
           completedAt: nowIso(),
           sourceLabel: "mock_feed",
         },
+        {
+          id: 3,
+          bookingReference: "TM-BOOK-2141001",
+          grossAmount: 25000,
+          currency: "NGN",
+          completedAt: nowIso(),
+          sourceLabel: "mock_feed",
+        },
+        {
+          id: 4,
+          bookingReference: "TM-BOOK-2111001",
+          grossAmount: 44000,
+          currency: "NGN",
+          completedAt: nowIso(),
+          sourceLabel: "mock_feed",
+        },
       ],
     };
   }

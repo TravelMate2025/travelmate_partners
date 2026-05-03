@@ -103,6 +103,12 @@ const NAV_SECTIONS: NavSection[] = [
         match: (path) => path.startsWith("/reports"),
       },
       {
+        href: "/api-access",
+        label: "API Access",
+        status: "live",
+        match: (path) => path.startsWith("/api-access"),
+      },
+      {
         href: "/settings",
         label: "Support & Settings",
         status: "live",

@@ -173,14 +173,14 @@ export const mockTransfersApi: TransfersApi = {
     const index = items.findIndex((item) => item.id === transferId);
     items[index] = next;
 
-    if (status === "live") {
+    if (next.status === "live") {
       recordAuditEvent({
         userId,
         action: "listing_published",
         entityType: "transfer",
         entityId: transferId,
       });
-    } else if (status === "paused") {
+    } else if (next.status === "paused") {
       recordAuditEvent({
         userId,
         action: "listing_paused",

@@ -124,6 +124,7 @@ describe("realProfileApi", () => {
 
     await expect(realProfileApi.submitOnboarding("42")).rejects.toEqual(
       expect.objectContaining<HttpError>({
+        name: "HttpError",
         message: "Complete all onboarding steps before submission.",
         status: 400,
       }),

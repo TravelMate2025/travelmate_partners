@@ -1,6 +1,5 @@
 import { expect, test } from "@playwright/test";
-
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+import { seedProfileAndVerification, signupAndLoginGetUserId } from "./helpers";
 
 test.describe("TravelMate Partner auth UI flow (2.1)", () => {
   test("supports signup, email verification, and login via UI", async ({ page }) => {
@@ -8,36 +7,7 @@ test.describe("TravelMate Partner auth UI flow (2.1)", () => {
     const phone = "+2348000000000";
     const password = "Password123!";
 
-    await page.goto("/auth/signup");
-    await page.waitForLoadState("networkidle");
-
-    await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Phone").fill(phone);
-    await page.getByRole("button", { name: "Send OTP" }).click();
-    await expect(page.getByText(/Signup OTP sent/i)).toBeVisible();
-
-    const otpMessage = await page.getByText(/Signup OTP sent/i).textContent();
-    const signupOtp = otpMessage?.match(/(\d{6})/)?.[1];
-    expect(signupOtp).toMatch(/^\d{6}$/);
-
-    await page.getByLabel("Signup OTP").fill(signupOtp ?? "");
-    await page.getByLabel("Password").fill(password);
-    await page.getByRole("button", { name: "Create account" }).click();
-
-    await expect(page).toHaveURL(/\/auth\/verify-email/);
-
-    const verificationCode = new URL(page.url()).searchParams.get("codeHint");
-    expect(verificationCode).toMatch(/^\d{6}$/);
-
-    await page.getByPlaceholder("Verification code").fill(verificationCode ?? "");
-    await page.getByRole("button", { name: "Verify email" }).click();
-    await expect(page.getByText("Email verified successfully. You can now sign in.")).toBeVisible();
-
-    await page.goto("/auth/login");
-    await page.waitForLoadState("networkidle");
-    await page.getByPlaceholder("Email").fill(email);
-    await page.getByPlaceholder("Password").fill(password);
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await signupAndLoginGetUserId(page, email, phone, password);
 
     await expect(page).toHaveURL("/onboarding");
     await expect(page.getByText("Partner Onboarding")).toBeVisible();
@@ -49,84 +19,10 @@ test.describe("TravelMate Partner auth UI flow (2.1)", () => {
     const password = "Password123!";
     const newPassword = "NewPassword123!";
 
-    await page.goto("/auth/signup");
-    await page.waitForLoadState("networkidle");
-    await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Phone").fill(phone);
-    await page.getByRole("button", { name: "Send OTP" }).click();
-    const otpMessage = await page.getByText(/Signup OTP sent/i).textContent();
-    const signupOtp = otpMessage?.match(/(\d{6})/)?.[1];
-    await page.getByLabel("Signup OTP").fill(signupOtp ?? "");
-    await page.getByLabel("Password").fill(password);
-    await page.getByRole("button", { name: "Create account" }).click();
-
-    await expect(page).toHaveURL(/\/auth\/verify-email/);
-
-    const verificationCode = new URL(page.url()).searchParams.get("codeHint");
-    expect(verificationCode).toMatch(/^\d{6}$/);
-    await page.getByPlaceholder("Verification code").fill(verificationCode ?? "");
-    await page.getByRole("button", { name: "Verify email" }).click();
-    await expect(page.getByText("Email verified successfully. You can now sign in.")).toBeVisible();
-
-    await page.goto("/auth/login");
-    await page.waitForLoadState("networkidle");
-    await page.getByPlaceholder("Email").fill(email);
-    await page.getByPlaceholder("Password").fill(password);
-    await page.getByRole("button", { name: "Sign in" }).click();
+    const userId = await signupAndLoginGetUserId(page, email, phone, password);
     await expect(page).toHaveURL("/onboarding");
 
-    await page.evaluate(async (baseUrl) => {
-      const meResponse = await fetch(`${baseUrl}/auth/me`, {
-        credentials: "include",
-      });
-      const mePayload = (await meResponse.json()) as { data: { id: string } };
-      const userId = mePayload.data.id;
-
-      window.localStorage.setItem(
-        "tm_partner_profile_state_v1",
-        JSON.stringify({
-          onboardingByUserId: {
-            [userId]: {
-              userId,
-              data: {
-                businessType: "business",
-                legalName: "Auth Reset Travel Ltd",
-                tradeName: "Auth Reset Travel",
-                registrationNumber: "RC-12345",
-                primaryContactName: "Auth Reset",
-                primaryContactEmail: "ops@example.com",
-                supportContactEmail: "support@example.com",
-                operatingCountries: ["Nigeria"],
-                operatingRegions: ["Lagos"],
-                operatingCities: ["Ikeja"],
-                coverageNotes: "",
-                payoutMethod: "bank_transfer",
-                settlementCurrency: "NGN",
-                disbursementCadence: "weekly",
-              },
-              completedSteps: ["business", "contact", "operations"],
-              status: "completed",
-              updatedAt: new Date().toISOString(),
-            },
-          },
-        }),
-      );
-
-      window.localStorage.setItem(
-        "tm_partner_verification_state_v1",
-        JSON.stringify({
-          byUserId: {
-            [userId]: {
-              userId,
-              status: "approved",
-              documents: [],
-              submissionCount: 1,
-              updatedAt: new Date().toISOString(),
-            },
-          },
-        }),
-      );
-    }, apiBaseUrl);
+    await seedProfileAndVerification(page, userId, new Date().toISOString());
 
     await page.goto("/dashboard");
     await page.waitForLoadState("networkidle");

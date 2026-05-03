@@ -1,37 +1,18 @@
 import { expect, test } from "@playwright/test";
+import { signupAndLoginGetUserId } from "./helpers";
 
 test.describe("Flow 2.16 notification listing navigation", () => {
-  test("opening a suspended listing from notifications does not auto-submit appeal", async ({ page, context }) => {
-    const userId = "user-appeal-guard";
+  test("opening a suspended listing from notifications does not auto-submit appeal", async ({ page }) => {
+    const email = `appeal.guard+${Date.now()}@example.com`;
+    const phone = "+2348333333333";
+    const password = "Password123!";
     const stayId = "stay-appeal-guard";
     const now = new Date().toISOString();
 
-    await page.goto("/");
+    const userId = await signupAndLoginGetUserId(page, email, phone, password);
+
     await page.evaluate(
       ({ seededUserId, seededStayId, ts }) => {
-        window.localStorage.setItem(
-          "tm_partner_mock_state_v1",
-          JSON.stringify({
-            users: [
-              {
-                id: seededUserId,
-                email: "appeal.guard@example.com",
-                phone: "+2348000000000",
-                password: "Password123!",
-                emailVerified: true,
-                otpEnabled: false,
-                createdAt: ts,
-                updatedAt: ts,
-                verificationCode: "",
-                knownFingerprints: [],
-              },
-            ],
-            sessions: [],
-            currentToken: undefined,
-            signupOtps: [],
-          }),
-        );
-
         window.localStorage.setItem(
           "tm_partner_profile_state_v1",
           JSON.stringify({
@@ -138,12 +119,6 @@ test.describe("Flow 2.16 notification listing navigation", () => {
       },
       { seededUserId: userId, seededStayId: stayId, ts: now },
     );
-
-    await page.goto("/auth/login");
-    await page.getByPlaceholder("Email").fill("appeal.guard@example.com");
-    await page.getByPlaceholder("Password").fill("Password123!");
-    await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page).toHaveURL(/\/onboarding|\/dashboard|\/notifications|\/verification/);
 
     await page.goto("/notifications");
     await expect(page.getByRole("heading", { name: "Notifications" })).toBeVisible();
