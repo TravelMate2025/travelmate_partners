@@ -136,6 +136,9 @@ export const mockStaysApi: StaysApi = {
       userId,
       status: "draft",
       propertyType: input.propertyType,
+      saleMode: ["hotel", "guest_house", "resort"].includes((input.propertyType || "").toLowerCase())
+        ? "room_level"
+        : "unit_level",
       name: input.name,
       description: input.description,
       address: input.address,
@@ -426,6 +429,9 @@ export const mockStaysApi: StaysApi = {
         occupancy: input.occupancy,
         bedConfiguration: input.bedConfiguration,
         baseRate: input.baseRate,
+        isBookable: rooms[idx].isBookable ?? true,
+        totalInventory: rooms[idx].totalInventory ?? 1,
+        maxPerBooking: rooms[idx].maxPerBooking ?? 1,
       };
     } else {
       rooms.push({
@@ -434,6 +440,9 @@ export const mockStaysApi: StaysApi = {
         occupancy: input.occupancy,
         bedConfiguration: input.bedConfiguration,
         baseRate: input.baseRate,
+        isBookable: true,
+        totalInventory: 1,
+        maxPerBooking: 1,
       });
     }
 

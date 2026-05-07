@@ -34,6 +34,9 @@ export type StayRoom = {
   occupancy: number;
   bedConfiguration: string;
   baseRate: number;
+  isBookable: boolean;
+  totalInventory: number;
+  maxPerBooking: number;
 };
 
 export type StayListing = {
@@ -41,6 +44,7 @@ export type StayListing = {
   userId: string;
   status: StayStatus;
   propertyType: string;
+  saleMode?: "unit_level" | "room_level";
   name: string;
   description: string;
   address: string;
