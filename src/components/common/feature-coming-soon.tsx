@@ -35,7 +35,7 @@ export function FeatureComingSoon({ title, description, highlights }: FeatureCom
       <section className="tm-panel p-6">
         <h2 className="text-2xl font-semibold text-slate-900">Planned Scope</h2>
         <p className="tm-muted mt-1 text-sm">
-          This module is scaffolded in navigation so the product shell is stable while we implement each flow.
+          This module is available in navigation and will be enabled as each workflow is released.
         </p>
 
         <ul className="tm-highlight-list mt-4 space-y-2">

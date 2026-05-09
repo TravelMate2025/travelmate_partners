@@ -256,7 +256,7 @@ export function SettlementAccountSection({
           <form className="tm-panel bg-white/40 p-4" onSubmit={onVerifyAccount}>
             <h3 className="text-base font-semibold text-slate-900">Verify OTP</h3>
             <p className="tm-muted mt-1 text-sm">
-              Complete mock verification after submission. Name mismatch will reject the payout method.
+              Complete verification after submission. A name mismatch may cause the payout method to be rejected.
             </p>
             <div className="mt-4 space-y-3">
               <label className="tm-field">
