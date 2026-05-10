@@ -10,12 +10,14 @@ import { authClient } from "@/modules/auth/auth-client";
 
 function LoginPageInner() {
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
+    setErrorMessage(null);
 
     const form = new FormData(event.currentTarget);
     try {
@@ -31,7 +33,9 @@ function LoginPageInner() {
       const redirectPath = searchParams.get("redirect") || "/onboarding";
       router.push(redirectPath);
     } catch (error) {
-      showToast({ message: error instanceof Error ? error.message : "Login failed.", kind: "error" });
+      const message = error instanceof Error ? error.message : "Login failed.";
+      setErrorMessage(message);
+      showToast({ message, kind: "error" });
     } finally {
       setLoading(false);
     }
@@ -50,6 +54,11 @@ function LoginPageInner() {
       <form className="space-y-4" onSubmit={onSubmit}>
         <input name="email" type="email" placeholder="Email" required className="tm-input" />
         <input name="password" type="password" placeholder="Password" required className="tm-input" />
+        {errorMessage ? (
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+            {errorMessage}
+          </div>
+        ) : null}
         <button disabled={loading} className="tm-btn tm-btn-primary w-full disabled:opacity-70 disabled:cursor-not-allowed" type="submit">
           {loading ? (
             <span className="flex items-center justify-center gap-2">
