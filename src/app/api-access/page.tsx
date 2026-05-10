@@ -193,15 +193,15 @@ export default function ApiAccessPage() {
       description="Apply for business API access and track review status."
       headerExtra={<p className="tm-muted text-sm">Current status: {statusLabel(status)}</p>}
     >
-      <section className="tm-panel min-w-0 p-6">
+      <section className="tm-panel min-w-0 p-6 overflow-hidden">
         <h2 className="tm-section-title">Application Status</h2>
-        <p className="mt-2 text-sm text-slate-700">
+        <p className="mt-2 min-w-0 break-words text-sm text-slate-700">
           {overview?.application
             ? `Application ${overview.application.id} is ${statusLabel(overview.application.status).toLowerCase()}.`
             : "No API client application has been submitted yet."}
         </p>
         {overview?.application?.partnerPolicy ? (
-          <div className="mt-3 text-sm text-slate-700">
+          <div className="mt-3 min-w-0 break-words text-sm text-slate-700">
             Policy: {overview.application.partnerPolicy.environment} / {overview.application.partnerPolicy.tier} /{" "}
             {overview.application.partnerPolicy.alertProfile}
           </div>
@@ -215,15 +215,15 @@ export default function ApiAccessPage() {
           </div>
         ) : null}
         {revealedSecret ? (
-          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-slate-900">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-semibold">Client Key ID: {revealedSecret.keyId}</p>
+          <div className="mt-4 min-w-0 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-slate-900">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <p className="min-w-0 break-all font-semibold">Client Key ID: {revealedSecret.keyId}</p>
               <button className="tm-btn tm-btn-outline inline-flex items-center gap-1 px-2 py-1 text-xs" onClick={() => void copyText("Client key ID", revealedSecret.keyId)} type="button">
                 <CopyIcon /> Copy
               </button>
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <p className="break-all font-mono">Client Secret: {revealedSecret.clientSecret}</p>
+            <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
+              <p className="min-w-0 break-all font-mono">Client Secret: {revealedSecret.clientSecret}</p>
               <button className="tm-btn tm-btn-outline inline-flex items-center gap-1 px-2 py-1 text-xs" onClick={() => void copyText("Client secret", revealedSecret.clientSecret)} type="button">
                 <CopyIcon /> Copy
               </button>
@@ -237,7 +237,7 @@ export default function ApiAccessPage() {
           </div>
         ) : null}
         {overview?.application?.pendingPolicyChange?.effectiveAt ? (
-          <div className="mt-3 text-sm text-slate-700">
+          <div className="mt-3 min-w-0 break-words text-sm text-slate-700">
             Scheduled policy change: {overview.application.pendingPolicyChange.plan} /{" "}
             {overview.application.pendingPolicyChange.rateLimitPerMinute}/min at{" "}
             {new Date(overview.application.pendingPolicyChange.effectiveAt).toLocaleString()}
@@ -245,7 +245,7 @@ export default function ApiAccessPage() {
         ) : null}
       </section>
 
-      <section className="tm-panel min-w-0 p-6">
+      <section className="tm-panel min-w-0 p-6 overflow-hidden">
         <h2 className="tm-section-title">Developer Portal</h2>
         <p className="tm-muted mt-1 text-sm">See exactly which API modules and endpoints your account can use.</p>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -290,8 +290,8 @@ export default function ApiAccessPage() {
         </div>
         <div className="mt-4 space-y-2">
           {(catalog?.endpoints ?? []).map((endpoint) => (
-            <article className="rounded-md border border-slate-200 p-3" key={endpoint.id}>
-              <p className="text-sm font-semibold text-slate-900">
+            <article className="min-w-0 rounded-md border border-slate-200 p-3" key={endpoint.id}>
+              <p className="break-all text-sm font-semibold text-slate-900">
                 {endpoint.method} {endpoint.path}
               </p>
               <p className="mt-1 text-xs text-slate-600">
@@ -343,7 +343,7 @@ export default function ApiAccessPage() {
         </div>
       </section>
 
-      <section className="tm-panel p-6">
+      <section className="tm-panel min-w-0 overflow-hidden p-6">
         <h2 className="tm-section-title">Submit API Client Application</h2>
         <p className="tm-muted mt-1 text-sm">Provide business and integration context for review.</p>
         {!canSubmit ? (

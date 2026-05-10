@@ -215,8 +215,8 @@ export function PartnerShell({ title, description, children, headerExtra }: Part
           </nav>
         </aside>
 
-        <div className="space-y-5">
-          <section className="tm-panel tm-overview p-6 tm-animate-in">
+        <div className="min-w-0 space-y-5">
+          <section className="tm-panel tm-overview min-w-0 overflow-hidden p-6 tm-animate-in">
             <p className="tm-kicker">Overview</p>
             <h1 className="mt-2 text-3xl font-semibold text-slate-900 md:text-4xl">{title}</h1>
             <p className="tm-muted mt-2 max-w-2xl text-sm md:text-[0.95rem]">{description}</p>
