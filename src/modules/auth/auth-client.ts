@@ -1,5 +1,6 @@
 import { appConfig } from "@/lib/config";
 import type { AuthApi } from "@/modules/auth/contracts";
+import { isAuthenticationError } from "@/modules/auth/http-errors";
 import { mockAuthApi } from "@/modules/auth/mock-auth-api";
 import { realAuthApi } from "@/modules/auth/real-auth-api";
 import { setPartnerSessionCookie } from "@/modules/auth/session-cookie";
@@ -30,7 +31,9 @@ export const authClient: AuthApi = {
     try {
       return await baseClient.me();
     } catch (error) {
-      setPartnerSessionCookie(false);
+      if (isAuthenticationError(error)) {
+        setPartnerSessionCookie(false);
+      }
       throw error;
     }
   },

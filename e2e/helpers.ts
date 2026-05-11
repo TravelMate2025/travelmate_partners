@@ -96,8 +96,9 @@ export async function signupAndLoginGetUserId(
 
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Phone").fill(phone);
-  await page.getByRole("button", { name: "Send OTP" }).click();
-  await expect(page.getByRole("button", { name: "Send OTP" })).toBeEnabled();
+  const sendOtpButton = page.getByRole("button", { name: /Send OTP/i });
+  await sendOtpButton.click();
+  await expect(sendOtpButton).toBeEnabled();
 
   const signupOtp = readLatestSignupOtpCode(email);
   expect(signupOtp).toMatch(/^\d{6}$/);

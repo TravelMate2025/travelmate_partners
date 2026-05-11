@@ -112,6 +112,9 @@ export type UpsertStayRoomInput = {
   occupancy: number;
   bedConfiguration: string;
   baseRate: number;
+  isBookable?: boolean;
+  totalInventory?: number;
+  maxPerBooking?: number;
 };
 
 export type StaysApi = {
