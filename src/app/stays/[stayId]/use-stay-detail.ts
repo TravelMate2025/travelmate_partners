@@ -244,6 +244,7 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
+        file,
         roomId: roomId ?? null,
       });
       syncStay(updated);
@@ -310,6 +311,7 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
+        file,
       });
       syncStay(updated);
       setMessage("Image replaced.");

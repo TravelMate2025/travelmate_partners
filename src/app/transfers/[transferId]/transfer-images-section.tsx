@@ -47,6 +47,13 @@ export function TransferImagesSection({
       <ul className="tm-list-stack mt-4">
         {images.map((img, index) => (
           <li key={img.id} className="tm-list-card">
+            {img.secureUrl ? (
+              <img
+                src={img.secureUrl}
+                alt={img.fileName}
+                className="mb-2 h-36 w-full rounded-md border border-slate-200 object-cover"
+              />
+            ) : null}
             <p className="text-sm font-medium text-slate-800">{img.fileName}</p>
             <p className="text-xs text-slate-500">Order: {index + 1}</p>
             <input

@@ -22,6 +22,8 @@ export type StayImage = {
   fileName: string;
   fileType: string;
   fileSize: number;
+  secureUrl?: string | null;
+  publicId?: string | null;
   order: number;
   roomId: string | null;
   spaceType: string | null;
@@ -97,6 +99,7 @@ export type AddStayImageInput = {
   fileName: string;
   fileType: string;
   fileSize: number;
+  file?: File;
   roomId?: string | null;
   spaceType?: string | null;
 };

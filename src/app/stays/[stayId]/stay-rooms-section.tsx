@@ -104,7 +104,16 @@ export function StayRoomsSection({
                         key={img.id}
                         className="flex flex-wrap items-center justify-between gap-2 rounded bg-slate-50 px-3 py-2 text-xs text-slate-700"
                       >
-                        <span className="truncate font-medium">{img.fileName}</span>
+                        <div className="flex items-center gap-2">
+                          {img.secureUrl ? (
+                            <img
+                              src={img.secureUrl}
+                              alt={img.fileName}
+                              className="h-10 w-10 rounded object-cover"
+                            />
+                          ) : null}
+                          <span className="truncate font-medium">{img.fileName}</span>
+                        </div>
                         <div className="tm-inline-actions">
                           <button
                             className="tm-btn tm-btn-outline"
