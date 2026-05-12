@@ -54,6 +54,10 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
   const [roomOccupancy, setRoomOccupancy] = useState("2");
   const [roomBed, setRoomBed] = useState("");
   const [roomRate, setRoomRate] = useState("0");
+  const [roomIsBookable, setRoomIsBookable] = useState(true);
+  const [roomTotalInventory, setRoomTotalInventory] = useState("1");
+  const [roomMaxPerBooking, setRoomMaxPerBooking] = useState("1");
+  const [roomFormMessage, setRoomFormMessage] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [citySearch, setCitySearch] = useState("");
@@ -244,6 +248,7 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
+        file,
         roomId: roomId ?? null,
       });
       syncStay(updated);
@@ -310,6 +315,7 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
+        file,
       });
       syncStay(updated);
       setMessage("Image replaced.");
@@ -330,21 +336,38 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     if (!userId || !stay) return;
     setSaving(true);
     setMessage("");
+    setRoomFormMessage("");
     try {
+      const isRoomLevel = stay.saleMode === "room_level";
+      const totalInventory = Number(roomTotalInventory);
+      const maxPerBooking = Number(roomMaxPerBooking);
       const updated = await staysClient.upsertRoom(userId, stay.id, {
         name: roomName,
         occupancy: Number(roomOccupancy),
         bedConfiguration: roomBed,
         baseRate: Number(roomRate),
+        ...(isRoomLevel
+          ? {
+              isBookable: roomIsBookable,
+              totalInventory,
+              maxPerBooking,
+            }
+          : {}),
       });
       syncStay(updated);
       setRoomName("");
       setRoomBed("");
       setRoomOccupancy("2");
       setRoomRate("0");
+      setRoomIsBookable(true);
+      setRoomTotalInventory("1");
+      setRoomMaxPerBooking("1");
+      setRoomFormMessage("");
       setMessage("Room added.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to add room.");
+      const err = error instanceof Error ? error.message : "Failed to add room.";
+      setMessage(err);
+      setRoomFormMessage(err);
     } finally {
       setSaving(false);
     }
@@ -423,6 +446,10 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     roomOccupancy,
     roomBed,
     roomRate,
+    roomIsBookable,
+    roomTotalInventory,
+    roomMaxPerBooking,
+    roomFormMessage,
     selectedCountry,
     selectedCity,
     citySearch,
@@ -445,6 +472,9 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     setRoomOccupancy,
     setRoomBed,
     setRoomRate,
+    setRoomIsBookable,
+    setRoomTotalInventory,
+    setRoomMaxPerBooking,
     setSelectedCountry,
     setSelectedCity,
     setCitySearch,

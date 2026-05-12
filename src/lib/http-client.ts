@@ -50,7 +50,10 @@ type RequestOptions = {
   body?: unknown;
   headers?: Record<string, string>;
   token?: string;
+  timeoutMs?: number;
 };
+
+const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
 
 function readCookie(name: string): string | null {
   if (typeof document === "undefined") {
@@ -102,18 +105,30 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   let response: Response;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
   try {
     response = await fetch(url, {
       method,
       credentials: "include",
       headers,
       body: requestBody,
+      signal: controller.signal,
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new HttpError(
+        `Request timed out after ${Math.ceil(timeoutMs / 1000)}s. Please try again.`,
+        408,
+      );
+    }
     throw new HttpError(
       `Unable to reach API at ${appConfig.apiBaseUrl}. Ensure the backend server is running and reachable.`,
       0,
     );
+  } finally {
+    clearTimeout(timeoutHandle);
   }
 
   const rawText = await response.text();

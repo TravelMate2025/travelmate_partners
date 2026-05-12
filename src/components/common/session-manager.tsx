@@ -53,8 +53,14 @@ export function SessionManager() {
   }
 
   async function logout() {
-    await authClient.logout();
-    router.replace("/auth/login");
+    try {
+      await authClient.logout();
+      router.replace("/auth/login");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to logout.");
+      // Keep navigation deterministic for the user even if upstream logout fails.
+      router.replace("/auth/login");
+    }
   }
 
   async function logoutAllDevices() {

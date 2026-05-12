@@ -61,22 +61,36 @@ export const realTransfersApi: TransfersApi = {
   },
 
   async addImage(userId, transferId, input: AddTransferImageInput) {
+    const formData = new FormData();
+    formData.append("fileName", input.fileName);
+    formData.append("fileType", input.fileType);
+    formData.append("fileSize", String(input.fileSize));
+    if (input.file) {
+      formData.append("file", input.file);
+    }
     const response = await apiRequest<Envelope<TransferListing>>(
       `/partners/${userId}/transfers/${transferId}/images`,
       {
         method: "POST",
-        body: input,
+        body: formData,
       },
     );
     return response.data;
   },
 
   async replaceImage(userId, transferId, imageId, input: ReplaceTransferImageInput) {
+    const formData = new FormData();
+    formData.append("fileName", input.fileName);
+    formData.append("fileType", input.fileType);
+    formData.append("fileSize", String(input.fileSize));
+    if (input.file) {
+      formData.append("file", input.file);
+    }
     const response = await apiRequest<Envelope<TransferListing>>(
       `/partners/${userId}/transfers/${transferId}/images/${imageId}`,
       {
         method: "PUT",
-        body: input,
+        body: formData,
       },
     );
     return response.data;

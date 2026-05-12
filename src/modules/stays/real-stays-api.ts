@@ -52,22 +52,45 @@ export const realStaysApi: StaysApi = {
   },
 
   async addImage(userId, stayId, input: AddStayImageInput) {
+    const formData = new FormData();
+    formData.append("fileName", input.fileName);
+    formData.append("fileType", input.fileType);
+    formData.append("fileSize", String(input.fileSize));
+    if (input.roomId !== undefined) {
+      formData.append("roomId", input.roomId === null ? "" : input.roomId);
+    }
+    if (input.spaceType !== undefined) {
+      formData.append("spaceType", input.spaceType === null ? "" : input.spaceType);
+    }
+    if (input.file) {
+      formData.append("file", input.file);
+    }
     const response = await apiRequest<Envelope<StayListing>>(
       `/partners/${userId}/stays/${stayId}/images`,
       {
         method: "POST",
-        body: input,
+        body: formData,
       },
     );
     return response.data;
   },
 
   async replaceImage(userId, stayId, imageId, input: ReplaceStayImageInput) {
+    const formData = new FormData();
+    formData.append("fileName", input.fileName);
+    formData.append("fileType", input.fileType);
+    formData.append("fileSize", String(input.fileSize));
+    if (input.spaceType !== undefined) {
+      formData.append("spaceType", input.spaceType === null ? "" : input.spaceType);
+    }
+    if (input.file) {
+      formData.append("file", input.file);
+    }
     const response = await apiRequest<Envelope<StayListing>>(
       `/partners/${userId}/stays/${stayId}/images/${imageId}`,
       {
         method: "PUT",
-        body: input,
+        body: formData,
       },
     );
     return response.data;

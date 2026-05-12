@@ -17,6 +17,8 @@ export type TransferImage = {
   fileName: string;
   fileType: string;
   fileSize: number;
+  secureUrl?: string | null;
+  publicId?: string | null;
   order: number;
   uploadedAt: string;
 };
@@ -84,6 +86,7 @@ export type AddTransferImageInput = {
   fileName: string;
   fileType: string;
   fileSize: number;
+  file?: File;
 };
 
 export type ReplaceTransferImageInput = AddTransferImageInput;

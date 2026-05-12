@@ -125,10 +125,17 @@ export default function StayDetailPage() {
             roomOccupancy={detail.roomOccupancy}
             roomBed={detail.roomBed}
             roomRate={detail.roomRate}
+            roomIsBookable={detail.roomIsBookable}
+            roomTotalInventory={detail.roomTotalInventory}
+            roomMaxPerBooking={detail.roomMaxPerBooking}
+            roomFormMessage={detail.roomFormMessage}
             onSetRoomName={detail.setRoomName}
             onSetRoomOccupancy={detail.setRoomOccupancy}
             onSetRoomBed={detail.setRoomBed}
             onSetRoomRate={detail.setRoomRate}
+            onSetRoomIsBookable={detail.setRoomIsBookable}
+            onSetRoomTotalInventory={detail.setRoomTotalInventory}
+            onSetRoomMaxPerBooking={detail.setRoomMaxPerBooking}
             onAddRoom={detail.addRoom}
             onRemoveRoom={detail.removeRoom}
             onAddRoomImage={(file, roomId) => void detail.addImage(file, roomId)}

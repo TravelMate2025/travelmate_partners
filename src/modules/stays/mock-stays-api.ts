@@ -429,9 +429,9 @@ export const mockStaysApi: StaysApi = {
         occupancy: input.occupancy,
         bedConfiguration: input.bedConfiguration,
         baseRate: input.baseRate,
-        isBookable: rooms[idx].isBookable ?? true,
-        totalInventory: rooms[idx].totalInventory ?? 1,
-        maxPerBooking: rooms[idx].maxPerBooking ?? 1,
+        isBookable: input.isBookable ?? rooms[idx].isBookable ?? true,
+        totalInventory: input.totalInventory ?? rooms[idx].totalInventory ?? 1,
+        maxPerBooking: input.maxPerBooking ?? rooms[idx].maxPerBooking ?? 1,
       };
     } else {
       rooms.push({
@@ -440,9 +440,9 @@ export const mockStaysApi: StaysApi = {
         occupancy: input.occupancy,
         bedConfiguration: input.bedConfiguration,
         baseRate: input.baseRate,
-        isBookable: true,
-        totalInventory: 1,
-        maxPerBooking: 1,
+        isBookable: input.isBookable ?? true,
+        totalInventory: input.totalInventory ?? 1,
+        maxPerBooking: input.maxPerBooking ?? 1,
       });
     }
 

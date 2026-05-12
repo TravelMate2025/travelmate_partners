@@ -294,6 +294,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
+        file,
       });
       syncTransfer(updated);
       setMessage("Image added.");
@@ -313,6 +314,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
+        file,
       });
       syncTransfer(updated);
       setMessage("Image replaced.");
