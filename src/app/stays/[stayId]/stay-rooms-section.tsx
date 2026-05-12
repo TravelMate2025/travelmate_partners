@@ -70,7 +70,13 @@ export function StayRoomsSection({
           Hotels, guest houses, and resorts require <strong>Bookable</strong>, <strong>Total Inventory</strong>, and{" "}
           <strong>Max Per Booking</strong> for room setup and go-live readiness.
         </div>
-      ) : null}
+      ) : (
+        <div className="tm-note mt-3 text-xs">
+          Rooms here describe what is <strong>inside this property</strong> — bedrooms, living areas, and sleeping configurations.
+          Guests book the <strong>entire property as one unit</strong>. Rooms are not booked or priced individually.
+          Leave <strong>Base Rate</strong> as 0; the property price is set in the Pricing &amp; Availability section.
+        </div>
+      )}
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <label className="tm-field">
           <span className="tm-field-label">Room Name</span>
@@ -144,7 +150,7 @@ export function StayRoomsSection({
       ) : null}
 
       <ul className="tm-list-stack mt-4">
-        {stay.rooms.map((room) => {
+        {[...stay.rooms].reverse().map((room) => {
           const roomImages = [...stay.images]
             .filter((img) => img.roomId === room.id)
             .sort((a, b) => a.order - b.order);

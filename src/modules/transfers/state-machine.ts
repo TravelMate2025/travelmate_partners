@@ -5,7 +5,7 @@ const ALLOWED_NEXT: Record<TransferStatus, TransferStatus[]> = {
   pending: ["approved", "rejected", "draft", "archived"],
   approved: ["live", "paused", "archived"],
   live: ["paused", "archived"],
-  paused: ["live", "archived"],
+  paused: ["live", "draft", "archived"],
   paused_by_admin: [],
   rejected: ["draft", "pending", "archived"],
   archived: ["draft"],
