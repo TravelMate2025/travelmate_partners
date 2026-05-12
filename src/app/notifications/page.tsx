@@ -60,6 +60,8 @@ function eventLabel(eventType: NotificationEventType) {
       return "Settlement Account";
     case "incomplete_listing_reminder":
       return "Reminder";
+    case "admin_triggered_message":
+      return "Message";
     default: {
       const _exhaustive: never = eventType;
       return _exhaustive;

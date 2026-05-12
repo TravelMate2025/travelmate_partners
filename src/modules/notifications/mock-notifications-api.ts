@@ -115,6 +115,16 @@ function createNotificationFromEvent(
         actionLabel: "Fix Listing",
         actionUrl: "/stays",
       };
+    case "admin_triggered_message":
+      return {
+        eventType: input.eventType,
+        title: context ?? "Message from TravelMate",
+        message: context ?? "You have a new message from the TravelMate team.",
+        read: false,
+        acknowledged: false,
+        channels: input.channels,
+        emailDispatched: input.channels.includes("email"),
+      };
     default: {
       const _exhaustive: never = input.eventType;
       return _exhaustive;

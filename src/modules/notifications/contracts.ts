@@ -3,7 +3,8 @@ export type NotificationEventType =
   | "listing_moderation_updated"
   | "settlement_refund_status_updated"
   | "settlement_account_updated"
-  | "incomplete_listing_reminder";
+  | "incomplete_listing_reminder"
+  | "admin_triggered_message";
 
 export type NotificationChannel = "in_app" | "email";
 

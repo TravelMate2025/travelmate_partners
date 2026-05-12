@@ -317,30 +317,32 @@ export default function ApiAccessPage() {
             ))}
           </div>
         </div>
-        <div className="mt-5 rounded-md border border-slate-200 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Try It</p>
-          <p className="mt-2 text-sm text-slate-700">Start with key introspection, then call one authorized endpoint.</p>
-          <p className="mt-3 text-xs font-semibold text-slate-600">1) Introspect key</p>
-          <button className="tm-btn tm-btn-outline mt-1 inline-flex w-full items-center justify-center gap-1 px-2 py-1 text-xs sm:w-auto" onClick={() => void copyText("Introspection curl", sampleIntrospectCurl)} type="button">
-            <CopyIcon /> Copy
-          </button>
-          <pre className="mt-1 overflow-x-auto rounded bg-slate-100 p-2 text-xs text-slate-800">{sampleIntrospectCurl}</pre>
-          <p className="mt-3 text-xs font-semibold text-slate-600">2) Call authorized endpoint</p>
-          <button className="tm-btn tm-btn-outline mt-1 inline-flex w-full items-center justify-center gap-1 px-2 py-1 text-xs sm:w-auto" onClick={() => void copyText("Catalog curl", sampleCatalogCurl)} type="button">
-            <CopyIcon /> Copy
-          </button>
-          <pre className="mt-1 overflow-x-auto rounded bg-slate-100 p-2 text-xs text-slate-800">{sampleCatalogCurl}</pre>
-          <p className="mt-3 text-xs font-semibold text-slate-600">3) Filter bookings (if bookings scope is assigned)</p>
-          <button className="tm-btn tm-btn-outline mt-1 inline-flex w-full items-center justify-center gap-1 px-2 py-1 text-xs sm:w-auto" onClick={() => void copyText("Filtered bookings curl", sampleBookingsCurl)} type="button">
-            <CopyIcon /> Copy
-          </button>
-          <pre className="mt-1 overflow-x-auto rounded bg-slate-100 p-2 text-xs text-slate-800">{sampleBookingsCurl}</pre>
-          <div className="mt-3 text-xs text-slate-700">
-            <p><strong>401</strong>: Key/secret invalid, revoked, or not active. Regenerate/reissue credentials.</p>
-            <p><strong>403</strong>: Requested endpoint/scope/environment is not authorized for your key.</p>
-            <p><strong>429</strong>: Rate limit exceeded. Back off and retry using your assigned limit policy.</p>
+        {catalog?.access.keyStatus === "active" ? (
+          <div className="mt-5 rounded-md border border-slate-200 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Try It</p>
+            <p className="mt-2 text-sm text-slate-700">Start with key introspection, then call one authorized endpoint.</p>
+            <p className="mt-3 text-xs font-semibold text-slate-600">1) Introspect key</p>
+            <button className="tm-btn tm-btn-outline mt-1 inline-flex w-full items-center justify-center gap-1 px-2 py-1 text-xs sm:w-auto" onClick={() => void copyText("Introspection curl", sampleIntrospectCurl)} type="button">
+              <CopyIcon /> Copy
+            </button>
+            <pre className="mt-1 overflow-x-auto rounded bg-slate-100 p-2 text-xs text-slate-800">{sampleIntrospectCurl}</pre>
+            <p className="mt-3 text-xs font-semibold text-slate-600">2) Call authorized endpoint</p>
+            <button className="tm-btn tm-btn-outline mt-1 inline-flex w-full items-center justify-center gap-1 px-2 py-1 text-xs sm:w-auto" onClick={() => void copyText("Catalog curl", sampleCatalogCurl)} type="button">
+              <CopyIcon /> Copy
+            </button>
+            <pre className="mt-1 overflow-x-auto rounded bg-slate-100 p-2 text-xs text-slate-800">{sampleCatalogCurl}</pre>
+            <p className="mt-3 text-xs font-semibold text-slate-600">3) Filter bookings (if bookings scope is assigned)</p>
+            <button className="tm-btn tm-btn-outline mt-1 inline-flex w-full items-center justify-center gap-1 px-2 py-1 text-xs sm:w-auto" onClick={() => void copyText("Filtered bookings curl", sampleBookingsCurl)} type="button">
+              <CopyIcon /> Copy
+            </button>
+            <pre className="mt-1 overflow-x-auto rounded bg-slate-100 p-2 text-xs text-slate-800">{sampleBookingsCurl}</pre>
+            <div className="mt-3 text-xs text-slate-700">
+              <p><strong>401</strong>: Key/secret invalid, revoked, or not active. Regenerate/reissue credentials.</p>
+              <p><strong>403</strong>: Requested endpoint/scope/environment is not authorized for your key.</p>
+              <p><strong>429</strong>: Rate limit exceeded. Back off and retry using your assigned limit policy.</p>
+            </div>
           </div>
-        </div>
+        ) : null}
       </section>
 
       <section className="tm-panel min-w-0 overflow-hidden p-6">
