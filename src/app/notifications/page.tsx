@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
+import { formatDateTimeUTC } from "@/lib/format";
 import { notificationsClient } from "@/modules/notifications/notifications-client";
 import type {
   NotificationEventType,
@@ -381,7 +382,7 @@ export default function NotificationsPage() {
                     ) : null}
                   </div>
                   <p className="mt-2 text-xs text-slate-500">
-                    {new Date(item.createdAt).toLocaleString()}
+                    {formatDateTimeUTC(item.createdAt)}
                   </p>
                 </div>
 

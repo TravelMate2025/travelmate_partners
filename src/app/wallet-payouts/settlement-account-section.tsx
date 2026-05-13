@@ -2,6 +2,7 @@
 
 import { FormEvent } from "react";
 
+import { formatDateTimeUTC } from "@/lib/format";
 import type {
   SettlementAccount,
   SettlementAccountHistoryEntry,
@@ -345,7 +346,7 @@ export function SettlementAccountSection({
             <li key={item.id} className="tm-list-card">
               <p className="text-sm font-semibold text-slate-900">{item.action}</p>
               <p className="mt-1 text-sm text-slate-700">{item.message}</p>
-              <p className="mt-1 text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</p>
+              <p className="mt-1 text-xs text-slate-500">{formatDateTimeUTC(item.createdAt)}</p>
             </li>
           ))}
         </ul>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
 import { listAuditEvents } from "@/modules/audit/audit-log";
+import { formatDateTimeUTC } from "@/lib/format";
 import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
@@ -297,7 +298,7 @@ export default function SettingsPage() {
               <p className="text-sm font-semibold text-slate-900">{ticket.subject}</p>
               <p className="mt-1 text-xs text-slate-600">
                 {ticket.category} • {ticket.status} •{" "}
-                {new Date(ticket.createdAt).toLocaleString()}
+                {formatDateTimeUTC(ticket.createdAt)}
               </p>
             </li>
           ))}
@@ -339,7 +340,7 @@ export default function SettingsPage() {
             <li key={event.id} className="tm-list-card">
               <p className="text-sm font-semibold text-slate-900">{event.action}</p>
               <p className="mt-1 text-xs text-slate-600">
-                {event.entityType} • {new Date(event.occurredAt).toLocaleString()}
+                {event.entityType} • {formatDateTimeUTC(event.occurredAt)}
               </p>
             </li>
           ))}

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTimeUTC } from "@/lib/format";
 import type { ListingAppeal, StayListing, StayStatus } from "@/modules/stays/contracts";
 
 type Props = {
@@ -105,7 +106,7 @@ export function StayActionsSection({
               ) : (
                 <p className="text-sm text-amber-600">
                   Existing appeal {appeal.status === "under_review" ? "is under review" : "is pending review"}.{" "}
-                  Submitted on {new Date(appeal.createdAt).toLocaleString()}.
+                  Submitted on {formatDateTimeUTC(appeal.createdAt)}.
                 </p>
               )}
             </div>

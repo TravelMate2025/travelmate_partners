@@ -6,6 +6,7 @@ import { InfoHint } from "@/components/common/info-hint";
 import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
+import { formatDateTimeUTC } from "@/lib/format";
 import { pricingAvailabilityClient } from "@/modules/pricing-availability/pricing-availability-client";
 import type {
   StayPricingAvailability,
@@ -226,7 +227,7 @@ export default function PricingAvailabilityPage() {
       description="Set base rates, seasonal date overrides, and booking blackout controls."
       headerExtra={
         pricing ? (
-          <p className="tm-muted text-sm">Last updated: {new Date(pricing.updatedAt).toLocaleString()}</p>
+          <p className="tm-muted text-sm">Last updated: {formatDateTimeUTC(pricing.updatedAt)}</p>
         ) : null
       }
     >

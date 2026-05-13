@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTimeUTC } from "@/lib/format";
 import type { ListingAppeal, TransferListing, TransferStatus } from "@/modules/transfers/contracts";
 
 type Props = {
@@ -107,7 +108,7 @@ export function TransferActionsSection({
               ) : (
                 <p className="text-sm text-amber-600">
                   Existing appeal {appeal.status === "under_review" ? "is under review" : "is pending review"}.{" "}
-                  Submitted on {new Date(appeal.createdAt).toLocaleString()}.
+                  Submitted on {formatDateTimeUTC(appeal.createdAt)}.
                 </p>
               )}
             </div>

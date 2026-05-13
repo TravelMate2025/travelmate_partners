@@ -6,6 +6,7 @@ import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import { appConfig } from "@/lib/config";
+import { formatDateTimeUTC } from "@/lib/format";
 import { apiAccessClient } from "@/modules/api-access/api-access-client";
 import type { PartnerApiAccessOverview, PartnerApiCatalog } from "@/modules/api-access/contracts";
 
@@ -240,7 +241,7 @@ export default function ApiAccessPage() {
           <div className="mt-3 min-w-0 break-words text-sm text-slate-700">
             Scheduled policy change: {overview.application.pendingPolicyChange.plan} /{" "}
             {overview.application.pendingPolicyChange.rateLimitPerMinute}/min at{" "}
-            {new Date(overview.application.pendingPolicyChange.effectiveAt).toLocaleString()}
+            {formatDateTimeUTC(overview.application.pendingPolicyChange.effectiveAt)}
           </div>
         ) : null}
       </section>

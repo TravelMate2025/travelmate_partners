@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { formatDateTimeUTC } from "@/lib/format";
 import type { PartnerDashboardData, QuickActionType } from "@/modules/dashboard/contracts";
 
 type DashboardWidgetsProps = {
@@ -119,7 +120,7 @@ export function DashboardWidgets({
           {data.recentActivity.map((activity) => (
             <li key={activity.id} className="rounded-xl border border-slate-200/90 bg-white/70 px-3 py-2">
               <p className="text-sm text-slate-800">{activity.title}</p>
-              <p className="mt-1 text-xs text-slate-500">{new Date(activity.createdAt).toLocaleString()}</p>
+              <p className="mt-1 text-xs text-slate-500">{formatDateTimeUTC(activity.createdAt)}</p>
             </li>
           ))}
         </ul>

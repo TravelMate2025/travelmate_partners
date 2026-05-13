@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { formatDateTimeUTC } from "@/lib/format";
+
 import { authClient } from "@/modules/auth/auth-client";
 
 type Session = {
@@ -150,7 +152,7 @@ export function SessionManager() {
         {sessions.map((session) => (
           <li className="rounded-xl border border-slate-200/90 bg-white/70 p-3" key={session.id}>
             <p className="text-xs text-slate-600 break-all">{session.fingerprint}</p>
-            <p className="mt-1 text-xs text-slate-500">Last seen: {new Date(session.lastSeenAt).toLocaleString()}</p>
+            <p className="mt-1 text-xs text-slate-500">Last seen: {formatDateTimeUTC(session.lastSeenAt)}</p>
             <button className="tm-btn tm-btn-primary mt-2 px-3 py-1.5 text-xs" onClick={() => revoke(session.id)} type="button">
               Revoke
             </button>

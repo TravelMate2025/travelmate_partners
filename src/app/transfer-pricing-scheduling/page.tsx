@@ -6,6 +6,7 @@ import { InfoHint } from "@/components/common/info-hint";
 import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
+import { formatDateTimeUTC } from "@/lib/format";
 import { transferPricingSchedulingClient } from "@/modules/transfer-pricing-scheduling/transfer-pricing-scheduling-client";
 import type {
   TransferPricingScheduling,
@@ -263,7 +264,7 @@ export default function TransferPricingSchedulingPage() {
       headerExtra={
         config ? (
           <p className="tm-muted text-sm">
-            Last updated: {new Date(config.updatedAt).toLocaleString()}
+            Last updated: {formatDateTimeUTC(config.updatedAt)}
           </p>
         ) : null
       }

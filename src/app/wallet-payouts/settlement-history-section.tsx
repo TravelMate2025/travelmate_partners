@@ -2,6 +2,7 @@
 
 import { FormEvent } from "react";
 
+import { formatDateTimeUTC } from "@/lib/format";
 import type { SettlementRecord, WalletSummary } from "@/modules/wallet-payouts/contracts";
 
 type Props = {
@@ -96,7 +97,7 @@ export function SettlementHistorySection({
                 <div>
                   <p className="text-sm font-semibold text-slate-900">{item.settlementReference}</p>
                   <p className="mt-1 text-xs text-slate-600">
-                    {item.status} • {new Date(item.createdAt).toLocaleString()}
+                    {item.status} • {formatDateTimeUTC(item.createdAt)}
                   </p>
                   <p className="mt-1 text-xs text-slate-600">Booking: {item.bookingReference}</p>
                   <p className="mt-2 text-sm text-slate-700">
