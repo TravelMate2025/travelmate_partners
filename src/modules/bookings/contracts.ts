@@ -1,0 +1,52 @@
+export type BookingStatus = "confirmed" | "amended" | "cancelled" | "completed" | "refunded";
+
+export type RoomSelection = {
+  roomId: string;
+  quantity: number;
+  name: string;
+  baseRate: number;
+  occupancy: number;
+};
+
+export type BookingRecord = {
+  id: string;
+  bookingReference: string;
+  listingKind: string;
+  listingId: string;
+  listingName: string;
+  checkInDate: string | null;
+  checkOutDate: string | null;
+  guestCount: number;
+  roomSelections: RoomSelection[] | null;
+  grossAmount: number;
+  currency: string;
+  status: BookingStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BookingsPagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+export type BookingsListResult = {
+  records: BookingRecord[];
+  pagination: BookingsPagination;
+};
+
+export type BookingsApi = {
+  listBookings(
+    userId: string,
+    options?: {
+      page?: number;
+      pageSize?: number;
+      status?: BookingStatus | "";
+      from?: string;
+      to?: string;
+    },
+  ): Promise<BookingsListResult>;
+  getBooking(userId: string, bookingReference: string): Promise<BookingRecord>;
+};

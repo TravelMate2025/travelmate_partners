@@ -5,6 +5,14 @@ export type SettlementStatus =
   | "failed"
   | "reversed";
 
+export type DisbursementStatus =
+  | "queued"
+  | "initiated"
+  | "processing"
+  | "success"
+  | "failed"
+  | "cancelled";
+
 export type RefundStatus =
   | "requested"
   | "partner_notified"
@@ -67,6 +75,10 @@ export type SettlementRecord = {
   failureReason?: string;
   completedAt: string;
   paidAt?: string;
+  disbursedAt?: string | null;
+  disbursementStatus?: DisbursementStatus | null;
+  disbursementProviderReference?: string | null;
+  disbursementRetryCount?: number | null;
   createdAt: string;
   updatedAt: string;
 };

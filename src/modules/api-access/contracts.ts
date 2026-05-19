@@ -59,28 +59,36 @@ export type PartnerApiAccessOverview = {
   statusOptions: PartnerApiClientStatus[];
 };
 
+export type PartnerApiScope =
+  | "inventory.read"
+  | "pricing.read"
+  | "bookings.read"
+  | "payments.read"
+  | "payments.write";
+
 export type PartnerApiCatalogEndpoint = {
   id: string;
   productLane: "stays" | "transfers" | "bookings";
   method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   path: string;
-  requiredScope: "inventory.read" | "pricing.read" | "bookings.read";
+  requiredScope: PartnerApiScope;
   environments: Array<"sandbox" | "production">;
   description: string;
+  responseFields?: string[];
 };
 
 export type PartnerApiCatalog = {
   access: {
     status: PartnerApiClientStatus;
     environment: "sandbox" | "production" | null;
-    scopes: Array<"inventory.read" | "pricing.read" | "bookings.read">;
-    productLanes: Array<"stays" | "transfers">;
+    scopes: Array<PartnerApiScope>;
+    productLanes: Array<"stays" | "transfers" | "bookings">;
     keyStatus: "not_issued" | "active" | "revoked" | null;
   };
   endpoints: PartnerApiCatalogEndpoint[];
   policyExplainer?: {
     scopeGuide: Array<{
-      scope: "inventory.read" | "pricing.read" | "bookings.read";
+      scope: PartnerApiScope;
       description: string;
       endpointCount: number;
       endpoints: string[];

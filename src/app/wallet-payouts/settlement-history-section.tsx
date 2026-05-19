@@ -3,7 +3,25 @@
 import { FormEvent } from "react";
 
 import { formatDateTimeUTC } from "@/lib/format";
-import type { SettlementRecord, WalletSummary } from "@/modules/wallet-payouts/contracts";
+import type { DisbursementStatus, SettlementRecord, WalletSummary } from "@/modules/wallet-payouts/contracts";
+
+const DISBURSEMENT_STATUS_LABELS: Record<DisbursementStatus, string> = {
+  queued: "Payout queued",
+  initiated: "Payout initiated",
+  processing: "Payout processing",
+  success: "Payout sent",
+  failed: "Payout failed",
+  cancelled: "Payout cancelled",
+};
+
+const DISBURSEMENT_STATUS_CLASSES: Record<DisbursementStatus, string> = {
+  queued: "text-slate-600",
+  initiated: "text-blue-700",
+  processing: "text-yellow-700",
+  success: "text-emerald-700 font-medium",
+  failed: "text-red-700 font-medium",
+  cancelled: "text-slate-500",
+};
 
 type Props = {
   settlements: SettlementRecord[];
@@ -106,6 +124,15 @@ export function SettlementHistorySection({
                   <p className="text-xs text-slate-600">
                     Deductions: commission {item.commissionFee}, tax {item.taxWithholding}, total {item.totalDeductions}
                   </p>
+                  {item.disbursementStatus ? (
+                    <p className={`mt-2 text-xs ${DISBURSEMENT_STATUS_CLASSES[item.disbursementStatus] ?? "text-slate-600"}`}>
+                      {DISBURSEMENT_STATUS_LABELS[item.disbursementStatus] ?? item.disbursementStatus}
+                      {item.disbursedAt ? ` · ${formatDateTimeUTC(item.disbursedAt)}` : ""}
+                      {item.disbursementRetryCount && item.disbursementRetryCount > 0
+                        ? ` (${item.disbursementRetryCount} ${item.disbursementRetryCount === 1 ? "retry" : "retries"})`
+                        : ""}
+                    </p>
+                  ) : null}
                   {item.refundStatus ? (
                     <p className="mt-2 text-xs text-slate-700">
                       Refund: {item.refundStatus}

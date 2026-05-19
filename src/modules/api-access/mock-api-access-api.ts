@@ -60,8 +60,8 @@ export const mockApiAccessApi: ApiAccessApi = {
       access: {
         status: application.status,
         environment: application.partnerPolicy?.environment ?? "sandbox",
-        scopes: ["inventory.read", "pricing.read", "bookings.read"],
-        productLanes: ["stays", "transfers"],
+        scopes: ["inventory.read", "pricing.read", "bookings.read", "payments.read", "payments.write"],
+        productLanes: ["stays", "transfers", "bookings"],
         keyStatus: application.keyStatus,
       },
       endpoints:
@@ -85,6 +85,39 @@ export const mockApiAccessApi: ApiAccessApi = {
                 environments: ["sandbox", "production"],
                 description: "List transfer products for route pickup and drop-off coverage.",
               },
+              {
+                id: "payments-intents-create",
+                productLane: "bookings",
+                method: "POST",
+                path: "/api/v1/public/payments/intents",
+                requiredScope: "payments.write",
+                environments: ["sandbox", "production"],
+                description:
+                  "Create a payment intent for booking checkout. Returns a Flutterwave-hosted paymentLink and nextAction.redirect so the payer can complete payment asynchronously. State updates arrive via webhook (charge.completed / charge.failed).",
+                responseFields: ["paymentIntentId", "paymentLink", "flutterwaveRef", "nextAction", "status", "paymentState", "expiresAt"],
+              },
+              {
+                id: "payments-intents-confirm",
+                productLane: "bookings",
+                method: "POST",
+                path: "/api/v1/public/payments/intents/{id}/confirm",
+                requiredScope: "payments.write",
+                environments: ["sandbox", "production"],
+                description:
+                  "Poll current Flutterwave charge state for an existing payment intent. Maps successful → succeeded/captured, failed → failed. Safe to call repeatedly; returns the current state without double-charging.",
+                responseFields: ["status", "paymentState", "paymentIntentId", "flutterwaveRef"],
+              },
+              {
+                id: "payments-intents-read",
+                productLane: "bookings",
+                method: "GET",
+                path: "/api/v1/public/payments/intents/{id}",
+                requiredScope: "payments.read",
+                environments: ["sandbox", "production"],
+                description:
+                  "Read the current status of a payment intent including Flutterwave charge state, paymentLink, and linked booking reference.",
+                responseFields: ["paymentIntentId", "status", "paymentState", "flutterwaveRef", "paymentLink", "bookingReference"],
+              },
             ]
           : [],
       policyExplainer: {
@@ -94,6 +127,18 @@ export const mockApiAccessApi: ApiAccessApi = {
             description: "Read stays and transfers inventory metadata.",
             endpointCount: 2,
             endpoints: ["/api/v1/catalog/stays", "/api/v1/catalog/transfers"],
+          },
+          {
+            scope: "payments.read",
+            description: "Read payment intent status, Flutterwave charge state, and payment lifecycle metadata.",
+            endpointCount: 1,
+            endpoints: ["/api/v1/public/payments/intents/{id}"],
+          },
+          {
+            scope: "payments.write",
+            description: "Create payment intents that return a Flutterwave-hosted payment link; poll charge state via confirm.",
+            endpointCount: 2,
+            endpoints: ["/api/v1/public/payments/intents", "/api/v1/public/payments/intents/{id}/confirm"],
           },
         ],
         blockedGuidance: "All configured product lanes currently have matching scope coverage.",

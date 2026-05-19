@@ -38,6 +38,118 @@ vi.mock("@/modules/api-access/api-access-client", () => ({
   },
 }));
 
+describe("ApiAccessPage payment endpoints and responseFields", () => {
+  it("renders payment endpoint cards with responseFields", async () => {
+    getOverviewMock.mockResolvedValue({
+      application: { id: "app-1", status: "approved", credentialMetadata: { revealAvailable: false } },
+      statusOptions: ["approved"],
+    });
+    getCatalogMock.mockResolvedValue({
+      access: {
+        environment: "production",
+        keyStatus: "active",
+        scopes: ["payments.read", "payments.write"],
+        productLanes: ["bookings"],
+        status: "approved",
+      },
+      endpoints: [
+        {
+          id: "payments-intents-create",
+          method: "POST",
+          path: "/api/v1/public/payments/intents",
+          productLane: "bookings",
+          requiredScope: "payments.write",
+          environments: ["sandbox", "production"],
+          description: "Create a payment intent for booking checkout.",
+          responseFields: ["paymentIntentId", "paymentLink", "flutterwaveRef", "nextAction", "status"],
+        },
+        {
+          id: "payments-intents-read",
+          method: "GET",
+          path: "/api/v1/public/payments/intents/{id}",
+          productLane: "bookings",
+          requiredScope: "payments.read",
+          environments: ["sandbox", "production"],
+          description: "Read the current status of a payment intent.",
+          responseFields: ["paymentIntentId", "status", "paymentState", "flutterwaveRef"],
+        },
+      ],
+      policyExplainer: { blockedGuidance: "", scopeGuide: [] },
+    });
+
+    render(<ApiAccessPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Create a payment intent for booking checkout/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/paymentIntentId, paymentLink, flutterwaveRef, nextAction, status/)).toBeInTheDocument();
+    expect(screen.getByText(/paymentIntentId, status, paymentState, flutterwaveRef/)).toBeInTheDocument();
+    expect(screen.getByText(/POST \/api\/v1\/public\/payments\/intents/)).toBeInTheDocument();
+    expect(screen.getByText(/GET \/api\/v1\/public\/payments\/intents\/{id}/)).toBeInTheDocument();
+  });
+
+  it("does not render responseFields line when endpoint has no responseFields", async () => {
+    getOverviewMock.mockResolvedValue({
+      application: { id: "app-2", status: "approved", credentialMetadata: { revealAvailable: false } },
+      statusOptions: ["approved"],
+    });
+    getCatalogMock.mockResolvedValue({
+      access: {
+        environment: "sandbox",
+        keyStatus: "active",
+        scopes: ["inventory.read"],
+        productLanes: ["stays"],
+        status: "approved",
+      },
+      endpoints: [
+        {
+          id: "stays-search",
+          method: "GET",
+          path: "/api/v1/catalog/stays",
+          productLane: "stays",
+          requiredScope: "inventory.read",
+          environments: ["sandbox", "production"],
+          description: "List stays with core inventory metadata.",
+        },
+      ],
+      policyExplainer: { blockedGuidance: "", scopeGuide: [] },
+    });
+
+    render(<ApiAccessPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/List stays with core inventory metadata/i)).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/Response fields:/i)).toBeNull();
+  });
+
+  it("shows payments scopes in the scopes line", async () => {
+    getOverviewMock.mockResolvedValue({
+      application: { id: "app-3", status: "approved", credentialMetadata: { revealAvailable: false } },
+      statusOptions: ["approved"],
+    });
+    getCatalogMock.mockResolvedValue({
+      access: {
+        environment: "production",
+        keyStatus: "active",
+        scopes: ["inventory.read", "payments.read", "payments.write"],
+        productLanes: ["stays", "bookings"],
+        status: "approved",
+      },
+      endpoints: [],
+      policyExplainer: { blockedGuidance: "", scopeGuide: [] },
+    });
+
+    render(<ApiAccessPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/inventory.read, payments.read, payments.write/i)).toBeInTheDocument();
+    });
+  });
+});
+
 describe("ApiAccessPage overflow hardening", () => {
   it("keeps long credentials and endpoint paths wrapped within the panel", async () => {
     getOverviewMock.mockResolvedValue({

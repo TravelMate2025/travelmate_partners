@@ -21,6 +21,15 @@ function shiftDays(baseIsoDate: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
+function formatCurrency(amount: number, currency: string) {
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 export default function ReportsPage() {
   const { user, loading } = usePartnerAccess();
   const [summary, setSummary] = useState<ReportsSummary | null>(null);
@@ -33,15 +42,9 @@ export default function ReportsPage() {
   const [fromDate, setFromDate] = useState(shiftDays(todayIsoDate(), -29));
 
   const healthState = useMemo(() => {
-    if (!summary) {
-      return "unknown";
-    }
-    if (summary.missingFieldsCount === 0 && summary.pausedListingsCount === 0) {
-      return "healthy";
-    }
-    if (summary.missingFieldsCount <= 2 && summary.pausedListingsCount <= 1) {
-      return "attention";
-    }
+    if (!summary) return "unknown";
+    if (summary.missingFieldsCount === 0 && summary.pausedListingsCount === 0) return "healthy";
+    if (summary.missingFieldsCount <= 2 && summary.pausedListingsCount <= 1) return "attention";
     return "risk";
   }, [summary]);
 
@@ -60,41 +63,20 @@ export default function ReportsPage() {
   }, [preset]);
 
   useEffect(() => {
-    if (!user) {
-      return;
-    }
-
+    if (!user) return;
     let active = true;
     setBusy(true);
     setMessage("");
-
     reportsClient
       .getSummary(user.id, fromDate, toDate)
-      .then((result) => {
-        if (active) {
-          setSummary(result);
-        }
-      })
-      .catch((error) => {
-        if (active) {
-          setMessage(error instanceof Error ? error.message : "Failed to load reports.");
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setBusy(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
+      .then((result) => { if (active) setSummary(result); })
+      .catch((error) => { if (active) setMessage(error instanceof Error ? error.message : "Failed to load reports."); })
+      .finally(() => { if (active) setBusy(false); });
+    return () => { active = false; };
   }, [fromDate, toDate, user]);
 
   async function refreshSummary() {
-    if (!user) {
-      return;
-    }
+    if (!user) return;
     setBusy(true);
     setMessage("");
     try {
@@ -109,9 +91,7 @@ export default function ReportsPage() {
   }
 
   async function exportCsv() {
-    if (!user) {
-      return;
-    }
+    if (!user) return;
     setBusy(true);
     setMessage("");
     try {
@@ -156,44 +136,30 @@ export default function ReportsPage() {
           <button className="tm-btn tm-btn-accent" type="button" disabled={busy} onClick={() => void exportCsv()}>
             Export CSV
           </button>
+          <Link href="/bookings" className="tm-btn tm-btn-outline">
+            Booking History
+          </Link>
           <Link href="/dashboard" className="tm-btn tm-btn-outline">
             Back to Dashboard
           </Link>
         </div>
       }
     >
+      {/* Date Range */}
       <section className="tm-panel p-6">
         <div className="tm-section-head">
           <h2 className="tm-section-title">Date Range</h2>
           <div className="tm-inline-actions">
-            <button
-              type="button"
-              className={`tm-tag-pill ${preset === "7d" ? "tm-tag-pill-active" : ""}`}
-              onClick={() => setPreset("7d")}
-            >
-              Last 7 days
-            </button>
-            <button
-              type="button"
-              className={`tm-tag-pill ${preset === "30d" ? "tm-tag-pill-active" : ""}`}
-              onClick={() => setPreset("30d")}
-            >
-              Last 30 days
-            </button>
-            <button
-              type="button"
-              className={`tm-tag-pill ${preset === "90d" ? "tm-tag-pill-active" : ""}`}
-              onClick={() => setPreset("90d")}
-            >
-              Last 90 days
-            </button>
-            <button
-              type="button"
-              className={`tm-tag-pill ${preset === "custom" ? "tm-tag-pill-active" : ""}`}
-              onClick={() => setPreset("custom")}
-            >
-              Custom
-            </button>
+            {(["7d", "30d", "90d", "custom"] as DateRangePreset[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`tm-tag-pill ${preset === p ? "tm-tag-pill-active" : ""}`}
+                onClick={() => setPreset(p)}
+              >
+                {p === "7d" ? "Last 7 days" : p === "30d" ? "Last 30 days" : p === "90d" ? "Last 90 days" : "Custom"}
+              </button>
+            ))}
           </div>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -203,10 +169,7 @@ export default function ReportsPage() {
               className="tm-input"
               type="date"
               value={fromDate}
-              onChange={(event) => {
-                setPreset("custom");
-                setFromDate(event.target.value);
-              }}
+              onChange={(e) => { setPreset("custom"); setFromDate(e.target.value); }}
             />
           </label>
           <label className="tm-field">
@@ -215,15 +178,75 @@ export default function ReportsPage() {
               className="tm-input"
               type="date"
               value={toDate}
-              onChange={(event) => {
-                setPreset("custom");
-                setToDate(event.target.value);
-              }}
+              onChange={(e) => { setPreset("custom"); setToDate(e.target.value); }}
             />
           </label>
         </div>
       </section>
 
+      {/* Booking Activity */}
+      <section className="tm-panel p-6">
+        <div className="tm-section-head">
+          <h2 className="tm-section-title">Booking Activity</h2>
+          <Link href="/bookings" className="text-sm font-medium text-[#033D89] hover:underline">
+            View all bookings →
+          </Link>
+        </div>
+        {busy ? (
+          <p className="mt-4 text-sm text-slate-500">Loading booking metrics...</p>
+        ) : summary ? (
+          <>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="tm-soft-note">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">Total Bookings</p>
+                <p className="mt-1 text-2xl font-semibold text-slate-900">{summary.totalBookings}</p>
+              </div>
+              <div className="tm-soft-note">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">Gross Revenue</p>
+                <p className="mt-1 text-2xl font-semibold text-slate-900">
+                  {formatCurrency(summary.grossRevenue, "NGN")}
+                </p>
+              </div>
+              <div className="tm-soft-note">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">Cancellations</p>
+                <p className="mt-1 text-2xl font-semibold text-slate-900">{summary.cancelledBookings}</p>
+              </div>
+              <div className="tm-soft-note">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">Cancellation Rate</p>
+                <p className="mt-1 text-2xl font-semibold text-slate-900">{summary.cancellationRate}%</p>
+              </div>
+            </div>
+
+            {summary.topListings.length > 0 ? (
+              <div className="mt-6">
+                <h3 className="text-sm font-semibold text-slate-700">Top Listings by Bookings</h3>
+                <div className="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-200">
+                  {summary.topListings.map((listing, rank) => (
+                    <div key={listing.listingId} className="flex items-center gap-4 px-4 py-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
+                        {rank + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-slate-900">{listing.listingName || listing.listingId}</p>
+                        <p className="text-xs capitalize text-slate-500">{listing.listingKind}</p>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold text-slate-900">
+                        {listing.bookingCount} {listing.bookingCount === 1 ? "booking" : "bookings"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="mt-6 text-sm text-slate-500">No bookings in this period yet.</p>
+            )}
+          </>
+        ) : (
+          <p className="mt-4 text-sm text-slate-500">No booking data available.</p>
+        )}
+      </section>
+
+      {/* Performance Metrics */}
       <section className="tm-panel p-6">
         <h2 className="tm-section-title">Performance Metrics</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -242,6 +265,7 @@ export default function ReportsPage() {
         </div>
       </section>
 
+      {/* Listing Health */}
       <section className="tm-panel p-6">
         <h2 className="tm-section-title">Listing Health</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -257,22 +281,15 @@ export default function ReportsPage() {
         <p className="mt-3 text-sm text-slate-700">
           Health status:{" "}
           <span className="font-semibold">
-            {healthState === "healthy"
-              ? "Healthy"
-              : healthState === "attention"
-                ? "Needs Attention"
-                : healthState === "risk"
-                  ? "At Risk"
-                  : "Unknown"}
+            {healthState === "healthy" ? "Healthy" : healthState === "attention" ? "Needs Attention" : healthState === "risk" ? "At Risk" : "Unknown"}
           </span>
         </p>
       </section>
 
+      {/* CSV Preview */}
       <section className="tm-panel p-6">
         <h2 className="tm-section-title">CSV Preview</h2>
-        <p className="tm-muted mt-1 text-sm">
-          Most recent export content for quick verification.
-        </p>
+        <p className="tm-muted mt-1 text-sm">Most recent export content for quick verification.</p>
         <textarea className="tm-input mt-3 min-h-40 font-mono text-xs" value={csvPreview} readOnly />
       </section>
 

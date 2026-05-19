@@ -299,6 +299,11 @@ export default function ApiAccessPage() {
                 Lane: {endpoint.productLane} · Scope: {endpoint.requiredScope} · Envs: {endpoint.environments.join(", ")}
               </p>
               <p className="mt-1 text-sm text-slate-700">{endpoint.description}</p>
+              {endpoint.responseFields && endpoint.responseFields.length > 0 ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  Response fields: {endpoint.responseFields.join(", ")}
+                </p>
+              ) : null}
             </article>
           ))}
         </div>
