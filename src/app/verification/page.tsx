@@ -200,7 +200,7 @@ export default function VerificationPage() {
   }
 
   async function submit() {
-    if (!user) {
+    if (!user || !verification) {
       return;
     }
     if (!acceptTerms && !verification.termsAccepted) {

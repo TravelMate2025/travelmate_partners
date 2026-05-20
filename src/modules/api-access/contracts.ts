@@ -63,6 +63,7 @@ export type PartnerApiScope =
   | "inventory.read"
   | "pricing.read"
   | "bookings.read"
+  | "bookings.write"
   | "payments.read"
   | "payments.write";
 
