@@ -96,6 +96,7 @@ export default function ApiAccessPage() {
     : `curl -sS "${appConfig.apiBaseUrl}/api/v1/public/catalog" \\\n  -H "X-API-Key-Id: <your_key_id>" \\\n  -H "X-API-Client-Secret: <your_client_secret>"`;
   const sampleIntrospectCurl = `curl -sS "${appConfig.apiBaseUrl}/public/auth/introspect" \\\n  -H "X-API-Key-Id: <your_key_id>" \\\n  -H "X-API-Client-Secret: <your_client_secret>"`;
   const sampleBookingsCurl = `curl -sS "${appConfig.apiBaseUrl}/public/bookings?page=1&pageSize=10&status=completed&bookingReference=BOOK&completedFrom=2026-04-01T00:00:00Z&completedTo=2026-05-01T23:59:59Z" \\\n  -H "X-API-Key-Id: <your_key_id>" \\\n  -H "X-API-Client-Secret: <your_client_secret>"`;
+  const sampleQuoteCurl = `curl -sS "${appConfig.apiBaseUrl}/public/bookings/quote" \\\n  -X POST \\\n  -H "Content-Type: application/json" \\\n  -H "X-API-Key-Id: <your_key_id>" \\\n  -H "X-API-Client-Secret: <your_client_secret>" \\\n  -d '{"listingType":"stay","listingId":"<stay_id>","roomSelections":[{"roomId":"<room_id>","quantity":1}],"ratePlanId":"<rate_plan_id>","baseAmount":50000,"taxAmount":0,"feeAmount":0}'`;
 
   async function copyText(label: string, value: string) {
     try {
@@ -342,6 +343,11 @@ export default function ApiAccessPage() {
               <CopyIcon /> Copy
             </button>
             <pre className="mt-1 overflow-x-auto rounded bg-slate-100 p-2 text-xs text-slate-800">{sampleBookingsCurl}</pre>
+            <p className="mt-3 text-xs font-semibold text-slate-600">4) Create quote with selected stay rate plan</p>
+            <button className="tm-btn tm-btn-outline mt-1 inline-flex w-full items-center justify-center gap-1 px-2 py-1 text-xs sm:w-auto" onClick={() => void copyText("Quote with rate plan curl", sampleQuoteCurl)} type="button">
+              <CopyIcon /> Copy
+            </button>
+            <pre className="mt-1 overflow-x-auto rounded bg-slate-100 p-2 text-xs text-slate-800">{sampleQuoteCurl}</pre>
             <div className="mt-3 text-xs text-slate-700">
               <p><strong>401</strong>: Key/secret invalid, revoked, or not active. Regenerate/reissue credentials.</p>
               <p><strong>403</strong>: Requested endpoint/scope/environment is not authorized for your key.</p>

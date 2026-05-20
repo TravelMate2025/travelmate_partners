@@ -8,6 +8,7 @@ function base(status: PartnerVerification["status"]): PartnerVerification {
     userId: "u1",
     status,
     documents: [],
+    termsAccepted: false,
     submissionCount: 0,
     updatedAt: new Date().toISOString(),
   };

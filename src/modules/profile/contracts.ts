@@ -21,7 +21,7 @@ export type PartnerProfileData = {
 export type PartnerLocationOptions = {
   supportedCountries: string[];
   regionsByCountry: Record<string, string[]>;
-  citiesByRegion: Record<string, string[]>;
+  citiesByCountryRegion: Record<string, Record<string, string[]>>;
 };
 
 export type PartnerOnboarding = {

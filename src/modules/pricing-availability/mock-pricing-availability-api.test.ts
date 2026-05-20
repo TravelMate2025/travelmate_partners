@@ -33,6 +33,26 @@ describe("mockPricingAvailabilityApi", () => {
         },
       ],
       blackoutDates: ["2026-12-25"],
+      ratePlans: [
+        {
+          code: "flex",
+          name: "Flexible",
+          roomId: null,
+          planType: "refundable",
+          isActive: true,
+          nightlyRate: 200,
+          policyVersion: 1,
+          startsOn: null,
+          endsOn: null,
+          cancellationPolicy: {
+            policyType: "free_cancellation_until",
+            penaltyType: "none",
+            cancelDeadlineHoursBeforeCheckIn: 48,
+            penaltyPercent: null,
+            penaltyAmount: null,
+          },
+        },
+      ],
     });
 
     expect(updated.baseRate).toBe(200);
@@ -52,6 +72,26 @@ describe("mockPricingAvailabilityApi", () => {
         maxStayNights: 10,
         seasonalOverrides: [],
         blackoutDates: ["2026-08-12", "2026-08-12"],
+        ratePlans: [
+          {
+            code: "nr",
+            name: "Non Refundable",
+            roomId: null,
+            planType: "non_refundable",
+            isActive: true,
+            nightlyRate: 120,
+            policyVersion: 1,
+            startsOn: null,
+            endsOn: null,
+            cancellationPolicy: {
+              policyType: "non_refundable",
+              penaltyType: "full_charge",
+              cancelDeadlineHoursBeforeCheckIn: null,
+              penaltyPercent: null,
+              penaltyAmount: null,
+            },
+          },
+        ],
       }),
     ).rejects.toThrow("Duplicate blackout dates are not allowed.");
   });

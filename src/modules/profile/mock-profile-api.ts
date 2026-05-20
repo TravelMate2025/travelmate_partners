@@ -6,7 +6,7 @@ import type {
   ProfileApi,
 } from "@/modules/profile/contracts";
 import {
-  operatingCityOptionsByRegion,
+  operatingCityOptionsByCountryRegion,
   operatingCountryOptions,
   operatingRegionOptionsByCountry,
 } from "@/modules/profile/location-options";
@@ -49,8 +49,11 @@ function createOnboarding(userId: string): PartnerOnboarding {
       regionsByCountry: Object.fromEntries(
         Object.entries(operatingRegionOptionsByCountry).map(([country, regions]) => [country, [...regions]]),
       ),
-      citiesByRegion: Object.fromEntries(
-        Object.entries(operatingCityOptionsByRegion).map(([region, cities]) => [region, [...cities]]),
+      citiesByCountryRegion: Object.fromEntries(
+        Object.entries(operatingCityOptionsByCountryRegion).map(([country, regionMap]) => [
+          country,
+          Object.fromEntries(Object.entries(regionMap).map(([region, cities]) => [region, [...cities]])),
+        ]),
       ),
     },
     completedSteps: [],

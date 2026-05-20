@@ -33,6 +33,7 @@ describe("realPricingAvailabilityApi", () => {
     expect(result.stayId).toBe("stay-404");
     expect(result.currency).toBe("NGN");
     expect(result.baseRate).toBeGreaterThan(0);
+    expect(result.ratePlans.length).toBeGreaterThan(0);
   });
 
   it("throws non-404 API errors", async () => {

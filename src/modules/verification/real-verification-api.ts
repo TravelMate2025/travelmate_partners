@@ -56,11 +56,12 @@ export const realVerificationApi: VerificationApi = {
     return response.data;
   },
 
-  async submitVerification(userId: string) {
+  async submitVerification(userId: string, input) {
     const response = await apiRequest<Envelope<PartnerVerification>>(
       `/partners/${userId}/verification/submit`,
       {
         method: "POST",
+        body: input ?? {},
       },
     );
 

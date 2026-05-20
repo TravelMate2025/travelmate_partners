@@ -32,6 +32,8 @@ export default function VerificationPage() {
   const [uploadState, setUploadState] = useState<"idle" | "uploading">("idle");
   const [category, setCategory] = useState<VerificationDocCategory>("identity");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptCommercialTerms, setAcceptCommercialTerms] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -201,13 +203,28 @@ export default function VerificationPage() {
     if (!user) {
       return;
     }
+    if (!acceptTerms && !verification.termsAccepted) {
+      setMessage("Accept verification terms and consent before submission.");
+      return;
+    }
+    if (!acceptCommercialTerms && !verification.commercialTermsAccepted) {
+      setMessage("Accept commercial terms before submission.");
+      return;
+    }
 
     setBusy(true);
     setMessage("");
 
     try {
-      const item = await verificationClient.submitVerification(user.id);
+      const item = await verificationClient.submitVerification(user.id, {
+        acceptTerms: true,
+        termsVersion: "kyc_terms_v1",
+        acceptCommercialTerms: true,
+        commercialTermsVersion: "commercial_terms_v1",
+      });
       setVerification(item);
+      setAcceptTerms(false);
+      setAcceptCommercialTerms(false);
       setMessage("Verification submitted. Status is in_review.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to submit verification.");
@@ -303,8 +320,62 @@ export default function VerificationPage() {
             <p className="mt-3 text-sm text-slate-500">No documents uploaded yet.</p>
           ) : null}
 
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white/70 p-4">
+            <p className="text-sm font-semibold text-slate-900">TravelMate Partnership Platform</p>
+            <h3 className="mt-2 text-sm font-semibold text-slate-900">Verification Terms & Consent</h3>
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-slate-700">
+              <li>You are authorized to submit identity or business documents for this partner account.</li>
+              <li>All submitted information and documents are true, complete, and up to date.</li>
+              <li>TravelMate may review, verify, and retain submitted documents for compliance, fraud prevention, risk management, and security.</li>
+              <li>TravelMate may use trusted third-party verification or compliance providers where required.</li>
+              <li>Submission of false, altered, or unauthorized documents may lead to rejection, suspension, or termination of partner access.</li>
+              <li>Verification outcomes are determined by TravelMate review policies and may require additional information.</li>
+              <li>You consent to receiving verification-related notices and follow-up requests via in-app or email channels.</li>
+            </ol>
+            <label className="mt-3 inline-flex items-start gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={acceptTerms || verification.termsAccepted}
+                onChange={(event) => setAcceptTerms(event.target.checked)}
+              />
+              <span>I accept the Verification Terms & Consent.</span>
+            </label>
+          </div>
+
+          <div className="mt-3 rounded-xl border border-slate-200 bg-white/70 p-4">
+            <h3 className="text-sm font-semibold text-slate-900">
+              Commercial Terms (Payments, Commission & Payouts)
+            </h3>
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-slate-700">
+              <li>Commission, platform fees, and charges follow your active commercial settings and may vary by service type.</li>
+              <li>Payout timing depends on booking completion, settlement status, reconciliation checks, and fraud or risk controls.</li>
+              <li>Refunds, reversals, disputes, chargebacks, and penalties may be deducted from current or future settlements where applicable.</li>
+              <li>You are responsible for accurate settlement account details and keeping tax and business information current.</li>
+              <li>You are responsible for taxes, duties, and regulatory obligations applicable to your business unless otherwise agreed in writing.</li>
+              <li>TravelMate may place holds, delays, or adjustments on payouts where required for compliance, risk review, or operational correction.</li>
+              <li>TravelMate may update commercial policies with notice; continued platform use after the effective date constitutes acceptance.</li>
+            </ol>
+            <label className="mt-3 inline-flex items-start gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={acceptCommercialTerms || verification.commercialTermsAccepted}
+                onChange={(event) => setAcceptCommercialTerms(event.target.checked)}
+              />
+              <span>I accept the Commercial Terms (Payments, Commission & Payouts).</span>
+            </label>
+          </div>
+
           <div className="mt-5 flex flex-wrap gap-2">
-            <button className="tm-btn tm-btn-accent" disabled={busy} onClick={submit} type="button">
+            <button
+              className="tm-btn tm-btn-accent"
+              disabled={
+                busy
+                || (!acceptTerms && !verification.termsAccepted)
+                || (!acceptCommercialTerms && !verification.commercialTermsAccepted)
+              }
+              onClick={submit}
+              type="button"
+            >
               {verification.status === "rejected" ? "Re-submit Verification" : "Submit Verification"}
             </button>
             <button className="tm-btn tm-btn-outline" disabled={busy} onClick={() => void refresh()} type="button">

@@ -103,11 +103,25 @@ describe("realVerificationApi", () => {
         }),
     });
 
-    await expect(realVerificationApi.submitVerification("42")).rejects.toEqual(
+    await expect(
+      realVerificationApi.submitVerification("42", { acceptTerms: true, termsVersion: "kyc_terms_v1", acceptCommercialTerms: true, commercialTermsVersion: "commercial_terms_v1" }),
+    ).rejects.toEqual(
       expect.objectContaining<HttpError>({
         name: "HttpError",
         message: "Cannot submit verification in current status or without documents.",
         status: 400,
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8000/api/v1/partners/42/verification/submit",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          acceptTerms: true,
+          termsVersion: "kyc_terms_v1",
+          acceptCommercialTerms: true,
+          commercialTermsVersion: "commercial_terms_v1",
+        }),
       }),
     );
   });

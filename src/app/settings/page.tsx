@@ -32,7 +32,6 @@ export default function SettingsPage() {
 
     let active = true;
     setBusy(true);
-    setSubmittingTicket(true);
     setMessage("");
 
     Promise.all([
@@ -59,6 +58,7 @@ export default function SettingsPage() {
       .finally(() => {
         if (active) {
           setBusy(false);
+          setSubmittingTicket(false);
         }
       });
 
@@ -100,7 +100,6 @@ export default function SettingsPage() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to save settings.");
     } finally {
-      setSubmittingTicket(false);
       setBusy(false);
     }
   }
@@ -111,6 +110,7 @@ export default function SettingsPage() {
       return;
     }
 
+    setSubmittingTicket(true);
     setBusy(true);
     setMessage("");
     const formElement = event.currentTarget;
@@ -133,6 +133,7 @@ export default function SettingsPage() {
         error instanceof Error ? error.message : "Failed to submit support ticket.",
       );
     } finally {
+      setSubmittingTicket(false);
       setBusy(false);
     }
   }

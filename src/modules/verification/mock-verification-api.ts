@@ -36,6 +36,8 @@ function createDefault(userId: string): PartnerVerification {
     userId,
     status: "pending",
     documents: [],
+    termsAccepted: false,
+    commercialTermsAccepted: false,
     submissionCount: 0,
     updatedAt: nowIso(),
   };
@@ -72,6 +74,12 @@ function writeState(state: MockVerificationState) {
 
 function ensure(state: MockVerificationState, userId: string) {
   const existing = state.byUserId[userId] ?? createDefault(userId);
+  if (typeof existing.termsAccepted !== "boolean") {
+    existing.termsAccepted = false;
+  }
+  if (typeof existing.commercialTermsAccepted !== "boolean") {
+    existing.commercialTermsAccepted = false;
+  }
 
   if (shouldAutoResolvePending(existing)) {
     state.byUserId[userId] = resolvePending(existing);
@@ -203,9 +211,27 @@ export const mockVerificationApi: VerificationApi = {
     return item;
   },
 
-  async submitVerification(userId: string) {
+  async submitVerification(userId: string, input) {
     const state = readState();
     const item = ensure(state, userId);
+
+    if (input?.acceptTerms) {
+      item.termsAccepted = true;
+      item.termsAcceptedAt = nowIso();
+      item.termsVersion = input.termsVersion?.trim() || "kyc_terms_v1";
+    }
+    if (input?.acceptCommercialTerms) {
+      item.commercialTermsAccepted = true;
+      item.commercialTermsAcceptedAt = nowIso();
+      item.commercialTermsVersion =
+        input.commercialTermsVersion?.trim() || "commercial_terms_v1";
+    }
+    if (!item.termsAccepted) {
+      throw new Error("Accept verification terms and consent before submission.");
+    }
+    if (!item.commercialTermsAccepted) {
+      throw new Error("Accept commercial terms before submission.");
+    }
 
     if (!canSubmitVerification(item)) {
       throw new Error("Cannot submit verification in current status or without documents.");

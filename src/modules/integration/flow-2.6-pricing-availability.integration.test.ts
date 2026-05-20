@@ -38,6 +38,26 @@ describe("Flow 2.6 pricing and availability integration", () => {
         },
       ],
       blackoutDates: ["2026-09-15"],
+      ratePlans: [
+        {
+          code: "flex_48",
+          name: "Flexible",
+          roomId: null,
+          planType: "refundable",
+          isActive: true,
+          nightlyRate: 180,
+          policyVersion: 1,
+          startsOn: null,
+          endsOn: null,
+          cancellationPolicy: {
+            policyType: "free_cancellation_until",
+            penaltyType: "none",
+            cancelDeadlineHoursBeforeCheckIn: 48,
+            penaltyPercent: null,
+            penaltyAmount: null,
+          },
+        },
+      ],
     });
 
     expect(saved.baseRate).toBe(180);

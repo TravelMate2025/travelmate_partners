@@ -1,4 +1,5 @@
 import type {
+  StayRatePlan,
   StayPricingAvailability,
   UpsertPricingAvailabilityInput,
   UpsertSeasonalOverrideInput,
@@ -52,6 +53,52 @@ function validateBlackoutDates(dates: string[]) {
   }
 }
 
+function validateRatePlans(ratePlans: StayRatePlan[]) {
+  if (!Array.isArray(ratePlans) || ratePlans.length === 0) {
+    throw new Error("At least one active rate plan is required.");
+  }
+  const seenCodes = new Set<string>();
+  let activeCount = 0;
+  for (const [index, plan] of ratePlans.entries()) {
+    const code = plan.code.trim().toLowerCase();
+    if (!code) throw new Error(`Rate plan ${index + 1}: code is required.`);
+    if (seenCodes.has(code)) throw new Error("Rate plan codes must be unique.");
+    seenCodes.add(code);
+    if (!plan.name.trim()) throw new Error(`Rate plan ${index + 1}: name is required.`);
+    if (plan.nightlyRate <= 0) throw new Error(`Rate plan ${index + 1}: nightly rate must be greater than 0.`);
+    if (plan.policyVersion < 1) throw new Error(`Rate plan ${index + 1}: policy version must be at least 1.`);
+    if (plan.isActive) activeCount += 1;
+
+    const policy = plan.cancellationPolicy;
+    if (policy.policyType === "non_refundable" && policy.penaltyType === "none") {
+      throw new Error("Non-refundable plans cannot use penalty type 'none'.");
+    }
+    if (policy.policyType === "free_cancellation_until") {
+      if (policy.cancelDeadlineHoursBeforeCheckIn === null || policy.cancelDeadlineHoursBeforeCheckIn < 0) {
+        throw new Error("Free-cancellation plans require a non-negative cancellation deadline.");
+      }
+      if (policy.penaltyType !== "none") {
+        throw new Error("Free-cancellation plans must use penalty type 'none'.");
+      }
+    }
+    if (policy.policyType === "partial_refund") {
+      if (policy.cancelDeadlineHoursBeforeCheckIn === null || policy.cancelDeadlineHoursBeforeCheckIn < 0) {
+        throw new Error("Partial-refund plans require a non-negative cancellation deadline.");
+      }
+      if (policy.penaltyType === "none") {
+        throw new Error("Partial-refund plans must define a penalty.");
+      }
+      if (policy.penaltyType === "percent" && (policy.penaltyPercent === null || policy.penaltyPercent < 0 || policy.penaltyPercent > 100)) {
+        throw new Error("Percent penalties must be between 0 and 100.");
+      }
+      if (policy.penaltyType === "amount" && (policy.penaltyAmount === null || policy.penaltyAmount < 0)) {
+        throw new Error("Amount penalties must be non-negative.");
+      }
+    }
+  }
+  if (activeCount === 0) throw new Error("At least one active rate plan is required.");
+}
+
 export function validatePricingAvailabilityInput(input: UpsertPricingAvailabilityInput) {
   if (!input.currency || input.currency.trim().length < 3) {
     throw new Error("Currency must be a valid code (e.g. NGN, USD).");
@@ -76,6 +123,7 @@ export function validatePricingAvailabilityInput(input: UpsertPricingAvailabilit
   input.seasonalOverrides.forEach(validateOverride);
   validateNoOverlap(input.seasonalOverrides);
   validateBlackoutDates(input.blackoutDates);
+  validateRatePlans(input.ratePlans);
 }
 
 export function createDefaultPricingAvailability(
@@ -93,6 +141,27 @@ export function createDefaultPricingAvailability(
     maxStayNights: 30,
     seasonalOverrides: [],
     blackoutDates: [],
+    ratePlans: [
+      {
+        code: "flex_free_cancel",
+        name: "Flexible Free Cancel",
+        roomId: null,
+        planType: "refundable",
+        isActive: true,
+        nightlyRate: 100,
+        policyVersion: 1,
+        startsOn: null,
+        endsOn: null,
+        cancellationPolicy: {
+          policyType: "free_cancellation_until",
+          penaltyType: "none",
+          cancelDeadlineHoursBeforeCheckIn: 48,
+          penaltyPercent: null,
+          penaltyAmount: null,
+          terms: null,
+        },
+      },
+    ],
     updatedAt: new Date().toISOString(),
   };
 }

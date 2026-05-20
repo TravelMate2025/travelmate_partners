@@ -10,6 +10,7 @@ type State = {
 };
 
 const STORAGE_KEY = "tm_partner_notifications_state_v1";
+let notificationIdSequence = 0;
 
 function readState(): State {
   if (typeof window === "undefined") {
@@ -156,6 +157,7 @@ function ensure(state: State, userId: string) {
   if (!state.byUserId[userId]) {
     state.byUserId[userId] = makeSeedNotifications();
   }
+  state.byUserId[userId] = normalizeNotificationIds(state.byUserId[userId]);
   return state.byUserId[userId];
 }
 
@@ -164,6 +166,32 @@ function sortNewestFirst(items: PartnerNotification[]) {
     (a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
+}
+
+function createNotificationId() {
+  notificationIdSequence += 1;
+  return `notif-${Date.now()}-${notificationIdSequence}`;
+}
+
+function normalizeNotificationIds(
+  items: PartnerNotification[],
+): PartnerNotification[] {
+  const seen = new Set<string>();
+  return items.map((item) => {
+    if (!seen.has(item.id)) {
+      seen.add(item.id);
+      return item;
+    }
+    let candidate = createNotificationId();
+    while (seen.has(candidate)) {
+      candidate = createNotificationId();
+    }
+    seen.add(candidate);
+    return {
+      ...item,
+      id: candidate,
+    };
+  });
 }
 
 export const mockNotificationsApi: NotificationsApi = {
@@ -180,7 +208,7 @@ export const mockNotificationsApi: NotificationsApi = {
     const draft = createNotificationFromEvent(input);
     const created: PartnerNotification = {
       ...draft,
-      id: `notif-${Date.now()}`,
+      id: createNotificationId(),
       createdAt: new Date().toISOString(),
     };
     state.byUserId[userId] = sortNewestFirst([created, ...notifications]);

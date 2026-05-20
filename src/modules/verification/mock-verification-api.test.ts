@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearAuditEvents, listAuditEvents } from "@/modules/audit/audit-log";
 import { mockVerificationApi } from "@/modules/verification/mock-verification-api";
 
+vi.mock("@/modules/notifications/notifications-client", () => ({
+  notificationsClient: {
+    emitEvent: vi.fn(async () => []),
+  },
+}));
+
 function resetStorage() {
   window.localStorage.clear();
 }
@@ -26,7 +32,7 @@ describe("mockVerificationApi", () => {
 
     expect(item.documents.length).toBe(1);
 
-    item = await mockVerificationApi.submitVerification(userId);
+    item = await mockVerificationApi.submitVerification(userId, { acceptTerms: true, termsVersion: "kyc_terms_v1", acceptCommercialTerms: true, commercialTermsVersion: "commercial_terms_v1" });
     expect(item.status).toBe("in_review");
 
     // Wait for auto-resolution threshold
@@ -43,7 +49,7 @@ describe("mockVerificationApi", () => {
     });
     expect(item.documents.length).toBe(2);
 
-    item = await mockVerificationApi.submitVerification(userId);
+    item = await mockVerificationApi.submitVerification(userId, { acceptTerms: true, termsVersion: "kyc_terms_v1", acceptCommercialTerms: true, commercialTermsVersion: "commercial_terms_v1" });
     expect(item.status).toBe("in_review");
 
     await new Promise((resolve) => setTimeout(resolve, 1600));
@@ -86,7 +92,7 @@ describe("mockVerificationApi", () => {
 
   it("requires documents before submission", async () => {
     await expect(mockVerificationApi.submitVerification("u1")).rejects.toThrow(
-      "Cannot submit verification in current status or without documents.",
+      "Accept verification terms and consent before submission.",
     );
   });
 
@@ -104,7 +110,7 @@ describe("mockVerificationApi", () => {
       fileType: "application/pdf",
       fileSize: 1030,
     });
-    await mockVerificationApi.submitVerification(userId);
+    await mockVerificationApi.submitVerification(userId, { acceptTerms: true, termsVersion: "kyc_terms_v1", acceptCommercialTerms: true, commercialTermsVersion: "commercial_terms_v1" });
 
     const audit = listAuditEvents(userId);
     expect(audit.some((event) => event.action === "verification_document_added")).toBe(true);

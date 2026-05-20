@@ -77,6 +77,16 @@ export const mockApiAccessApi: ApiAccessApi = {
                 description: "List stays with core inventory metadata for storefront search.",
               },
               {
+                id: "stays-pricing",
+                productLane: "stays",
+                method: "GET",
+                path: "/api/v1/public/catalog/stays/{listingId}/pricing",
+                requiredScope: "pricing.read",
+                environments: ["sandbox", "production"],
+                description: "Read stay pricing summary with explicit ratePlans and cancellation policy fields.",
+                responseFields: ["currency", "baseRate", "weekdayRate", "weekendRate", "blackoutDates", "ratePlans"],
+              },
+              {
                 id: "transfers-search",
                 productLane: "transfers",
                 method: "GET",
@@ -84,6 +94,16 @@ export const mockApiAccessApi: ApiAccessApi = {
                 requiredScope: "inventory.read",
                 environments: ["sandbox", "production"],
                 description: "List transfer products for route pickup and drop-off coverage.",
+              },
+              {
+                id: "bookings-quote",
+                productLane: "bookings",
+                method: "POST",
+                path: "/api/v1/public/bookings/quote",
+                requiredScope: "bookings.write",
+                environments: ["sandbox", "production"],
+                description: "Create a quote lock. Include ratePlanId to lock refundable/non-refundable policy for checkout.",
+                responseFields: ["lockId", "expiresAt", "roomSelections", "ratePlanSelection", "pricing"],
               },
               {
                 id: "payments-intents-create",
@@ -133,6 +153,12 @@ export const mockApiAccessApi: ApiAccessApi = {
             description: "Read payment intent status, Flutterwave charge state, and payment lifecycle metadata.",
             endpointCount: 1,
             endpoints: ["/api/v1/public/payments/intents/{id}"],
+          },
+          {
+            scope: "pricing.read",
+            description: "Read stay/transfer pricing contracts, including stay ratePlans and policy metadata.",
+            endpointCount: 1,
+            endpoints: ["/api/v1/public/catalog/stays/{listingId}/pricing"],
           },
           {
             scope: "payments.write",

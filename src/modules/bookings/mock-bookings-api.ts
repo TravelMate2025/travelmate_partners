@@ -19,6 +19,31 @@ function mockRecord(index: number): BookingRecord {
     checkOutDate: index % 3 === 0 ? null : checkOut.toISOString().slice(0, 10),
     guestCount: (index % 4) + 1,
     roomSelections: null,
+    ratePlanSelection:
+      index % 2 === 0
+        ? {
+            ratePlanId: `rp-${index + 1}`,
+            code: index % 4 === 0 ? "deal_non_ref" : "flex_48",
+            name: index % 4 === 0 ? "Non-refundable Deal" : "Flexible 48h",
+            planType: index % 4 === 0 ? "non_refundable" : "refundable",
+            policyVersion: 1,
+            cancellationPolicy: index % 4 === 0
+              ? {
+                  policyType: "non_refundable",
+                  penaltyType: "full_charge",
+                  cancelDeadlineHoursBeforeCheckIn: null,
+                  penaltyPercent: null,
+                  penaltyAmount: null,
+                }
+              : {
+                  policyType: "free_cancellation_until",
+                  penaltyType: "none",
+                  cancelDeadlineHoursBeforeCheckIn: 48,
+                  penaltyPercent: null,
+                  penaltyAmount: null,
+                },
+          }
+        : null,
     grossAmount: (index + 1) * 35000,
     currency: "NGN",
     status,

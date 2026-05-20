@@ -41,7 +41,7 @@ test.describe("Flow 2.16 notification listing navigation", () => {
                 options: {
                   supportedCountries: ["Nigeria"],
                   regionsByCountry: { Nigeria: ["Lagos"] },
-                  citiesByRegion: { Lagos: ["Lagos Island"] },
+                  citiesByCountryRegion: { Nigeria: { Lagos: ["Lagos Island"] } },
                 },
               },
             },

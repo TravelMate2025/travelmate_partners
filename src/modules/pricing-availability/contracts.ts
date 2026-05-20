@@ -19,7 +19,33 @@ export type StayPricingAvailability = {
   maxStayNights: number;
   seasonalOverrides: SeasonalOverride[];
   blackoutDates: string[];
+  ratePlans: StayRatePlan[];
   updatedAt: string;
+};
+
+export type RatePlanType = "refundable" | "non_refundable";
+export type CancellationPolicyType = "non_refundable" | "free_cancellation_until" | "partial_refund";
+export type PenaltyType = "none" | "full_charge" | "percent" | "amount";
+
+export type StayRatePlan = {
+  id?: string;
+  roomId: string | null;
+  code: string;
+  name: string;
+  planType: RatePlanType;
+  isActive: boolean;
+  nightlyRate: number;
+  policyVersion: number;
+  startsOn: string | null;
+  endsOn: string | null;
+  cancellationPolicy: {
+    policyType: CancellationPolicyType;
+    penaltyType: PenaltyType;
+    cancelDeadlineHoursBeforeCheckIn: number | null;
+    penaltyPercent: number | null;
+    penaltyAmount: number | null;
+    terms?: string | null;
+  };
 };
 
 export type UpsertSeasonalOverrideInput = {
@@ -38,6 +64,7 @@ export type UpsertPricingAvailabilityInput = {
   maxStayNights: number;
   seasonalOverrides: UpsertSeasonalOverrideInput[];
   blackoutDates: string[];
+  ratePlans: StayRatePlan[];
 };
 
 export type PricingAvailabilityApi = {

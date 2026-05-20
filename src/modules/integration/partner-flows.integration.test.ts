@@ -120,7 +120,12 @@ describe("partner app flow integrations (2.1 - 2.5)", () => {
     });
     expect(verification.documents.length).toBe(1);
 
-    verification = await verificationClient.submitVerification(user.id);
+    verification = await verificationClient.submitVerification(user.id, {
+      acceptTerms: true,
+      termsVersion: "kyc_terms_v1",
+      acceptCommercialTerms: true,
+      commercialTermsVersion: "commercial_terms_v1",
+    });
     expect(verification.status).toBe("in_review");
 
     await new Promise((resolve) => setTimeout(resolve, 1600));
@@ -135,7 +140,12 @@ describe("partner app flow integrations (2.1 - 2.5)", () => {
       fileSize: 2048,
     });
 
-    await verificationClient.submitVerification(user.id);
+    await verificationClient.submitVerification(user.id, {
+      acceptTerms: true,
+      termsVersion: "kyc_terms_v1",
+      acceptCommercialTerms: true,
+      commercialTermsVersion: "commercial_terms_v1",
+    });
     await new Promise((resolve) => setTimeout(resolve, 1600));
     verification = await verificationClient.getVerification(user.id);
     expect(verification.status).toBe("approved");
@@ -172,7 +182,12 @@ describe("partner app flow integrations (2.1 - 2.5)", () => {
       fileType: "application/pdf",
       fileSize: 1024,
     });
-    await verificationClient.submitVerification(user.id);
+    await verificationClient.submitVerification(user.id, {
+      acceptTerms: true,
+      termsVersion: "kyc_terms_v1",
+      acceptCommercialTerms: true,
+      commercialTermsVersion: "commercial_terms_v1",
+    });
     await new Promise((resolve) => setTimeout(resolve, 1600));
     await verificationClient.getVerification(user.id);
     await verificationClient.addDocument(user.id, {
@@ -181,7 +196,12 @@ describe("partner app flow integrations (2.1 - 2.5)", () => {
       fileType: "application/pdf",
       fileSize: 1024,
     });
-    await verificationClient.submitVerification(user.id);
+    await verificationClient.submitVerification(user.id, {
+      acceptTerms: true,
+      termsVersion: "kyc_terms_v1",
+      acceptCommercialTerms: true,
+      commercialTermsVersion: "commercial_terms_v1",
+    });
     await new Promise((resolve) => setTimeout(resolve, 1600));
     const verification = await verificationClient.getVerification(user.id);
     expect(verification.status).toBe("approved");

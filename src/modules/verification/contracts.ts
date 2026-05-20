@@ -15,6 +15,12 @@ export type PartnerVerification = {
   status: VerificationStatus;
   documents: VerificationDocument[];
   rejectionReason?: string;
+  termsAccepted: boolean;
+  termsAcceptedAt?: string;
+  termsVersion?: string;
+  commercialTermsAccepted: boolean;
+  commercialTermsAcceptedAt?: string;
+  commercialTermsVersion?: string;
   submissionCount: number;
   submittedAt?: string;
   decidedAt?: string;
@@ -40,5 +46,13 @@ export type VerificationApi = {
     input: ReplaceVerificationDocumentInput,
   ): Promise<PartnerVerification>;
   removeDocument(userId: string, documentId: string): Promise<PartnerVerification>;
-  submitVerification(userId: string): Promise<PartnerVerification>;
+  submitVerification(
+    userId: string,
+    input?: {
+      acceptTerms?: boolean;
+      termsVersion?: string;
+      acceptCommercialTerms?: boolean;
+      commercialTermsVersion?: string;
+    },
+  ): Promise<PartnerVerification>;
 };

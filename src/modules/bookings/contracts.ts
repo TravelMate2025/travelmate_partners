@@ -18,6 +18,21 @@ export type BookingRecord = {
   checkOutDate: string | null;
   guestCount: number;
   roomSelections: RoomSelection[] | null;
+  ratePlanSelection: {
+    ratePlanId: string;
+    code: string;
+    name: string;
+    planType: "refundable" | "non_refundable";
+    policyVersion: number;
+    cancellationPolicy: {
+      policyType: "non_refundable" | "free_cancellation_until" | "partial_refund";
+      penaltyType: "none" | "full_charge" | "percent" | "amount";
+      cancelDeadlineHoursBeforeCheckIn: number | null;
+      penaltyPercent: number | null;
+      penaltyAmount: number | null;
+      terms?: string | null;
+    };
+  } | null;
   grossAmount: number;
   currency: string;
   status: BookingStatus;

@@ -178,6 +178,31 @@ export default function BookingDetailPage({ params }: Props) {
           </div>
         </section>
       )}
+
+      {booking.ratePlanSelection ? (
+        <section className="tm-panel p-6">
+          <h2 className="tm-section-title">Selected Rate Plan</h2>
+          <div className="mt-4 rounded-lg border border-slate-200 p-4">
+            <p className="text-sm font-semibold text-slate-900">
+              {booking.ratePlanSelection.name} ({booking.ratePlanSelection.code})
+            </p>
+            <p className="mt-1 text-xs text-slate-600 capitalize">
+              {booking.ratePlanSelection.planType.replace("_", " ")} · Policy v{booking.ratePlanSelection.policyVersion}
+            </p>
+            <p className="mt-3 text-sm text-slate-700">
+              Cancellation: {booking.ratePlanSelection.cancellationPolicy.policyType.replace(/_/g, " ")}
+            </p>
+            <p className="text-sm text-slate-700">
+              Penalty: {booking.ratePlanSelection.cancellationPolicy.penaltyType.replace(/_/g, " ")}
+            </p>
+            {booking.ratePlanSelection.cancellationPolicy.cancelDeadlineHoursBeforeCheckIn !== null ? (
+              <p className="text-sm text-slate-700">
+                Free cancel cutoff: {booking.ratePlanSelection.cancellationPolicy.cancelDeadlineHoursBeforeCheckIn}h before check-in
+              </p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
     </PartnerShell>
   );
 }

@@ -8,7 +8,7 @@ import { getErrorMessage, isAuthenticationError } from "@/modules/auth/http-erro
 import { onboardingProgress } from "@/modules/profile/checklist";
 import type { OnboardingStepKey, PartnerOnboarding, PartnerProfileData } from "@/modules/profile/contracts";
 import {
-  operatingCityOptionsByRegion,
+  operatingCityOptionsByCountryRegion,
   operatingCountryOptions,
   operatingRegionOptionsByCountry,
   payoutScheduleOptions,
@@ -95,10 +95,12 @@ export default function OnboardingPage() {
   const availableCities = useMemo(
     () =>
       formData
-        ? formData.operatingRegions.flatMap(
-            (region) =>
-              onboarding?.options?.citiesByRegion[region] ??
-              [...(operatingCityOptionsByRegion[region as keyof typeof operatingCityOptionsByRegion] ?? [])],
+        ? formData.operatingCountries.flatMap((country) =>
+            formData.operatingRegions.flatMap(
+              (region) =>
+                onboarding?.options?.citiesByCountryRegion[country]?.[region] ??
+                [...(operatingCityOptionsByCountryRegion[country]?.[region] ?? [])],
+            ),
           )
         : [],
     [formData, onboarding],
@@ -213,8 +215,11 @@ export default function OnboardingPage() {
         const filteredRegions = prev.operatingRegions.filter((region) => allowedRegions.includes(region));
         const allowedCities: string[] = filteredRegions.flatMap(
           (region) =>
-            onboarding?.options?.citiesByRegion[region] ??
-            [...(operatingCityOptionsByRegion[region as keyof typeof operatingCityOptionsByRegion] ?? [])],
+            nextValues.flatMap(
+              (country) =>
+                onboarding?.options?.citiesByCountryRegion[country]?.[region] ??
+                [...(operatingCityOptionsByCountryRegion[country]?.[region] ?? [])],
+            ),
         );
         return {
           ...prev,
@@ -227,8 +232,11 @@ export default function OnboardingPage() {
       if (field === "operatingRegions") {
         const allowedCities: string[] = nextValues.flatMap(
           (region) =>
-            onboarding?.options?.citiesByRegion[region] ??
-            [...(operatingCityOptionsByRegion[region as keyof typeof operatingCityOptionsByRegion] ?? [])],
+            prev.operatingCountries.flatMap(
+              (country) =>
+                onboarding?.options?.citiesByCountryRegion[country]?.[region] ??
+                [...(operatingCityOptionsByCountryRegion[country]?.[region] ?? [])],
+            ),
         );
         return {
           ...prev,

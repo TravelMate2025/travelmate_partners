@@ -100,6 +100,7 @@ export const mockPricingAvailabilityApi: PricingAvailabilityApi = {
       maxStayNights: input.maxStayNights,
       seasonalOverrides: mapOverrides(input),
       blackoutDates: [...input.blackoutDates].sort(),
+      ratePlans: input.ratePlans,
       updatedAt: new Date().toISOString(),
     };
 

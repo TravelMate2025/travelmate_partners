@@ -48,7 +48,12 @@ describe("Flow 2.11 strict alignment (notifications and communication)", () => {
       fileType: "image/png",
       fileSize: 400_000,
     });
-    await verificationClient.submitVerification(userId);
+    await verificationClient.submitVerification(userId, {
+      acceptTerms: true,
+      termsVersion: "kyc_terms_v1",
+      acceptCommercialTerms: true,
+      commercialTermsVersion: "commercial_terms_v1",
+    });
 
     const completion = await walletPayoutsClient.recordBookingCompletion(userId, {
       bookingReference: "TM-BOOK-2111001",
