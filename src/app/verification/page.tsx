@@ -30,7 +30,7 @@ export default function VerificationPage() {
   const [message, setMessage] = useState("");
   useToastMessage(message);
   const [uploadState, setUploadState] = useState<"idle" | "uploading">("idle");
-  const [category, setCategory] = useState<VerificationDocCategory>("identity");
+  const [category, setCategory] = useState<VerificationDocCategory | "">("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptCommercialTerms, setAcceptCommercialTerms] = useState(false);
@@ -87,6 +87,20 @@ export default function VerificationPage() {
     }
   }, [verification?.status]);
 
+  const availableCategoryOptions = useMemo(() => {
+    if (!verification) {
+      return CATEGORY_OPTIONS;
+    }
+    const used = new Set(verification.documents.map((doc) => doc.category));
+    return CATEGORY_OPTIONS.filter((option) => !used.has(option.value));
+  }, [verification]);
+
+  useEffect(() => {
+    if (!availableCategoryOptions.some((option) => option.value === category)) {
+      setCategory("");
+    }
+  }, [availableCategoryOptions, category]);
+
   if (loading || !user || !verification) {
     if (!loading && loadError) {
       return (
@@ -121,6 +135,11 @@ export default function VerificationPage() {
 
   async function addDocument() {
     if (!user) {
+      return;
+    }
+
+    if (!category) {
+      setMessage("Select a document type.");
       return;
     }
 
@@ -262,8 +281,9 @@ export default function VerificationPage() {
           ) : null}
 
           <div className="mt-4 grid gap-3 md:grid-cols-[220px_1fr_auto]">
-            <select className="tm-input" value={category} onChange={(event) => setCategory(event.target.value as VerificationDocCategory)}>
-              {CATEGORY_OPTIONS.map((option) => (
+            <select className="tm-input" value={category} onChange={(event) => setCategory(event.target.value as VerificationDocCategory | "")}>
+              <option value="">Select document type</option>
+              {availableCategoryOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -277,7 +297,12 @@ export default function VerificationPage() {
               onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
             />
 
-            <button className="tm-btn tm-btn-primary" disabled={busy} onClick={addDocument} type="button">
+            <button
+              className="tm-btn tm-btn-primary"
+              disabled={busy || !category}
+              onClick={addDocument}
+              type="button"
+            >
               Add Document
             </button>
           </div>
