@@ -56,6 +56,7 @@ export default function TransferPricingSchedulingPage() {
   const [nightSurcharge, setNightSurcharge] = useState("0");
   const [nonCancellableAmount, setNonCancellableAmount] = useState("0");
   const [freeCancellationAmount, setFreeCancellationAmount] = useState("0");
+  const [freeCancellationCutoffHours, setFreeCancellationCutoffHours] = useState("24");
   const [blackoutDates, setBlackoutDates] = useState<string[]>([]);
   const [blackoutDateInput, setBlackoutDateInput] = useState("");
   const [scheduleWindows, setScheduleWindows] = useState<WindowDraft[]>([]);
@@ -128,6 +129,10 @@ export default function TransferPricingSchedulingPage() {
         const freeCancellation = item.cancellationOptions?.find((option) => (option.optionId ?? option.id) === "FREE_CANCELLATION");
         setNonCancellableAmount(formatNumber(nonCancellable?.amount ?? item.baseFare));
         setFreeCancellationAmount(formatNumber(freeCancellation?.amount ?? item.baseFare));
+        const freeCutoff = freeCancellation?.cancelDeadlineHoursBeforeCheckIn;
+        setFreeCancellationCutoffHours(
+          freeCutoff === null || freeCutoff === undefined ? "24" : formatNumber(Number(freeCutoff)),
+        );
         setBlackoutDates(item.blackoutDates);
         setBlackoutDateInput("");
         setScheduleWindows(
@@ -250,6 +255,7 @@ export default function TransferPricingSchedulingPage() {
               optionId: "FREE_CANCELLATION",
               label: "Free cancellation",
               amount: Number(freeCancellationAmount),
+              cancelDeadlineHoursBeforeCheckIn: Number(freeCancellationCutoffHours || "24"),
             },
           ],
           blackoutDates,
@@ -424,6 +430,16 @@ export default function TransferPricingSchedulingPage() {
                 min={0}
                 value={freeCancellationAmount}
                 onChange={(event) => setFreeCancellationAmount(event.target.value)}
+              />
+            </label>
+            <label className="tm-field">
+              <span className="mb-1 block text-sm font-medium text-slate-700">Free-cancel Cutoff (hours)</span>
+              <input
+                className="tm-input"
+                type="number"
+                min={0}
+                value={freeCancellationCutoffHours}
+                onChange={(event) => setFreeCancellationCutoffHours(event.target.value)}
               />
             </label>
           </div>

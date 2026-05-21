@@ -45,6 +45,7 @@ export default function PricingAvailabilityPage() {
   const [blackoutDateInput, setBlackoutDateInput] = useState("");
   const [nonCancellableAmount, setNonCancellableAmount] = useState("0");
   const [freeCancellationAmount, setFreeCancellationAmount] = useState("0");
+  const [freeCancellationCutoffHours, setFreeCancellationCutoffHours] = useState("24");
 
   const selectedStay = useMemo(
     () => stays.find((item) => item.id === selectedStayId) ?? null,
@@ -123,6 +124,10 @@ export default function PricingAvailabilityPage() {
         const freeCancellation = item.cancellationOptions?.find((option) => (option.optionId ?? option.id) === "FREE_CANCELLATION");
         setNonCancellableAmount(formatNumber(nonCancellable?.amount ?? item.baseRate));
         setFreeCancellationAmount(formatNumber(freeCancellation?.amount ?? item.baseRate));
+        const freeCutoff = freeCancellation?.cancelDeadlineHoursBeforeCheckIn;
+        setFreeCancellationCutoffHours(
+          freeCutoff === null || freeCutoff === undefined ? "24" : formatNumber(Number(freeCutoff)),
+        );
         setBlackoutDateInput("");
       })
       .catch((error) => {
@@ -227,6 +232,7 @@ export default function PricingAvailabilityPage() {
             optionId: "FREE_CANCELLATION",
             label: "Free cancellation",
             amount: Number(freeCancellationAmount),
+            cancelDeadlineHoursBeforeCheckIn: Number(freeCancellationCutoffHours || "24"),
           },
         ],
       });
@@ -424,6 +430,16 @@ export default function PricingAvailabilityPage() {
                   min={0}
                   value={freeCancellationAmount}
                   onChange={(event) => setFreeCancellationAmount(event.target.value)}
+                />
+              </label>
+              <label className="tm-field">
+                <span className="mb-1 block text-sm font-medium text-slate-700">Free-cancel Cutoff (hours)</span>
+                <input
+                  className="tm-input"
+                  type="number"
+                  min={0}
+                  value={freeCancellationCutoffHours}
+                  onChange={(event) => setFreeCancellationCutoffHours(event.target.value)}
                 />
               </label>
             </div>

@@ -49,4 +49,28 @@ describe("transfer pricing scheduling state machine", () => {
       }),
     ).toThrow("Schedule windows cannot overlap on MON.");
   });
+
+  it("rejects invalid free-cancellation cutoff hours", () => {
+    expect(() =>
+      validateTransferPricingSchedulingInput({
+        currency: "NGN",
+        baseFare: 15000,
+        distanceRatePerKm: 0,
+        timeRatePerMinute: 0,
+        peakSurcharge: 0,
+        nightSurcharge: 0,
+        blackoutDates: [],
+        scheduleWindows: [],
+        cancellationOptions: [
+          { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 14000 },
+          {
+            optionId: "FREE_CANCELLATION",
+            label: "Free cancellation",
+            amount: 15000,
+            cancelDeadlineHoursBeforeCheckIn: -2,
+          },
+        ],
+      }),
+    ).toThrow("Free-cancellation cutoff hours must be a non-negative integer.");
+  });
 });

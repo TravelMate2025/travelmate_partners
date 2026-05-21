@@ -96,6 +96,16 @@ function validateCancellationOptions(options: CancellationOption[] | undefined) 
     if (!Number.isFinite(option.amount) || option.amount < 0) {
       throw new Error("Cancellation option amounts must be valid non-negative numbers.");
     }
+    const optionId = option.optionId ?? option.id;
+    if (optionId === "FREE_CANCELLATION") {
+      if (
+        option.cancelDeadlineHoursBeforeCheckIn !== undefined
+        && option.cancelDeadlineHoursBeforeCheckIn !== null
+        && (!Number.isInteger(option.cancelDeadlineHoursBeforeCheckIn) || option.cancelDeadlineHoursBeforeCheckIn < 0)
+      ) {
+        throw new Error("Free-cancellation cutoff hours must be a non-negative integer.");
+      }
+    }
   }
   const nonCancellable = options.find((option) => (option.optionId ?? option.id) === "NON_CANCELLABLE");
   const freeCancellation = options.find((option) => (option.optionId ?? option.id) === "FREE_CANCELLATION");

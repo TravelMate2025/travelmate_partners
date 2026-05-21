@@ -100,4 +100,29 @@ describe("pricing-availability state machine", () => {
       }),
     ).toThrow("Currency must be a valid code (e.g. NGN, USD).");
   });
+
+  it("rejects invalid free-cancellation cutoff hours", () => {
+    expect(() =>
+      validatePricingAvailabilityInput({
+        currency: "NGN",
+        baseRate: 120,
+        weekdayRate: 120,
+        weekendRate: 150,
+        minStayNights: 1,
+        maxStayNights: 14,
+        seasonalOverrides: [],
+        blackoutDates: [],
+        ratePlans: VALID_RATE_PLANS,
+        cancellationOptions: [
+          { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 100 },
+          {
+            optionId: "FREE_CANCELLATION",
+            label: "Free cancellation",
+            amount: 120,
+            cancelDeadlineHoursBeforeCheckIn: -1,
+          },
+        ],
+      }),
+    ).toThrow("Free-cancellation cutoff hours must be a non-negative integer.");
+  });
 });
