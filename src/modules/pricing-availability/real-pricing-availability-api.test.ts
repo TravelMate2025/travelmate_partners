@@ -110,10 +110,77 @@ describe("realPricingAvailabilityApi", () => {
         },
       ],
       cancellationOptions: [],
+      roomCancellationOptions: [
+        {
+          roomId: "room-1",
+          cancellationOptions: [
+            { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 100 },
+            { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 120, cancelDeadlineHoursBeforeCheckIn: 24 },
+          ],
+        },
+      ],
     });
 
     const requestInit = fetchMock.mock.calls[0][1] as RequestInit;
     const body = JSON.parse(String(requestInit.body));
     expect(body.ratePlans).toEqual([]);
+    expect(body.roomCancellationOptions).toEqual([]);
+  });
+
+  it("sanitizes room-level upsert payload before API call", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          data: {
+            userId: "user-1",
+            stayId: "stay-2",
+            currency: "NGN",
+            baseRate: 120,
+            weekdayRate: 120,
+            weekendRate: 140,
+            minStayNights: 1,
+            maxStayNights: 10,
+            seasonalOverrides: [],
+            blackoutDates: [],
+            ratePlans: [],
+            cancellationOptions: [],
+            roomCancellationOptions: [],
+            updatedAt: new Date().toISOString(),
+          },
+        }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await realPricingAvailabilityApi.upsertPricing("user-1", "stay-2", {
+      saleMode: "room_level",
+      currency: "NGN",
+      baseRate: 120,
+      weekdayRate: 120,
+      weekendRate: 140,
+      minStayNights: 1,
+      maxStayNights: 10,
+      seasonalOverrides: [],
+      blackoutDates: [],
+      ratePlans: [],
+      cancellationOptions: [
+        { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 100 },
+        { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 120, cancelDeadlineHoursBeforeCheckIn: 24 },
+      ],
+      roomCancellationOptions: [
+        {
+          roomId: "room-1",
+          cancellationOptions: [
+            { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 100 },
+            { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 120, cancelDeadlineHoursBeforeCheckIn: 24 },
+          ],
+        },
+      ],
+    });
+
+    const requestInit = fetchMock.mock.calls[0][1] as RequestInit;
+    const body = JSON.parse(String(requestInit.body));
+    expect(body.cancellationOptions).toEqual([]);
   });
 });

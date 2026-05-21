@@ -127,6 +127,7 @@ const NAV_SECTIONS: NavSection[] = [
 export function PartnerShell({ title, description, children, headerExtra }: PartnerShellProps) {
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationSyncFailed, setNotificationSyncFailed] = useState(false);
   const seenNotificationIds = useRef<Set<string>>(new Set());
   const initialized = useRef(false);
 
@@ -144,6 +145,7 @@ export function PartnerShell({ title, description, children, headerExtra }: Part
 
         const unread = items.filter((item) => !item.read).length;
         setUnreadCount(unread);
+        setNotificationSyncFailed(false);
 
         const nextSeen = new Set(items.map((item) => item.id));
         if (!initialized.current) {
@@ -159,7 +161,10 @@ export function PartnerShell({ title, description, children, headerExtra }: Part
         }
         seenNotificationIds.current = nextSeen;
       } catch {
-        // Notifications should never block shell rendering.
+        // Notifications should never block shell rendering, but surface degraded sync state.
+        if (active) {
+          setNotificationSyncFailed(true);
+        }
       }
     }
 
@@ -205,6 +210,11 @@ export function PartnerShell({ title, description, children, headerExtra }: Part
                         {item.href === "/notifications" && unreadCount > 0 ? (
                           <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-semibold text-white">
                             {unreadCount}
+                          </span>
+                        ) : null}
+                        {item.href === "/notifications" && notificationSyncFailed ? (
+                          <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                            !
                           </span>
                         ) : null}
                         {item.status === "soon" ? (

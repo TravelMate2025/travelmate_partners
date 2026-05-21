@@ -125,4 +125,63 @@ describe("pricing-availability state machine", () => {
       }),
     ).toThrow("Free-cancellation cutoff hours must be a non-negative integer.");
   });
+
+  it("accepts room-level cancellation options without ratePlans", () => {
+    expect(() =>
+      validatePricingAvailabilityInput({
+        saleMode: "room_level",
+        currency: "NGN",
+        baseRate: 120,
+        weekdayRate: 120,
+        weekendRate: 150,
+        minStayNights: 1,
+        maxStayNights: 14,
+        seasonalOverrides: [],
+        blackoutDates: [],
+        ratePlans: [],
+        roomCancellationOptions: [
+          {
+            roomId: "room-1",
+            cancellationOptions: [
+              { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 100 },
+              { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 120, cancelDeadlineHoursBeforeCheckIn: 24 },
+            ],
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects duplicate room cancellation entries", () => {
+    expect(() =>
+      validatePricingAvailabilityInput({
+        saleMode: "room_level",
+        currency: "NGN",
+        baseRate: 120,
+        weekdayRate: 120,
+        weekendRate: 150,
+        minStayNights: 1,
+        maxStayNights: 14,
+        seasonalOverrides: [],
+        blackoutDates: [],
+        ratePlans: [],
+        roomCancellationOptions: [
+          {
+            roomId: "room-1",
+            cancellationOptions: [
+              { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 100 },
+              { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 120, cancelDeadlineHoursBeforeCheckIn: 24 },
+            ],
+          },
+          {
+            roomId: "room-1",
+            cancellationOptions: [
+              { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 100 },
+              { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 120, cancelDeadlineHoursBeforeCheckIn: 24 },
+            ],
+          },
+        ],
+      }),
+    ).toThrow("Duplicate room cancellation option entries are not allowed.");
+  });
 });

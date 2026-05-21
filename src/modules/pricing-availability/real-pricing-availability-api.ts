@@ -9,12 +9,20 @@ import { createDefaultPricingAvailability } from "@/modules/pricing-availability
 type Envelope<T> = { data: T };
 
 function sanitizeUpsertPayload(input: UpsertPricingAvailabilityInput): UpsertPricingAvailabilityInput {
-  if (input.saleMode !== "unit_level") {
+  if (input.saleMode !== "unit_level" && input.saleMode !== "room_level") {
     return input;
+  }
+  if (input.saleMode === "room_level") {
+    return {
+      ...input,
+      cancellationOptions: [],
+      ratePlans: [],
+    };
   }
   return {
     ...input,
     ratePlans: [],
+    roomCancellationOptions: [],
   };
 }
 

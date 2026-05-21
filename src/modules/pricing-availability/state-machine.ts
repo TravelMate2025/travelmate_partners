@@ -133,6 +133,24 @@ function validateCancellationOptions(options: CancellationOption[] | undefined) 
   }
 }
 
+function validateRoomCancellationOptions(options: UpsertPricingAvailabilityInput["roomCancellationOptions"]) {
+  if (!options || options.length === 0) {
+    return;
+  }
+  const seenRoomIds = new Set<string>();
+  for (const item of options) {
+    const roomId = item.roomId.trim();
+    if (!roomId) {
+      throw new Error("Each room cancellation option must include a room id.");
+    }
+    if (seenRoomIds.has(roomId)) {
+      throw new Error("Duplicate room cancellation option entries are not allowed.");
+    }
+    seenRoomIds.add(roomId);
+    validateCancellationOptions(item.cancellationOptions);
+  }
+}
+
 export function validatePricingAvailabilityInput(input: UpsertPricingAvailabilityInput) {
   if (!input.currency || input.currency.trim().length < 3) {
     throw new Error("Currency must be a valid code (e.g. NGN, USD).");
@@ -158,7 +176,11 @@ export function validatePricingAvailabilityInput(input: UpsertPricingAvailabilit
   validateNoOverlap(input.seasonalOverrides);
   validateBlackoutDates(input.blackoutDates);
   validateCancellationOptions(input.cancellationOptions);
-  validateRatePlans(input.ratePlans, Boolean(input.cancellationOptions?.length));
+  validateRoomCancellationOptions(input.roomCancellationOptions);
+  validateRatePlans(
+    input.ratePlans,
+    Boolean(input.cancellationOptions?.length || input.roomCancellationOptions?.length),
+  );
 }
 
 export function createDefaultPricingAvailability(
@@ -180,6 +202,7 @@ export function createDefaultPricingAvailability(
       { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 90 },
       { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 100 },
     ],
+    roomCancellationOptions: [],
     ratePlans: [
       {
         code: "flex_free_cancel",

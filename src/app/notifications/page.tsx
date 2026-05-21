@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
+import { appConfig } from "@/lib/config";
 import { formatDateTimeUTC } from "@/lib/format";
 import { notificationsClient } from "@/modules/notifications/notifications-client";
 import type {
@@ -321,35 +322,37 @@ export default function NotificationsPage() {
         </div>
       </section>
 
-      <section className="tm-panel p-6">
-        <div className="tm-section-head">
-          <h2 className="tm-section-title">Event Simulator</h2>
-          <label className="tm-tag-pill flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={sendEmail}
-              onChange={(event) => setSendEmail(event.target.checked)}
-            />
-            Send email
-          </label>
-        </div>
-        <p className="tm-muted mt-1 text-sm">
-          Simulate events to validate in-app and optional email notification routing.
-        </p>
-        <div className="tm-inline-actions mt-4">
-          {EVENT_PRESETS.map((event) => (
-            <button
-              key={event.eventType}
-              className="tm-btn tm-btn-outline"
-              type="button"
-              disabled={busy}
-              onClick={() => void emit(event)}
-            >
-              Emit {event.label}
-            </button>
-          ))}
-        </div>
-      </section>
+      {appConfig.useMockApi ? (
+        <section className="tm-panel p-6">
+          <div className="tm-section-head">
+            <h2 className="tm-section-title">Event Simulator</h2>
+            <label className="tm-tag-pill flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={sendEmail}
+                onChange={(event) => setSendEmail(event.target.checked)}
+              />
+              Send email
+            </label>
+          </div>
+          <p className="tm-muted mt-1 text-sm">
+            Simulate events to validate in-app and optional email notification routing.
+          </p>
+          <div className="tm-inline-actions mt-4">
+            {EVENT_PRESETS.map((event) => (
+              <button
+                key={event.eventType}
+                className="tm-btn tm-btn-outline"
+                type="button"
+                disabled={busy}
+                onClick={() => void emit(event)}
+              >
+                Emit {event.label}
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="tm-panel p-6">
         <h2 className="tm-section-title">Timeline</h2>

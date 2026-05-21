@@ -9,6 +9,8 @@ import { usePartnerAccess } from "@/components/common/use-partner-access";
 import { formatDateTimeUTC } from "@/lib/format";
 import { pricingAvailabilityClient } from "@/modules/pricing-availability/pricing-availability-client";
 import type {
+  CancellationOption,
+  RoomCancellationOption,
   StayPricingAvailability,
   UpsertSeasonalOverrideInput,
 } from "@/modules/pricing-availability/contracts";
@@ -23,6 +25,18 @@ const CURRENCY_OPTIONS = [
 
 function formatNumber(value: number) {
   return Number.isFinite(value) ? String(value) : "0";
+}
+
+type RoomCancellationDraft = {
+  roomId: string;
+  roomLabel: string;
+  nonCancellableAmount: string;
+  freeCancellationAmount: string;
+  freeCancellationCutoffHours: string;
+};
+
+function findOption(options: CancellationOption[] | undefined, id: "NON_CANCELLABLE" | "FREE_CANCELLATION") {
+  return options?.find((option) => (option.optionId ?? option.id) === id);
 }
 
 export default function PricingAvailabilityPage() {
@@ -46,15 +60,19 @@ export default function PricingAvailabilityPage() {
   const [nonCancellableAmount, setNonCancellableAmount] = useState("0");
   const [freeCancellationAmount, setFreeCancellationAmount] = useState("0");
   const [freeCancellationCutoffHours, setFreeCancellationCutoffHours] = useState("24");
+  const [roomCancellationDrafts, setRoomCancellationDrafts] = useState<RoomCancellationDraft[]>([]);
 
   const selectedStay = useMemo(
     () => stays.find((item) => item.id === selectedStayId) ?? null,
     [selectedStayId, stays],
   );
   const selectedStaySaleMode = useMemo(() => {
+    if (selectedStay?.saleMode) {
+      return selectedStay.saleMode;
+    }
     const type = (selectedStay?.propertyType ?? "").trim().toLowerCase();
     return ["hotel", "guest_house", "resort"].includes(type) ? "room_level" : "unit_level";
-  }, [selectedStay?.propertyType]);
+  }, [selectedStay?.propertyType, selectedStay?.saleMode]);
   const currencyOptions = useMemo(() => {
     const normalized = (currency ?? "").trim().toUpperCase();
     if (!normalized || CURRENCY_OPTIONS.includes(normalized)) {
@@ -124,14 +142,35 @@ export default function PricingAvailabilityPage() {
           })),
         );
         setBlackoutDates(item.blackoutDates);
-        const nonCancellable = item.cancellationOptions?.find((option) => (option.optionId ?? option.id) === "NON_CANCELLABLE");
-        const freeCancellation = item.cancellationOptions?.find((option) => (option.optionId ?? option.id) === "FREE_CANCELLATION");
+        const nonCancellable = findOption(item.cancellationOptions, "NON_CANCELLABLE");
+        const freeCancellation = findOption(item.cancellationOptions, "FREE_CANCELLATION");
         setNonCancellableAmount(formatNumber(nonCancellable?.amount ?? item.baseRate));
         setFreeCancellationAmount(formatNumber(freeCancellation?.amount ?? item.baseRate));
         const freeCutoff = freeCancellation?.cancelDeadlineHoursBeforeCheckIn;
         setFreeCancellationCutoffHours(
           freeCutoff === null || freeCutoff === undefined ? "24" : formatNumber(Number(freeCutoff)),
         );
+        const roomEntries: RoomCancellationOption[] = item.roomCancellationOptions ?? [];
+        const byRoomId = new Map(roomEntries.map((entry) => [entry.roomId, entry.cancellationOptions]));
+        const roomDrafts: RoomCancellationDraft[] = (selectedStay?.rooms ?? [])
+          .filter((room) => room.isBookable)
+          .map((room) => {
+            const options = byRoomId.get(room.id);
+            const roomNonCancellable = findOption(options, "NON_CANCELLABLE");
+            const roomFreeCancellation = findOption(options, "FREE_CANCELLATION");
+            const fallbackBase = Number(room.baseRate || item.baseRate || 0);
+            const fallbackFree = Number(room.baseRate || item.baseRate || 0);
+            return {
+              roomId: room.id,
+              roomLabel: room.name || room.bedConfiguration || room.id,
+              nonCancellableAmount: formatNumber(roomNonCancellable?.amount ?? fallbackBase),
+              freeCancellationAmount: formatNumber(roomFreeCancellation?.amount ?? fallbackFree),
+              freeCancellationCutoffHours: formatNumber(
+                Number(roomFreeCancellation?.cancelDeadlineHoursBeforeCheckIn ?? 24),
+              ),
+            };
+          });
+        setRoomCancellationDrafts(roomDrafts);
         setBlackoutDateInput("");
       })
       .catch((error) => {
@@ -148,7 +187,11 @@ export default function PricingAvailabilityPage() {
     return () => {
       active = false;
     };
-  }, [user, selectedStayId]);
+  }, [user, selectedStayId, selectedStay?.rooms]);
+
+  function updateRoomCancellationDraft(roomId: string, patch: Partial<RoomCancellationDraft>) {
+    setRoomCancellationDrafts((prev) => prev.map((draft) => (draft.roomId === roomId ? { ...draft, ...patch } : draft)));
+  }
 
   if (loading) {
     return (
@@ -227,19 +270,39 @@ export default function PricingAvailabilityPage() {
         })),
         blackoutDates,
         ratePlans: [],
-        cancellationOptions: [
-          {
-            optionId: "NON_CANCELLABLE",
-            label: "Non-refundable",
-            amount: Number(nonCancellableAmount),
-          },
-          {
-            optionId: "FREE_CANCELLATION",
-            label: "Free cancellation",
-            amount: Number(freeCancellationAmount),
-            cancelDeadlineHoursBeforeCheckIn: Number(freeCancellationCutoffHours || "24"),
-          },
-        ],
+        cancellationOptions: selectedStaySaleMode === "unit_level"
+          ? [
+              {
+                optionId: "NON_CANCELLABLE",
+                label: "Non-refundable",
+                amount: Number(nonCancellableAmount),
+              },
+              {
+                optionId: "FREE_CANCELLATION",
+                label: "Free cancellation",
+                amount: Number(freeCancellationAmount),
+                cancelDeadlineHoursBeforeCheckIn: Number(freeCancellationCutoffHours || "24"),
+              },
+            ]
+          : [],
+        roomCancellationOptions: selectedStaySaleMode === "room_level"
+          ? roomCancellationDrafts.map((room) => ({
+              roomId: room.roomId,
+              cancellationOptions: [
+                {
+                  optionId: "NON_CANCELLABLE",
+                  label: "Non-refundable",
+                  amount: Number(room.nonCancellableAmount),
+                },
+                {
+                  optionId: "FREE_CANCELLATION",
+                  label: "Free cancellation",
+                  amount: Number(room.freeCancellationAmount),
+                  cancelDeadlineHoursBeforeCheckIn: Number(room.freeCancellationCutoffHours || "24"),
+                },
+              ],
+            }))
+          : [],
       });
 
       setPricing(saved);
@@ -416,38 +479,83 @@ export default function PricingAvailabilityPage() {
               Cancellation Pricing
               <InfoHint text="Set the two amounts guests can choose: lower non-refundable price and higher free-cancellation price." />
             </h3>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <label className="tm-field">
-                <span className="mb-1 block text-sm font-medium text-slate-700">Non-refundable Amount</span>
-                <input
-                  className="tm-input"
-                  type="number"
-                  min={0}
-                  value={nonCancellableAmount}
-                  onChange={(event) => setNonCancellableAmount(event.target.value)}
-                />
-              </label>
-              <label className="tm-field">
-                <span className="mb-1 block text-sm font-medium text-slate-700">Free-cancellation Amount</span>
-                <input
-                  className="tm-input"
-                  type="number"
-                  min={0}
-                  value={freeCancellationAmount}
-                  onChange={(event) => setFreeCancellationAmount(event.target.value)}
-                />
-              </label>
-              <label className="tm-field">
-                <span className="mb-1 block text-sm font-medium text-slate-700">Free-cancel Cutoff (hours)</span>
-                <input
-                  className="tm-input"
-                  type="number"
-                  min={0}
-                  value={freeCancellationCutoffHours}
-                  onChange={(event) => setFreeCancellationCutoffHours(event.target.value)}
-                />
-              </label>
-            </div>
+            {selectedStaySaleMode === "room_level" ? (
+              <div className="mt-3 space-y-3">
+                {roomCancellationDrafts.map((room) => (
+                  <div key={room.roomId} className="tm-list-card">
+                    <p className="text-sm font-semibold text-slate-900">{room.roomLabel}</p>
+                    <div className="mt-2 grid gap-3 md:grid-cols-3">
+                      <label className="tm-field">
+                        <span className="mb-1 block text-sm font-medium text-slate-700">Non-refundable Amount</span>
+                        <input
+                          className="tm-input"
+                          type="number"
+                          min={0}
+                          value={room.nonCancellableAmount}
+                          onChange={(event) => updateRoomCancellationDraft(room.roomId, { nonCancellableAmount: event.target.value })}
+                        />
+                      </label>
+                      <label className="tm-field">
+                        <span className="mb-1 block text-sm font-medium text-slate-700">Free-cancellation Amount</span>
+                        <input
+                          className="tm-input"
+                          type="number"
+                          min={0}
+                          value={room.freeCancellationAmount}
+                          onChange={(event) => updateRoomCancellationDraft(room.roomId, { freeCancellationAmount: event.target.value })}
+                        />
+                      </label>
+                      <label className="tm-field">
+                        <span className="mb-1 block text-sm font-medium text-slate-700">Free-cancel Cutoff (hours)</span>
+                        <input
+                          className="tm-input"
+                          type="number"
+                          min={0}
+                          value={room.freeCancellationCutoffHours}
+                          onChange={(event) => updateRoomCancellationDraft(room.roomId, { freeCancellationCutoffHours: event.target.value })}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ))}
+                {roomCancellationDrafts.length === 0 ? (
+                  <p className="tm-muted text-sm">No bookable rooms found. Add bookable rooms first.</p>
+                ) : null}
+              </div>
+            ) : (
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <label className="tm-field">
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Non-refundable Amount</span>
+                  <input
+                    className="tm-input"
+                    type="number"
+                    min={0}
+                    value={nonCancellableAmount}
+                    onChange={(event) => setNonCancellableAmount(event.target.value)}
+                  />
+                </label>
+                <label className="tm-field">
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Free-cancellation Amount</span>
+                  <input
+                    className="tm-input"
+                    type="number"
+                    min={0}
+                    value={freeCancellationAmount}
+                    onChange={(event) => setFreeCancellationAmount(event.target.value)}
+                  />
+                </label>
+                <label className="tm-field">
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Free-cancel Cutoff (hours)</span>
+                  <input
+                    className="tm-input"
+                    type="number"
+                    min={0}
+                    value={freeCancellationCutoffHours}
+                    onChange={(event) => setFreeCancellationCutoffHours(event.target.value)}
+                  />
+                </label>
+              </div>
+            )}
           </section>
 
           <section className="mt-6">

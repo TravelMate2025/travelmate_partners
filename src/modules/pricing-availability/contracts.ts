@@ -21,6 +21,7 @@ export type StayPricingAvailability = {
   blackoutDates: string[];
   ratePlans: StayRatePlan[];
   cancellationOptions?: CancellationOption[];
+  roomCancellationOptions?: RoomCancellationOption[];
   updatedAt: string;
 };
 
@@ -80,6 +81,12 @@ export type UpsertPricingAvailabilityInput = {
   blackoutDates: string[];
   ratePlans: StayRatePlan[];
   cancellationOptions?: CancellationOption[];
+  roomCancellationOptions?: RoomCancellationOption[];
+};
+
+export type RoomCancellationOption = {
+  roomId: string;
+  cancellationOptions: CancellationOption[];
 };
 
 export type PricingAvailabilityApi = {

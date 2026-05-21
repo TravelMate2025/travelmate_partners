@@ -131,7 +131,48 @@ describe("mockPricingAvailabilityApi", () => {
         { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 110 },
         { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 120, cancelDeadlineHoursBeforeCheckIn: 24 },
       ],
+      roomCancellationOptions: [
+        {
+          roomId: "room-123",
+          cancellationOptions: [
+            { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 100 },
+            { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 120, cancelDeadlineHoursBeforeCheckIn: 24 },
+          ],
+        },
+      ],
     });
     expect(saved.ratePlans).toHaveLength(0);
+    expect(saved.roomCancellationOptions).toEqual([]);
+  });
+
+  it("sanitizes room-level payload by dropping stay-level cancellationOptions", async () => {
+    const saved = await mockPricingAvailabilityApi.upsertPricing("u1", "stay-room", {
+      saleMode: "room_level",
+      currency: "NGN",
+      baseRate: 120,
+      weekdayRate: 120,
+      weekendRate: 140,
+      minStayNights: 1,
+      maxStayNights: 10,
+      seasonalOverrides: [],
+      blackoutDates: [],
+      ratePlans: [],
+      cancellationOptions: [
+        { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 110 },
+        { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 120, cancelDeadlineHoursBeforeCheckIn: 24 },
+      ],
+      roomCancellationOptions: [
+        {
+          roomId: "room-123",
+          cancellationOptions: [
+            { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 100 },
+            { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 120, cancelDeadlineHoursBeforeCheckIn: 24 },
+          ],
+        },
+      ],
+    });
+
+    expect(saved.cancellationOptions).toEqual([]);
+    expect(saved.roomCancellationOptions).toHaveLength(1);
   });
 });

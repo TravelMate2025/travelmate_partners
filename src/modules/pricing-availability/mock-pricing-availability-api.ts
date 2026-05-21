@@ -87,8 +87,10 @@ export const mockPricingAvailabilityApi: PricingAvailabilityApi = {
 
   async upsertPricing(userId, stayId, input) {
     const normalizedInput = input.saleMode === "unit_level"
-      ? { ...input, ratePlans: [] }
-      : input;
+      ? { ...input, ratePlans: [], roomCancellationOptions: [] }
+      : input.saleMode === "room_level"
+        ? { ...input, ratePlans: [], cancellationOptions: [] }
+        : input;
     validatePricingAvailabilityInput(normalizedInput);
     const state = readState();
     const current = ensure(state, userId, stayId);
@@ -105,6 +107,7 @@ export const mockPricingAvailabilityApi: PricingAvailabilityApi = {
       blackoutDates: [...normalizedInput.blackoutDates].sort(),
       ratePlans: normalizedInput.ratePlans,
       cancellationOptions: normalizedInput.cancellationOptions,
+      roomCancellationOptions: normalizedInput.roomCancellationOptions,
       updatedAt: new Date().toISOString(),
     };
 

@@ -111,7 +111,6 @@ export default function SettingsPage() {
     }
 
     setSubmittingTicket(true);
-    setBusy(true);
     setMessage("");
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
@@ -134,7 +133,6 @@ export default function SettingsPage() {
       );
     } finally {
       setSubmittingTicket(false);
-      setBusy(false);
     }
   }
 
@@ -288,7 +286,7 @@ export default function SettingsPage() {
           </label>
         </div>
         <div className="tm-inline-actions mt-4">
-          <button className="tm-btn tm-btn-accent" disabled={busy || submittingTicket} type="submit">
+          <button className="tm-btn tm-btn-accent" disabled={submittingTicket} type="submit">
             {submittingTicket ? "Submitting..." : "Submit Ticket"}
           </button>
         </div>
