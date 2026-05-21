@@ -242,7 +242,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         currency: selectedCurrency,
         baseFare: Number(form.get("baseFare") ?? 0),
         nightSurcharge: Number(form.get("nightSurcharge") ?? 0),
-        cancellationPolicy: String(form.get("cancellationPolicy") ?? ""),
+        cancellationPolicy: item.cancellationPolicy ?? "",
       });
       syncTransfer(updated);
       setMessage("Transfer details saved.");

@@ -44,6 +44,19 @@ function mockRecord(index: number): BookingRecord {
                 },
           }
         : null,
+    cancellationOptionSelection:
+      index % 2 === 0
+        ? {
+            optionId: index % 4 === 0 ? "NON_CANCELLABLE" : "FREE_CANCELLATION",
+            label: index % 4 === 0 ? "Non-refundable" : "Free cancellation",
+            amount: index % 4 === 0 ? (index + 1) * 32000 : (index + 1) * 35000,
+            currency: "NGN",
+            policyCopy:
+              index % 4 === 0
+                ? "Non-cancellable. No refund after booking."
+                : "Free cancellation up to 48 hours before check-in/pickup.",
+          }
+        : null,
     grossAmount: (index + 1) * 35000,
     currency: "NGN",
     status,

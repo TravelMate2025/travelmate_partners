@@ -1,4 +1,5 @@
 import type {
+  CancellationOption,
   TransferPricingScheduling,
   TransferScheduleDay,
   UpsertScheduleWindowInput,
@@ -83,6 +84,26 @@ function validateBlackoutDates(dates: string[]) {
   }
 }
 
+function validateCancellationOptions(options: CancellationOption[] | undefined) {
+  if (!options || options.length === 0) {
+    return;
+  }
+  const ids = new Set(options.map((option) => option.optionId ?? option.id));
+  if (options.length !== 2 || !ids.has("NON_CANCELLABLE") || !ids.has("FREE_CANCELLATION")) {
+    throw new Error("Cancellation options must include non-cancellable and free-cancellation entries.");
+  }
+  for (const option of options) {
+    if (!Number.isFinite(option.amount) || option.amount < 0) {
+      throw new Error("Cancellation option amounts must be valid non-negative numbers.");
+    }
+  }
+  const nonCancellable = options.find((option) => (option.optionId ?? option.id) === "NON_CANCELLABLE");
+  const freeCancellation = options.find((option) => (option.optionId ?? option.id) === "FREE_CANCELLATION");
+  if (nonCancellable && freeCancellation && freeCancellation.amount < nonCancellable.amount) {
+    throw new Error("Free-cancellation amount cannot be below non-cancellable amount.");
+  }
+}
+
 export function validateTransferPricingSchedulingInput(
   input: UpsertTransferPricingSchedulingInput,
 ) {
@@ -105,6 +126,7 @@ export function validateTransferPricingSchedulingInput(
   input.scheduleWindows.forEach(validateScheduleWindow);
   validateWindowsNoOverlap(input.scheduleWindows);
   validateBlackoutDates(input.blackoutDates);
+  validateCancellationOptions(input.cancellationOptions);
 }
 
 export function createDefaultTransferPricingScheduling(
@@ -122,6 +144,10 @@ export function createDefaultTransferPricingScheduling(
     nightSurcharge: 0,
     blackoutDates: [],
     scheduleWindows: [],
+    cancellationOptions: [
+      { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 9000 },
+      { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 10000 },
+    ],
     updatedAt: new Date().toISOString(),
   };
 }

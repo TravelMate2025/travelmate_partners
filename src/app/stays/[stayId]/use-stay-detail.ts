@@ -220,7 +220,7 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
         houseRules: String(form.get("houseRules") ?? ""),
         checkInTime: String(form.get("checkInTime") ?? ""),
         checkOutTime: String(form.get("checkOutTime") ?? ""),
-        cancellationPolicy: String(form.get("cancellationPolicy") ?? ""),
+        cancellationPolicy: stay.cancellationPolicy ?? "",
       });
       syncStay(updated);
       setMessage("Stay details saved.");

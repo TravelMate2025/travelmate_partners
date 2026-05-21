@@ -102,8 +102,16 @@ export const mockApiAccessApi: ApiAccessApi = {
                 path: "/api/v1/public/bookings/quote",
                 requiredScope: "bookings.write",
                 environments: ["sandbox", "production"],
-                description: "Create a quote lock. Include ratePlanId to lock refundable/non-refundable policy for checkout.",
-                responseFields: ["lockId", "expiresAt", "roomSelections", "ratePlanSelection", "pricing"],
+                description: "Create a quote lock. Include cancellationOptionId to lock non-refundable vs free-cancellation pricing.",
+                responseFields: [
+                  "lockId",
+                  "expiresAt",
+                  "roomSelections",
+                  "ratePlanSelection",
+                  "cancellationOptionSelection",
+                  "availableCancellationOptions",
+                  "pricing",
+                ],
               },
               {
                 id: "payments-intents-create",

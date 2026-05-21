@@ -46,7 +46,6 @@ export function buildStayQualityReport(
     { label: "House Rules", passed: hasText(stay.houseRules) },
     { label: "Check-in Time", passed: hasText(stay.checkInTime) },
     { label: "Check-out Time", passed: hasText(stay.checkOutTime) },
-    { label: "Cancellation Policy", passed: hasText(stay.cancellationPolicy) },
     { label: "Images", passed: hasItems(stay.images) },
     { label: "Rooms/Units", passed: hasItems(stay.rooms) },
   ];

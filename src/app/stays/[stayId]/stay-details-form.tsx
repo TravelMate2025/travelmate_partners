@@ -198,10 +198,14 @@ export function StayDetailsForm({
             </select>
           </label>
         </div>
-        <label className="tm-field">
+        <div className="tm-field rounded-lg border border-slate-200 bg-slate-50 p-3">
           <span className="tm-field-label">Cancellation Policy</span>
-          <textarea className="tm-input min-h-20" name="cancellationPolicy" defaultValue={stay.cancellationPolicy} disabled={disabled} placeholder="Cancellation policy" />
-        </label>
+          <p className="tm-muted mt-1 text-sm">
+            Cancellation terms are generated from your pricing choices:
+            <span className="font-medium text-slate-800"> Non-cancellable</span> and
+            <span className="font-medium text-slate-800"> Free cancellation</span>.
+          </p>
+        </div>
       </div>
       <div className="tm-inline-actions mt-4">
         <button className="tm-btn tm-btn-primary" disabled={saving || !canEditDetails} type="submit">

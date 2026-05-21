@@ -20,7 +20,20 @@ export type StayPricingAvailability = {
   seasonalOverrides: SeasonalOverride[];
   blackoutDates: string[];
   ratePlans: StayRatePlan[];
+  cancellationOptions?: CancellationOption[];
   updatedAt: string;
+};
+
+export type CancellationOptionId = "NON_CANCELLABLE" | "FREE_CANCELLATION";
+
+export type CancellationOption = {
+  optionId: CancellationOptionId;
+  id?: CancellationOptionId;
+  label: string;
+  amount: number;
+  currency?: string;
+  policyCopy?: string;
+  cancelDeadlineHoursBeforeCheckIn?: number | null;
 };
 
 export type RatePlanType = "refundable" | "non_refundable";
@@ -65,6 +78,7 @@ export type UpsertPricingAvailabilityInput = {
   seasonalOverrides: UpsertSeasonalOverrideInput[];
   blackoutDates: string[];
   ratePlans: StayRatePlan[];
+  cancellationOptions?: CancellationOption[];
 };
 
 export type PricingAvailabilityApi = {

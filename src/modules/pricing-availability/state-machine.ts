@@ -1,4 +1,5 @@
 import type {
+  CancellationOption,
   StayRatePlan,
   StayPricingAvailability,
   UpsertPricingAvailabilityInput,
@@ -53,7 +54,10 @@ function validateBlackoutDates(dates: string[]) {
   }
 }
 
-function validateRatePlans(ratePlans: StayRatePlan[]) {
+function validateRatePlans(ratePlans: StayRatePlan[], hasCancellationOptions: boolean) {
+  if (hasCancellationOptions && (!Array.isArray(ratePlans) || ratePlans.length === 0)) {
+    return;
+  }
   if (!Array.isArray(ratePlans) || ratePlans.length === 0) {
     throw new Error("At least one active rate plan is required.");
   }
@@ -99,6 +103,26 @@ function validateRatePlans(ratePlans: StayRatePlan[]) {
   if (activeCount === 0) throw new Error("At least one active rate plan is required.");
 }
 
+function validateCancellationOptions(options: CancellationOption[] | undefined) {
+  if (!options || options.length === 0) {
+    return;
+  }
+  const ids = new Set(options.map((option) => option.optionId ?? option.id));
+  if (options.length !== 2 || !ids.has("NON_CANCELLABLE") || !ids.has("FREE_CANCELLATION")) {
+    throw new Error("Cancellation options must include non-cancellable and free-cancellation entries.");
+  }
+  for (const option of options) {
+    if (!Number.isFinite(option.amount) || option.amount < 0) {
+      throw new Error("Cancellation option amounts must be valid non-negative numbers.");
+    }
+  }
+  const nonCancellable = options.find((option) => (option.optionId ?? option.id) === "NON_CANCELLABLE");
+  const freeCancellation = options.find((option) => (option.optionId ?? option.id) === "FREE_CANCELLATION");
+  if (nonCancellable && freeCancellation && freeCancellation.amount < nonCancellable.amount) {
+    throw new Error("Free-cancellation amount cannot be below non-cancellable amount.");
+  }
+}
+
 export function validatePricingAvailabilityInput(input: UpsertPricingAvailabilityInput) {
   if (!input.currency || input.currency.trim().length < 3) {
     throw new Error("Currency must be a valid code (e.g. NGN, USD).");
@@ -123,7 +147,8 @@ export function validatePricingAvailabilityInput(input: UpsertPricingAvailabilit
   input.seasonalOverrides.forEach(validateOverride);
   validateNoOverlap(input.seasonalOverrides);
   validateBlackoutDates(input.blackoutDates);
-  validateRatePlans(input.ratePlans);
+  validateCancellationOptions(input.cancellationOptions);
+  validateRatePlans(input.ratePlans, Boolean(input.cancellationOptions?.length));
 }
 
 export function createDefaultPricingAvailability(
@@ -141,6 +166,10 @@ export function createDefaultPricingAvailability(
     maxStayNights: 30,
     seasonalOverrides: [],
     blackoutDates: [],
+    cancellationOptions: [
+      { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 90 },
+      { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 100 },
+    ],
     ratePlans: [
       {
         code: "flex_free_cancel",

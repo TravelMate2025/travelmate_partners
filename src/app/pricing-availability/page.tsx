@@ -9,7 +9,6 @@ import { usePartnerAccess } from "@/components/common/use-partner-access";
 import { formatDateTimeUTC } from "@/lib/format";
 import { pricingAvailabilityClient } from "@/modules/pricing-availability/pricing-availability-client";
 import type {
-  StayRatePlan,
   StayPricingAvailability,
   UpsertSeasonalOverrideInput,
 } from "@/modules/pricing-availability/contracts";
@@ -44,7 +43,8 @@ export default function PricingAvailabilityPage() {
   const [seasonalOverrides, setSeasonalOverrides] = useState<UpsertSeasonalOverrideInput[]>([]);
   const [blackoutDates, setBlackoutDates] = useState<string[]>([]);
   const [blackoutDateInput, setBlackoutDateInput] = useState("");
-  const [ratePlans, setRatePlans] = useState<StayRatePlan[]>([]);
+  const [nonCancellableAmount, setNonCancellableAmount] = useState("0");
+  const [freeCancellationAmount, setFreeCancellationAmount] = useState("0");
 
   const selectedStay = useMemo(
     () => stays.find((item) => item.id === selectedStayId) ?? null,
@@ -119,7 +119,10 @@ export default function PricingAvailabilityPage() {
           })),
         );
         setBlackoutDates(item.blackoutDates);
-        setRatePlans(item.ratePlans ?? []);
+        const nonCancellable = item.cancellationOptions?.find((option) => (option.optionId ?? option.id) === "NON_CANCELLABLE");
+        const freeCancellation = item.cancellationOptions?.find((option) => (option.optionId ?? option.id) === "FREE_CANCELLATION");
+        setNonCancellableAmount(formatNumber(nonCancellable?.amount ?? item.baseRate));
+        setFreeCancellationAmount(formatNumber(freeCancellation?.amount ?? item.baseRate));
         setBlackoutDateInput("");
       })
       .catch((error) => {
@@ -192,56 +195,6 @@ export default function PricingAvailabilityPage() {
     setBlackoutDates((prev) => prev.filter((item) => item !== date));
   }
 
-  function addRatePlan() {
-    setRatePlans((prev) => [
-      ...prev,
-      {
-        code: "",
-        name: "",
-        roomId: selectedStay?.saleMode === "room_level" ? selectedStay.rooms[0]?.id ?? null : null,
-        planType: "refundable",
-        isActive: true,
-        nightlyRate: Number(baseRate) || 0,
-        policyVersion: 1,
-        startsOn: null,
-        endsOn: null,
-        cancellationPolicy: {
-          policyType: "free_cancellation_until",
-          penaltyType: "none",
-          cancelDeadlineHoursBeforeCheckIn: 48,
-          penaltyPercent: null,
-          penaltyAmount: null,
-        },
-      },
-    ]);
-  }
-
-  function updateRatePlan(index: number, patch: Partial<StayRatePlan>) {
-    setRatePlans((prev) => {
-      const copy = [...prev];
-      copy[index] = { ...copy[index], ...patch };
-      return copy;
-    });
-  }
-
-  function updateRatePlanPolicy(index: number, patch: Partial<StayRatePlan["cancellationPolicy"]>) {
-    setRatePlans((prev) => {
-      const copy = [...prev];
-      copy[index] = {
-        ...copy[index],
-        cancellationPolicy: {
-          ...copy[index].cancellationPolicy,
-          ...patch,
-        },
-      };
-      return copy;
-    });
-  }
-
-  function removeRatePlan(index: number) {
-    setRatePlans((prev) => prev.filter((_, current) => current !== index));
-  }
-
   async function savePricing() {
     if (!user || !selectedStayId) {
       return;
@@ -263,7 +216,19 @@ export default function PricingAvailabilityPage() {
           rate: Number(item.rate),
         })),
         blackoutDates,
-        ratePlans,
+        ratePlans: [],
+        cancellationOptions: [
+          {
+            optionId: "NON_CANCELLABLE",
+            label: "Non-refundable",
+            amount: Number(nonCancellableAmount),
+          },
+          {
+            optionId: "FREE_CANCELLATION",
+            label: "Free cancellation",
+            amount: Number(freeCancellationAmount),
+          },
+        ],
       });
 
       setPricing(saved);
@@ -436,147 +401,31 @@ export default function PricingAvailabilityPage() {
           </section>
 
           <section className="mt-6">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-                Stay Rate Plans
-                <InfoHint text="Create refundable and non-refundable plans with explicit cancellation penalties." />
-              </h3>
-              <button className="tm-btn tm-btn-outline" type="button" onClick={addRatePlan}>
-                Add Rate Plan
-              </button>
-            </div>
-            <div className="mt-3 space-y-3">
-              {ratePlans.map((plan, index) => (
-                <div key={`${plan.id ?? "new"}-${index}`} className="tm-list-card">
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <input
-                      className="tm-input"
-                      placeholder="Code (e.g. flex_48)"
-                      value={plan.code}
-                      onChange={(event) => updateRatePlan(index, { code: event.target.value })}
-                    />
-                    <input
-                      className="tm-input"
-                      placeholder="Display name"
-                      value={plan.name}
-                      onChange={(event) => updateRatePlan(index, { name: event.target.value })}
-                    />
-                    <select
-                      className="tm-input"
-                      value={plan.planType}
-                      onChange={(event) => {
-                        const nextPlanType = event.target.value as StayRatePlan["planType"];
-                        updateRatePlan(index, { planType: nextPlanType });
-                        if (nextPlanType === "non_refundable") {
-                          updateRatePlanPolicy(index, {
-                            policyType: "non_refundable",
-                            penaltyType: "full_charge",
-                            cancelDeadlineHoursBeforeCheckIn: null,
-                          });
-                        }
-                      }}
-                    >
-                      <option value="refundable">Refundable</option>
-                      <option value="non_refundable">Non-refundable</option>
-                    </select>
-                    {selectedStay?.saleMode === "room_level" ? (
-                      <select
-                        className="tm-input"
-                        value={plan.roomId ?? ""}
-                        onChange={(event) => updateRatePlan(index, { roomId: event.target.value || null })}
-                      >
-                        <option value="">Select room</option>
-                        {selectedStay.rooms.map((room) => (
-                          <option key={room.id} value={room.id}>
-                            {room.name}
-                          </option>
-                        ))}
-                      </select>
-                    ) : null}
-                    <input
-                      className="tm-input"
-                      type="number"
-                      placeholder="Nightly rate"
-                      value={formatNumber(plan.nightlyRate)}
-                      onChange={(event) => updateRatePlan(index, { nightlyRate: Number(event.target.value) })}
-                    />
-                    <label className="flex items-center gap-2 text-sm text-slate-700">
-                      <input
-                        checked={plan.isActive}
-                        onChange={(event) => updateRatePlan(index, { isActive: event.target.checked })}
-                        type="checkbox"
-                      />
-                      Active
-                    </label>
-                    <select
-                      className="tm-input"
-                      value={plan.cancellationPolicy.policyType}
-                      onChange={(event) =>
-                        updateRatePlanPolicy(index, {
-                          policyType: event.target.value as StayRatePlan["cancellationPolicy"]["policyType"],
-                        })
-                      }
-                    >
-                      <option value="non_refundable">Non-refundable</option>
-                      <option value="free_cancellation_until">Free cancellation until cutoff</option>
-                      <option value="partial_refund">Partial refund</option>
-                    </select>
-                    <select
-                      className="tm-input"
-                      value={plan.cancellationPolicy.penaltyType}
-                      onChange={(event) =>
-                        updateRatePlanPolicy(index, {
-                          penaltyType: event.target.value as StayRatePlan["cancellationPolicy"]["penaltyType"],
-                        })
-                      }
-                    >
-                      <option value="none">None</option>
-                      <option value="full_charge">Full charge</option>
-                      <option value="percent">Percent</option>
-                      <option value="amount">Amount</option>
-                    </select>
-                    <input
-                      className="tm-input"
-                      type="number"
-                      placeholder="Cancel deadline (hours before check-in)"
-                      value={plan.cancellationPolicy.cancelDeadlineHoursBeforeCheckIn ?? ""}
-                      onChange={(event) =>
-                        updateRatePlanPolicy(index, {
-                          cancelDeadlineHoursBeforeCheckIn: event.target.value === "" ? null : Number(event.target.value),
-                        })
-                      }
-                    />
-                    <input
-                      className="tm-input"
-                      type="number"
-                      placeholder="Penalty percent"
-                      value={plan.cancellationPolicy.penaltyPercent ?? ""}
-                      onChange={(event) =>
-                        updateRatePlanPolicy(index, {
-                          penaltyPercent: event.target.value === "" ? null : Number(event.target.value),
-                        })
-                      }
-                    />
-                    <input
-                      className="tm-input"
-                      type="number"
-                      placeholder="Penalty amount"
-                      value={plan.cancellationPolicy.penaltyAmount ?? ""}
-                      onChange={(event) =>
-                        updateRatePlanPolicy(index, {
-                          penaltyAmount: event.target.value === "" ? null : Number(event.target.value),
-                        })
-                      }
-                    />
-                    <button className="tm-btn tm-btn-outline" type="button" onClick={() => removeRatePlan(index)}>
-                      Remove Plan
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {ratePlans.length === 0 ? (
-                <p className="tm-muted text-sm">No rate plans yet. Add at least one active plan.</p>
-              ) : null}
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+              Cancellation Pricing
+              <InfoHint text="Set the two amounts guests can choose: lower non-refundable price and higher free-cancellation price." />
+            </h3>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <label className="tm-field">
+                <span className="mb-1 block text-sm font-medium text-slate-700">Non-refundable Amount</span>
+                <input
+                  className="tm-input"
+                  type="number"
+                  min={0}
+                  value={nonCancellableAmount}
+                  onChange={(event) => setNonCancellableAmount(event.target.value)}
+                />
+              </label>
+              <label className="tm-field">
+                <span className="mb-1 block text-sm font-medium text-slate-700">Free-cancellation Amount</span>
+                <input
+                  className="tm-input"
+                  type="number"
+                  min={0}
+                  value={freeCancellationAmount}
+                  onChange={(event) => setFreeCancellationAmount(event.target.value)}
+                />
+              </label>
             </div>
           </section>
 

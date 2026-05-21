@@ -54,6 +54,8 @@ export default function TransferPricingSchedulingPage() {
   const [timeRatePerMinute, setTimeRatePerMinute] = useState("0");
   const [peakSurcharge, setPeakSurcharge] = useState("0");
   const [nightSurcharge, setNightSurcharge] = useState("0");
+  const [nonCancellableAmount, setNonCancellableAmount] = useState("0");
+  const [freeCancellationAmount, setFreeCancellationAmount] = useState("0");
   const [blackoutDates, setBlackoutDates] = useState<string[]>([]);
   const [blackoutDateInput, setBlackoutDateInput] = useState("");
   const [scheduleWindows, setScheduleWindows] = useState<WindowDraft[]>([]);
@@ -122,6 +124,10 @@ export default function TransferPricingSchedulingPage() {
         setTimeRatePerMinute(formatNumber(item.timeRatePerMinute));
         setPeakSurcharge(formatNumber(item.peakSurcharge));
         setNightSurcharge(formatNumber(item.nightSurcharge));
+        const nonCancellable = item.cancellationOptions?.find((option) => (option.optionId ?? option.id) === "NON_CANCELLABLE");
+        const freeCancellation = item.cancellationOptions?.find((option) => (option.optionId ?? option.id) === "FREE_CANCELLATION");
+        setNonCancellableAmount(formatNumber(nonCancellable?.amount ?? item.baseFare));
+        setFreeCancellationAmount(formatNumber(freeCancellation?.amount ?? item.baseFare));
         setBlackoutDates(item.blackoutDates);
         setBlackoutDateInput("");
         setScheduleWindows(
@@ -234,6 +240,18 @@ export default function TransferPricingSchedulingPage() {
           timeRatePerMinute: Number(timeRatePerMinute),
           peakSurcharge: Number(peakSurcharge),
           nightSurcharge: Number(nightSurcharge),
+          cancellationOptions: [
+            {
+              optionId: "NON_CANCELLABLE",
+              label: "Non-refundable",
+              amount: Number(nonCancellableAmount),
+            },
+            {
+              optionId: "FREE_CANCELLATION",
+              label: "Free cancellation",
+              amount: Number(freeCancellationAmount),
+            },
+          ],
           blackoutDates,
           scheduleWindows: scheduleWindows.map((window) => ({
             id: window.id,
@@ -384,6 +402,28 @@ export default function TransferPricingSchedulingPage() {
                 type="number"
                 value={nightSurcharge}
                 onChange={(event) => setNightSurcharge(event.target.value)}
+              />
+            </label>
+
+            <label className="tm-field">
+              <span className="mb-1 block text-sm font-medium text-slate-700">Non-refundable Amount</span>
+              <input
+                className="tm-input"
+                type="number"
+                min={0}
+                value={nonCancellableAmount}
+                onChange={(event) => setNonCancellableAmount(event.target.value)}
+              />
+            </label>
+
+            <label className="tm-field">
+              <span className="mb-1 block text-sm font-medium text-slate-700">Free-cancellation Amount</span>
+              <input
+                className="tm-input"
+                type="number"
+                min={0}
+                value={freeCancellationAmount}
+                onChange={(event) => setFreeCancellationAmount(event.target.value)}
               />
             </label>
           </div>

@@ -99,6 +99,7 @@ export const mockTransferPricingSchedulingApi: TransferPricingSchedulingApi = {
       timeRatePerMinute: input.timeRatePerMinute,
       peakSurcharge: input.peakSurcharge,
       nightSurcharge: input.nightSurcharge,
+      cancellationOptions: input.cancellationOptions,
       blackoutDates: [...input.blackoutDates].sort(),
       scheduleWindows: mapWindows(input),
       updatedAt: new Date().toISOString(),

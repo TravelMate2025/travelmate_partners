@@ -33,6 +33,19 @@ export type BookingRecord = {
       terms?: string | null;
     };
   } | null;
+  cancellationOptionSelection: {
+    optionId: "NON_CANCELLABLE" | "FREE_CANCELLATION";
+    id?: "NON_CANCELLABLE" | "FREE_CANCELLATION";
+    label: string;
+    amount: number;
+    currency?: string;
+    policyCopy?: string;
+    cancellationCutoffAtLocal?: string;
+    cancellationCutoffAtUtc?: string;
+    timezone?: string;
+    selectedAt?: string;
+    source?: string;
+  } | null;
   grossAmount: number;
   currency: string;
   status: BookingStatus;

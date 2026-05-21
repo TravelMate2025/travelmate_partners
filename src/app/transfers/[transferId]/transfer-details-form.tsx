@@ -234,16 +234,14 @@ export function TransferDetailsForm({
         <span className="tm-field-label">Description</span>
         <textarea className="tm-input min-h-24" name="description" defaultValue={item.description} disabled={disabled} placeholder="Description" />
       </label>
-      <label className="tm-field mt-3 block">
+      <div className="tm-field mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
         <span className="tm-field-label">Cancellation Policy</span>
-        <textarea
-          className="tm-input min-h-20"
-          name="cancellationPolicy"
-          defaultValue={item.cancellationPolicy}
-          disabled={disabled}
-          placeholder="Describe your cancellation terms (e.g. free cancellation up to 24 hours before pickup)"
-        />
-      </label>
+        <p className="tm-muted mt-1 text-sm">
+          Cancellation terms are generated from your transfer pricing choices:
+          <span className="font-medium text-slate-800"> Non-cancellable</span> and
+          <span className="font-medium text-slate-800"> Free cancellation</span>.
+        </p>
+      </div>
 
       <div className="tm-field mt-3">
         <span className="tm-field-label">Features</span>

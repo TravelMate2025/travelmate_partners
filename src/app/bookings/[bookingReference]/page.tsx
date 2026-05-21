@@ -203,6 +203,35 @@ export default function BookingDetailPage({ params }: Props) {
           </div>
         </section>
       ) : null}
+
+      {booking.cancellationOptionSelection ? (
+        <section className="tm-panel p-6">
+          <h2 className="tm-section-title">Selected Cancellation Option</h2>
+          <div className="mt-4 rounded-lg border border-slate-200 p-4">
+            <p className="text-sm font-semibold text-slate-900">{booking.cancellationOptionSelection.label}</p>
+            <p className="mt-1 text-xs text-slate-600">
+              {booking.cancellationOptionSelection.optionId ?? booking.cancellationOptionSelection.id}
+            </p>
+            <p className="mt-3 text-sm text-slate-700">
+              Price selected:{" "}
+              {formatCurrency(
+                booking.cancellationOptionSelection.amount,
+                booking.cancellationOptionSelection.currency ?? booking.currency,
+              )}
+            </p>
+            {booking.cancellationOptionSelection.policyCopy ? (
+              <p className="mt-2 text-sm text-slate-700">
+                Policy: {booking.cancellationOptionSelection.policyCopy}
+              </p>
+            ) : null}
+            {booking.cancellationOptionSelection.cancellationCutoffAtLocal ? (
+              <p className="mt-1 text-xs text-slate-500">
+                Cutoff: {booking.cancellationOptionSelection.cancellationCutoffAtLocal}
+              </p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
     </PartnerShell>
   );
 }
