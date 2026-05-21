@@ -8,6 +8,16 @@ import { createDefaultPricingAvailability } from "@/modules/pricing-availability
 
 type Envelope<T> = { data: T };
 
+function sanitizeUpsertPayload(input: UpsertPricingAvailabilityInput): UpsertPricingAvailabilityInput {
+  if (input.saleMode !== "unit_level") {
+    return input;
+  }
+  return {
+    ...input,
+    ratePlans: [],
+  };
+}
+
 export const realPricingAvailabilityApi: PricingAvailabilityApi = {
   async getPricing(userId, stayId) {
     try {
@@ -24,11 +34,12 @@ export const realPricingAvailabilityApi: PricingAvailabilityApi = {
   },
 
   async upsertPricing(userId, stayId, input: UpsertPricingAvailabilityInput) {
+    const sanitizedInput = sanitizeUpsertPayload(input);
     const response = await apiRequest<Envelope<StayPricingAvailability>>(
       `/partners/${userId}/stays/${stayId}/pricing-availability`,
       {
         method: "PUT",
-        body: input,
+        body: sanitizedInput,
       },
     );
     return response.data;

@@ -86,22 +86,25 @@ export const mockPricingAvailabilityApi: PricingAvailabilityApi = {
   },
 
   async upsertPricing(userId, stayId, input) {
-    validatePricingAvailabilityInput(input);
+    const normalizedInput = input.saleMode === "unit_level"
+      ? { ...input, ratePlans: [] }
+      : input;
+    validatePricingAvailabilityInput(normalizedInput);
     const state = readState();
     const current = ensure(state, userId, stayId);
 
     const next: StayPricingAvailability = {
       ...current,
-      currency: input.currency,
-      baseRate: input.baseRate,
-      weekdayRate: input.weekdayRate,
-      weekendRate: input.weekendRate,
-      minStayNights: input.minStayNights,
-      maxStayNights: input.maxStayNights,
-      seasonalOverrides: mapOverrides(input),
-      blackoutDates: [...input.blackoutDates].sort(),
-      ratePlans: input.ratePlans,
-      cancellationOptions: input.cancellationOptions,
+      currency: normalizedInput.currency,
+      baseRate: normalizedInput.baseRate,
+      weekdayRate: normalizedInput.weekdayRate,
+      weekendRate: normalizedInput.weekendRate,
+      minStayNights: normalizedInput.minStayNights,
+      maxStayNights: normalizedInput.maxStayNights,
+      seasonalOverrides: mapOverrides(normalizedInput),
+      blackoutDates: [...normalizedInput.blackoutDates].sort(),
+      ratePlans: normalizedInput.ratePlans,
+      cancellationOptions: normalizedInput.cancellationOptions,
       updatedAt: new Date().toISOString(),
     };
 

@@ -51,6 +51,10 @@ export default function PricingAvailabilityPage() {
     () => stays.find((item) => item.id === selectedStayId) ?? null,
     [selectedStayId, stays],
   );
+  const selectedStaySaleMode = useMemo(() => {
+    const type = (selectedStay?.propertyType ?? "").trim().toLowerCase();
+    return ["hotel", "guest_house", "resort"].includes(type) ? "room_level" : "unit_level";
+  }, [selectedStay?.propertyType]);
   const currencyOptions = useMemo(() => {
     const normalized = (currency ?? "").trim().toUpperCase();
     if (!normalized || CURRENCY_OPTIONS.includes(normalized)) {
@@ -210,6 +214,7 @@ export default function PricingAvailabilityPage() {
 
     try {
       const saved = await pricingAvailabilityClient.upsertPricing(user.id, selectedStayId, {
+        saleMode: selectedStaySaleMode,
         currency: currency.trim().toUpperCase(),
         baseRate: Number(baseRate),
         weekdayRate: Number(weekdayRate),

@@ -69,6 +69,7 @@ export type UpsertSeasonalOverrideInput = {
 };
 
 export type UpsertPricingAvailabilityInput = {
+  saleMode?: "unit_level" | "room_level";
   currency: string;
   baseRate: number;
   weekdayRate: number;

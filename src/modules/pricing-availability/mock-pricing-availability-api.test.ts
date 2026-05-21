@@ -95,4 +95,43 @@ describe("mockPricingAvailabilityApi", () => {
       }),
     ).rejects.toThrow("Duplicate blackout dates are not allowed.");
   });
+
+  it("sanitizes unit-level payload by dropping room-based ratePlans", async () => {
+    const saved = await mockPricingAvailabilityApi.upsertPricing("u1", "stay-unit", {
+      saleMode: "unit_level",
+      currency: "NGN",
+      baseRate: 120,
+      weekdayRate: 120,
+      weekendRate: 140,
+      minStayNights: 1,
+      maxStayNights: 10,
+      seasonalOverrides: [],
+      blackoutDates: [],
+      ratePlans: [
+        {
+          code: "room_plan_should_drop",
+          name: "Room Plan",
+          roomId: "room-123",
+          planType: "non_refundable",
+          isActive: true,
+          nightlyRate: 120,
+          policyVersion: 1,
+          startsOn: null,
+          endsOn: null,
+          cancellationPolicy: {
+            policyType: "non_refundable",
+            penaltyType: "full_charge",
+            cancelDeadlineHoursBeforeCheckIn: null,
+            penaltyPercent: null,
+            penaltyAmount: null,
+          },
+        },
+      ],
+      cancellationOptions: [
+        { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 110 },
+        { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 120, cancelDeadlineHoursBeforeCheckIn: 24 },
+      ],
+    });
+    expect(saved.ratePlans).toHaveLength(0);
+  });
 });

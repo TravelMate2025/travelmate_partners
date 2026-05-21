@@ -53,4 +53,67 @@ describe("realPricingAvailabilityApi", () => {
       "Internal server error",
     );
   });
+
+  it("sanitizes unit-level upsert payload before API call", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          data: {
+            userId: "user-1",
+            stayId: "stay-1",
+            currency: "NGN",
+            baseRate: 120,
+            weekdayRate: 120,
+            weekendRate: 140,
+            minStayNights: 1,
+            maxStayNights: 10,
+            seasonalOverrides: [],
+            blackoutDates: [],
+            ratePlans: [],
+            cancellationOptions: [],
+            updatedAt: new Date().toISOString(),
+          },
+        }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await realPricingAvailabilityApi.upsertPricing("user-1", "stay-1", {
+      saleMode: "unit_level",
+      currency: "NGN",
+      baseRate: 120,
+      weekdayRate: 120,
+      weekendRate: 140,
+      minStayNights: 1,
+      maxStayNights: 10,
+      seasonalOverrides: [],
+      blackoutDates: [],
+      ratePlans: [
+        {
+          code: "room_plan_should_drop",
+          name: "Room Plan",
+          roomId: "room-123",
+          planType: "non_refundable",
+          isActive: true,
+          nightlyRate: 120,
+          policyVersion: 1,
+          startsOn: null,
+          endsOn: null,
+          cancellationPolicy: {
+            policyType: "non_refundable",
+            penaltyType: "full_charge",
+            cancelDeadlineHoursBeforeCheckIn: null,
+            penaltyPercent: null,
+            penaltyAmount: null,
+          },
+        },
+      ],
+      cancellationOptions: [],
+    });
+
+    const requestInit = fetchMock.mock.calls[0][1] as RequestInit;
+    const body = JSON.parse(String(requestInit.body));
+    expect(body.ratePlans).toEqual([]);
+  });
 });
