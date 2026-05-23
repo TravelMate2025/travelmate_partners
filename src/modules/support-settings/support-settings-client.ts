@@ -4,5 +4,7 @@ import { mockSupportSettingsApi } from "@/modules/support-settings/mock-support-
 import { realSupportSettingsApi } from "@/modules/support-settings/real-support-settings-api";
 
 export const supportSettingsClient: SupportSettingsApi = appConfig.useMockApi
-  ? mockSupportSettingsApi
+  ? (appConfig.useRealSupportSettingsApi
+      ? realSupportSettingsApi
+      : mockSupportSettingsApi)
   : realSupportSettingsApi;

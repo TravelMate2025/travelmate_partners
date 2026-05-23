@@ -37,6 +37,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
 
 - `NEXT_PUBLIC_USE_MOCK_API=true`: use frontend mock data adapter.
 - `NEXT_PUBLIC_USE_MOCK_API=false`: call real backend APIs at `NEXT_PUBLIC_API_BASE_URL`.
+- `NEXT_PUBLIC_USE_REAL_NOTIFICATIONS_API=true`: use real notifications API even when `NEXT_PUBLIC_USE_MOCK_API=true` (default `true`).
 - Keep the frontend and API on matching hostnames in local development (`localhost` with `localhost`, or `127.0.0.1` with `127.0.0.1`) so session and CSRF cookies work for document uploads and other unsafe requests.
 
 ## Current Implemented Routes

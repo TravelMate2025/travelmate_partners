@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
-const useMockApi = process.env.NEXT_PUBLIC_USE_MOCK_API ?? "true";
+const useMockApi = process.env.NEXT_PUBLIC_USE_MOCK_API ?? "false";
 const useRealAuthApi = process.env.NEXT_PUBLIC_USE_REAL_AUTH_API ?? "true";
 const useRealProfileApi = process.env.NEXT_PUBLIC_USE_REAL_PROFILE_API ?? "false";
 const useRealVerificationApi = process.env.NEXT_PUBLIC_USE_REAL_VERIFICATION_API ?? "false";

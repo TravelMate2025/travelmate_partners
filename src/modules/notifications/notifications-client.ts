@@ -4,5 +4,5 @@ import { mockNotificationsApi } from "@/modules/notifications/mock-notifications
 import { realNotificationsApi } from "@/modules/notifications/real-notifications-api";
 
 export const notificationsClient: NotificationsApi = appConfig.useMockApi
-  ? mockNotificationsApi
+  ? (appConfig.useRealNotificationsApi ? realNotificationsApi : mockNotificationsApi)
   : realNotificationsApi;

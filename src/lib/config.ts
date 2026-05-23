@@ -3,6 +3,10 @@ export const appConfig = {
   useMockApi:
     (process.env.NEXT_PUBLIC_USE_MOCK_API
       ?? (process.env.NODE_ENV === "production" ? "false" : "true")) === "true",
+  useRealNotificationsApi:
+    (process.env.NEXT_PUBLIC_USE_REAL_NOTIFICATIONS_API ?? "true") === "true",
+  useRealSupportSettingsApi:
+    (process.env.NEXT_PUBLIC_USE_REAL_SUPPORT_SETTINGS_API ?? "false") === "true",
   useRealAuthApi: (process.env.NEXT_PUBLIC_USE_REAL_AUTH_API ?? "false") === "true",
   useRealProfileApi:
     (process.env.NEXT_PUBLIC_USE_REAL_PROFILE_API ?? "false") === "true",
