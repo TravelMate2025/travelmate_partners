@@ -256,10 +256,39 @@ export default function PricingAvailabilityPage() {
     setMessage("");
 
     try {
+      const parsedBaseRate = Number(baseRate);
+      if (!Number.isFinite(parsedBaseRate) || parsedBaseRate <= 0) {
+        throw new Error("Base rate must be greater than 0.");
+      }
+
+      if (selectedStaySaleMode === "unit_level") {
+        const parsedNonCancellable = Number(nonCancellableAmount);
+        const parsedFreeCancellation = Number(freeCancellationAmount);
+        if (!Number.isFinite(parsedNonCancellable) || parsedNonCancellable <= 0) {
+          throw new Error("Non-cancellable amount must be greater than 0.");
+        }
+        if (!Number.isFinite(parsedFreeCancellation) || parsedFreeCancellation <= 0) {
+          throw new Error("Free-cancellation amount must be greater than 0.");
+        }
+      }
+
+      if (selectedStaySaleMode === "room_level") {
+        for (const room of roomCancellationDrafts) {
+          const parsedRoomNonCancellable = Number(room.nonCancellableAmount);
+          const parsedRoomFreeCancellation = Number(room.freeCancellationAmount);
+          if (!Number.isFinite(parsedRoomNonCancellable) || parsedRoomNonCancellable <= 0) {
+            throw new Error(`Room \"${room.roomLabel}\": non-cancellable amount must be greater than 0.`);
+          }
+          if (!Number.isFinite(parsedRoomFreeCancellation) || parsedRoomFreeCancellation <= 0) {
+            throw new Error(`Room \"${room.roomLabel}\": free-cancellation amount must be greater than 0.`);
+          }
+        }
+      }
+
       const saved = await pricingAvailabilityClient.upsertPricing(user.id, selectedStayId, {
         saleMode: selectedStaySaleMode,
         currency: currency.trim().toUpperCase(),
-        baseRate: Number(baseRate),
+        baseRate: parsedBaseRate,
         weekdayRate: Number(weekdayRate),
         weekendRate: Number(weekendRate),
         minStayNights: Number(minStayNights),
