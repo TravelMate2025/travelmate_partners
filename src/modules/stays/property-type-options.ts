@@ -9,6 +9,8 @@ export const stayPropertyTypeOptions = [
   { value: "homestay", label: "Homestay" },
 ] as const;
 
+const ROOM_LEVEL_PROPERTY_TYPES = new Set(["hotel", "guest_house", "guesthouse", "resort"]);
+
 const PROPERTY_TYPE_ALIASES: Record<string, string> = {
   "guest house": "guesthouse",
   "guest-house": "guesthouse",
@@ -33,4 +35,33 @@ export function normalizeStayPropertyType(value: string): string {
     return canonical;
   }
   return PROPERTY_TYPE_ALIASES[parsed.toLowerCase()] ?? canonical;
+}
+
+export function resolveStaySaleMode(propertyType: string): "unit_level" | "room_level" {
+  const normalized = normalizeStayPropertyType(propertyType);
+  return ROOM_LEVEL_PROPERTY_TYPES.has(normalized) ? "room_level" : "unit_level";
+}
+
+export function getSaleModeContent(propertyType: string) {
+  const saleMode = resolveStaySaleMode(propertyType);
+  if (saleMode === "room_level") {
+    return {
+      saleMode,
+      title: "Room-level listing",
+      summary: "Guests book individual rooms.",
+      implications: [
+        "Bookable rooms with inventory are required.",
+        "Per-room cancellation pricing is required in Pricing & Availability.",
+      ],
+    };
+  }
+  return {
+    saleMode,
+    title: "Unit-level listing",
+    summary: "Guests book the full property as one unit.",
+    implications: [
+      "One stay-level price applies in Pricing & Availability.",
+      "Room entries are descriptive and not sold individually.",
+    ],
+  };
 }

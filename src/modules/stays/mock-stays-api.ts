@@ -3,6 +3,7 @@ import { validateMediaFile } from "@/modules/media/file-validation";
 import { buildStayQualityReport } from "@/modules/data-quality/listing-quality";
 import { recordAuditEvent } from "@/modules/audit/audit-log";
 import { notificationsClient } from "@/modules/notifications/notifications-client";
+import { resolveStaySaleMode } from "@/modules/stays/property-type-options";
 import type {
   AddStayImageInput,
   ReplaceStayImageInput,
@@ -136,9 +137,7 @@ export const mockStaysApi: StaysApi = {
       userId,
       status: "draft",
       propertyType: input.propertyType,
-      saleMode: ["hotel", "guest_house", "resort"].includes((input.propertyType || "").toLowerCase())
-        ? "room_level"
-        : "unit_level",
+      saleMode: resolveStaySaleMode(input.propertyType),
       name: input.name,
       description: input.description,
       address: input.address,

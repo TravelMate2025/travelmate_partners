@@ -11,7 +11,7 @@ import type { PartnerUser } from "@/modules/auth/contracts";
 import { HttpError } from "@/lib/http-client";
 import { profileClient } from "@/modules/profile/profile-client";
 import { localityOptionsByCountry, operatingCountryOptions } from "@/modules/profile/location-options";
-import { stayPropertyTypeOptions } from "@/modules/stays/property-type-options";
+import { getSaleModeContent, stayPropertyTypeOptions } from "@/modules/stays/property-type-options";
 import { staysClient } from "@/modules/stays/stays-client";
 import { verificationClient } from "@/modules/verification/verification-client";
 
@@ -36,6 +36,7 @@ export default function NewStayPage() {
   const filteredCities = citySearch.trim()
     ? availableCities.filter((city) => city.toLowerCase().includes(citySearch.trim().toLowerCase()))
     : availableCities;
+  const saleModeContent = getSaleModeContent(selectedPropertyType);
 
   useEffect(() => {
     let active = true;
@@ -158,6 +159,17 @@ export default function NewStayPage() {
                   </option>
                 ))}
               </select>
+              {selectedPropertyType ? (
+                <div className="tm-note mt-2 text-xs">
+                  <p className="font-semibold text-slate-800">{saleModeContent.title}</p>
+                  <p className="text-slate-600">{saleModeContent.summary}</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-slate-600">
+                    {saleModeContent.implications.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </label>
             <label className="tm-field">
               <span className="tm-field-label">Stay Name</span>

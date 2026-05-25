@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { PartnerShell } from "@/components/common/partner-shell";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
+import { getSaleModeContent } from "@/modules/stays/property-type-options";
 import { StayActionsSection } from "./stay-actions-section";
 import { StayDetailsForm } from "./stay-details-form";
 import { StayImagesSection } from "./stay-images-section";
@@ -29,17 +30,34 @@ export default function StayDetailPage() {
   }
 
   const { stay, qualityReport } = detail;
+  const saleModeContent = getSaleModeContent(stay.propertyType);
+  const saleModeLabel = saleModeContent.saleMode === "room_level" ? "Room-level" : "Unit-level";
 
   return (
     <PartnerShell
       title={stay.name || "Stay Draft"}
       description="Edit listing details, media, rooms, and lifecycle status."
       headerExtra={
-        <p className="tm-muted text-sm">
-          Status: {stay.status === "paused_by_admin" ? "Suspended by platform" : stay.status}
-        </p>
+        <div className="space-y-2">
+          <p className="tm-muted text-sm">
+            Status: {stay.status === "paused_by_admin" ? "Suspended by platform" : stay.status}
+          </p>
+          <p className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
+            Sale mode: {saleModeLabel}
+          </p>
+        </div>
       }
     >
+      <section className="tm-panel p-6">
+        <h2 className="tm-section-title">Sale Mode Guidance</h2>
+        <p className="tm-muted mt-1 text-sm">{saleModeContent.summary}</p>
+        <ul className="mt-3 space-y-1">
+          {saleModeContent.implications.map((item) => (
+            <li key={item} className="text-sm text-slate-700">{item}</li>
+          ))}
+        </ul>
+      </section>
+
       <StayActionsSection
         stay={stay}
         saving={detail.saving}

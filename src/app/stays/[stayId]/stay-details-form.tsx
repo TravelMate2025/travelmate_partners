@@ -3,6 +3,7 @@
 import { FormEvent } from "react";
 
 import { operatingCountryOptions } from "@/modules/profile/location-options";
+import { getSaleModeContent } from "@/modules/stays/property-type-options";
 import { stayTimeOptions } from "@/modules/stays/time-options";
 import type { StayListing } from "@/modules/stays/contracts";
 import { knownTimeValues } from "./use-stay-detail";
@@ -53,6 +54,7 @@ export function StayDetailsForm({
   onSetCitySearch,
 }: Props) {
   const disabled = !canEditDetails || saving;
+  const saleModeContent = getSaleModeContent(selectedPropertyType || stay.propertyType);
 
   return (
     <form className="tm-panel p-6" onSubmit={onSaveDetails}>
@@ -76,6 +78,15 @@ export function StayDetailsForm({
               <option key={pt.value} value={pt.value}>{pt.label}</option>
             ))}
           </select>
+          <div className="tm-note mt-2 text-xs">
+            <p className="font-semibold text-slate-800">{saleModeContent.title}</p>
+            <p className="text-slate-600">{saleModeContent.summary}</p>
+            <ul className="mt-1 list-disc space-y-1 pl-5 text-slate-600">
+              {saleModeContent.implications.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
         </label>
         <label className="tm-field">
           <span className="tm-field-label">Stay Name</span>

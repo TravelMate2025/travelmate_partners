@@ -2,7 +2,7 @@ export const appConfig = {
   apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1",
   useMockApi:
     (process.env.NEXT_PUBLIC_USE_MOCK_API
-      ?? (process.env.NODE_ENV === "production" ? "false" : "true")) === "true",
+      ?? (process.env.NODE_ENV === "test" ? "true" : "false")) === "true",
   useRealNotificationsApi:
     (process.env.NEXT_PUBLIC_USE_REAL_NOTIFICATIONS_API ?? "true") === "true",
   useRealSupportSettingsApi:
