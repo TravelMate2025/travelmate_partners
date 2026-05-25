@@ -106,4 +106,35 @@ describe("apiRequest", () => {
       }),
     );
   });
+
+  it("reuses CSRF token from response header when cookie is unavailable", async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: (name: string) => (name.toLowerCase() === "x-csrftoken" ? "header-token-1" : null) },
+        text: async () => JSON.stringify({ data: {} }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        text: async () => JSON.stringify({ data: {} }),
+      });
+
+    await apiRequest("/bootstrap-csrf");
+    await apiRequest("/unsafe", {
+      method: "POST",
+      body: { hello: "world" },
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "http://localhost:8000/api/v1/unsafe",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "X-CSRFToken": "header-token-1",
+        }),
+      }),
+    );
+  });
 });
