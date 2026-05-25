@@ -123,4 +123,25 @@ describe("mockStaysApi", () => {
     updated = await mockStaysApi.removeRoom(userId, stay.id, roomId);
     expect(updated.rooms).toHaveLength(0);
   });
+
+  it("recomputes sale mode when property type changes", async () => {
+    const userId = "u1";
+    const stay = await mockStaysApi.createStay(userId, {
+      propertyType: "apartment",
+      name: "Mode Change Stay",
+      description: "Switch test",
+      address: "11 Marina Road",
+      city: "Lagos",
+      country: "Nigeria",
+    });
+
+    expect(stay.saleMode).toBe("unit_level");
+
+    const updated = await mockStaysApi.updateStay(userId, stay.id, {
+      propertyType: "hotel",
+    });
+
+    expect(updated.propertyType).toBe("hotel");
+    expect(updated.saleMode).toBe("room_level");
+  });
 });

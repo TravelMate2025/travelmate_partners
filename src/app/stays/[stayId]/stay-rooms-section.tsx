@@ -1,6 +1,7 @@
 "use client";
 
 import type { StayListing } from "@/modules/stays/contracts";
+import { resolveStaySaleMode } from "@/modules/stays/property-type-options";
 
 type Props = {
   stay: StayListing;
@@ -49,7 +50,8 @@ export function StayRoomsSection({
   onMoveImageToProperty,
   onRemoveImage,
 }: Props) {
-  const isRoomLevel = stay.saleMode === "room_level";
+  const saleMode = stay.saleMode || resolveStaySaleMode(stay.propertyType);
+  const isRoomLevel = saleMode === "room_level";
   const totalInventory = Number(roomTotalInventory);
   const maxPerBooking = Number(roomMaxPerBooking);
   const roomLevelHints: string[] = [];

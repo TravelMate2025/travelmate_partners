@@ -80,9 +80,12 @@ function validateImage(input: AddStayImageInput) {
 }
 
 function patch(item: StayListing, input: UpdateStayInput) {
+  const propertyType = input.propertyType ?? item.propertyType;
   const next = {
     ...item,
     ...input,
+    propertyType,
+    saleMode: resolveStaySaleMode(propertyType),
     amenities: input.amenities ?? item.amenities,
     updatedAt: nowIso(),
   };
