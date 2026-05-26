@@ -30,6 +30,7 @@ export default function NewStayPage() {
   const [countrySuggestions, setCountrySuggestions] = useState<string[]>([]);
   const [adminLevel1Suggestions, setAdminLevel1Suggestions] = useState<string[]>([]);
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
+  const [liveCities, setLiveCities] = useState<string[]>([]);
   const [selectedPropertyType, setSelectedPropertyType] = useState("");
   const [propertyTypeOptions, setPropertyTypeOptions] = useState<Array<{ value: string; label: string }>>(
     [...stayPropertyTypeOptions],
@@ -38,6 +39,7 @@ export default function NewStayPage() {
   const availableCities = selectedCountry && selectedAdminLevel1
     ? (operatingCityOptionsByCountryRegion[selectedCountry]?.[selectedAdminLevel1] ?? [])
     : [];
+  const cityOptions = citySuggestions.length > 0 ? citySuggestions : (liveCities.length > 0 ? liveCities : availableCities);
   const saleModeContent = getSaleModeContent(selectedPropertyType);
 
   useEffect(() => {
@@ -93,6 +95,29 @@ export default function NewStayPage() {
       active = false;
     };
   }, [router]);
+
+  useEffect(() => {
+    let active = true;
+    if (!user || !selectedCountry || !selectedAdminLevel1) {
+      setLiveCities([]);
+      return () => {
+        active = false;
+      };
+    }
+    profileClient
+      .listGeographyCities(user.id, selectedCountry, selectedAdminLevel1)
+      .then((rows) => {
+        if (!active) return;
+        setLiveCities(rows);
+      })
+      .catch(() => {
+        if (!active) return;
+        setLiveCities([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user, selectedCountry, selectedAdminLevel1]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -205,6 +230,7 @@ export default function NewStayPage() {
                   setArea("");
                   setAdminLevel1Suggestions([]);
                   setCitySuggestions([]);
+                  setLiveCities([]);
                 }}
               />
               <TypeaheadInput
@@ -223,6 +249,7 @@ export default function NewStayPage() {
                   setSelectedCity("");
                   setArea("");
                   setCitySuggestions([]);
+                  setLiveCities([]);
                 }}
               />
             </div>
@@ -231,12 +258,27 @@ export default function NewStayPage() {
                 label="City"
                 placeholder="Type city"
                 value={selectedCity}
-                options={citySuggestions.length > 0 ? citySuggestions : availableCities}
+                options={cityOptions}
                 allowCustomValue
                 disabled={!selectedAdminLevel1}
-                onQueryChange={(query) => {
+                onQueryChange={async (query) => {
                   const raw = query.trim().toLowerCase();
-                  setCitySuggestions(raw ? availableCities.filter((entry) => entry.toLowerCase().includes(raw)) : availableCities);
+                  if (user && selectedCountry && selectedAdminLevel1) {
+                    try {
+                      const rows = await profileClient.listGeographyCities(
+                        user.id,
+                        selectedCountry,
+                        selectedAdminLevel1,
+                        query,
+                      );
+                      setCitySuggestions(rows);
+                      return;
+                    } catch {
+                      // Fallback to local options below.
+                    }
+                  }
+                  const fallback = liveCities.length > 0 ? liveCities : availableCities;
+                  setCitySuggestions(raw ? fallback.filter((entry) => entry.toLowerCase().includes(raw)) : fallback);
                 }}
                 onSelect={(value) => {
                   setSelectedCity(value);

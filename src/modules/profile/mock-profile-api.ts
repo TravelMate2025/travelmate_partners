@@ -215,4 +215,11 @@ export const mockProfileApi: ProfileApi = {
     if (!raw) return rows;
     return rows.filter((entry) => entry.toLowerCase().includes(raw));
   },
+
+  async listGeographyCities(_userId: string, country: string, adminLevel1: string, q?: string) {
+    const rows = [...(operatingCityOptionsByCountryRegion[country]?.[adminLevel1] ?? [])];
+    const raw = String(q ?? "").trim().toLowerCase();
+    if (!raw) return rows;
+    return rows.filter((entry) => entry.toLowerCase().includes(raw));
+  },
 };

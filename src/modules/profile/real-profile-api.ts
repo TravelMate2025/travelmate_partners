@@ -51,4 +51,15 @@ export const realProfileApi: ProfileApi = {
     );
     return response.data;
   },
+
+  async listGeographyCities(userId: string, country: string, adminLevel1: string, q?: string) {
+    const query = new URLSearchParams();
+    query.set("country", country);
+    query.set("adminLevel1", adminLevel1);
+    if (q && q.trim()) query.set("q", q.trim());
+    const response = await apiRequest<Envelope<string[]>>(
+      `/partners/${userId}/geography/cities?${query.toString()}`,
+    );
+    return response.data;
+  },
 };

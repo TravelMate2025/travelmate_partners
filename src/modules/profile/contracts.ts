@@ -40,4 +40,5 @@ export type ProfileApi = {
   submitOnboarding(userId: string): Promise<PartnerOnboarding>;
   listGeographyCountries(userId: string, q?: string): Promise<string[]>;
   listGeographyAdminLevel1(userId: string, country: string, q?: string): Promise<string[]>;
+  listGeographyCities(userId: string, country: string, adminLevel1: string, q?: string): Promise<string[]>;
 };
