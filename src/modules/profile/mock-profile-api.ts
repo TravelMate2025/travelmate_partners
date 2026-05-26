@@ -202,4 +202,17 @@ export const mockProfileApi: ProfileApi = {
     writeState(state);
     return recalculated;
   },
+
+  async listGeographyCountries(_userId: string, q?: string) {
+    const raw = String(q ?? "").trim().toLowerCase();
+    if (!raw) return [...operatingCountryOptions];
+    return operatingCountryOptions.filter((entry) => entry.toLowerCase().includes(raw));
+  },
+
+  async listGeographyAdminLevel1(_userId: string, country: string, q?: string) {
+    const rows = [...(operatingRegionOptionsByCountry[country as keyof typeof operatingRegionOptionsByCountry] ?? [])];
+    const raw = String(q ?? "").trim().toLowerCase();
+    if (!raw) return rows;
+    return rows.filter((entry) => entry.toLowerCase().includes(raw));
+  },
 };

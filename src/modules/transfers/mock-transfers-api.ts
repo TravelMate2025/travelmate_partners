@@ -118,6 +118,7 @@ async function emitIncompleteReminder(userId: string, contextLabel: string) {
 
 function createFromInput(userId: string, input: CreateTransferInput): TransferListing {
   const ts = nowIso();
+  const coverageArea = input.coverageArea ?? (input.city && input.country ? `${input.city}, ${input.country}` : "");
   return {
     id: makeId(),
     userId,
@@ -131,7 +132,11 @@ function createFromInput(userId: string, input: CreateTransferInput): TransferLi
     passengerCapacity: input.passengerCapacity,
     luggageCapacity: input.luggageCapacity,
     features: [],
-    coverageArea: input.coverageArea,
+    coverageArea,
+    country: input.country ?? "",
+    adminLevel1: input.adminLevel1 ?? "",
+    city: input.city ?? "",
+    area: input.area ?? "",
     operatingHours: "",
     currency: "NGN",
     baseFare: input.baseFare ?? 0,

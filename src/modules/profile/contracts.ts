@@ -11,6 +11,7 @@ export type PartnerProfileData = {
   operatingCountries: string[];
   operatingRegions: string[];
   operatingCities: string[];
+  operatingCoverage?: Array<{ country: string; adminLevel1: string; city: string }>;
   coverageNotes: string;
   payoutMethod: "bank_transfer" | "mobile_money" | "";
   settlementCurrency: "GBP" | "NGN" | "USD" | "";
@@ -37,4 +38,6 @@ export type ProfileApi = {
   getOnboarding(userId: string): Promise<PartnerOnboarding>;
   saveStep(userId: string, step: OnboardingStepKey, data: Partial<PartnerProfileData>): Promise<PartnerOnboarding>;
   submitOnboarding(userId: string): Promise<PartnerOnboarding>;
+  listGeographyCountries(userId: string, q?: string): Promise<string[]>;
+  listGeographyAdminLevel1(userId: string, country: string, q?: string): Promise<string[]>;
 };

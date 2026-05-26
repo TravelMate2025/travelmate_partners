@@ -6,7 +6,6 @@ const REQUIRED_BY_STEP: Record<OnboardingStepKey, Array<keyof PartnerProfileData
   operations: [
     "operatingCountries",
     "operatingRegions",
-    "operatingCities",
     "payoutMethod",
     "settlementCurrency",
     "payoutSchedule",

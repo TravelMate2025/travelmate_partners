@@ -38,7 +38,6 @@ describe("profile checklist", () => {
 
     data.operatingCountries = ["Nigeria"];
     data.operatingRegions = ["Lagos"];
-    data.operatingCities = ["Ikeja"];
     data.payoutMethod = "bank_transfer";
     data.settlementCurrency = "NGN";
     data.payoutSchedule = "weekly";

@@ -2,6 +2,7 @@
 
 import { FormEvent } from "react";
 
+import { TypeaheadInput } from "@/components/common/typeahead-input";
 import { operatingCountryOptions } from "@/modules/profile/location-options";
 import { stayTimeOptions } from "@/modules/stays/time-options";
 import type { TransferListing } from "@/modules/transfers/contracts";
@@ -20,8 +21,11 @@ type Props = {
   openTime: string;
   closeTime: string;
   selectedCountry: string;
+  selectedAdminLevel1: string;
   selectedCity: string;
+  selectedArea: string;
   citySearch: string;
+  availableRegions: string[];
   selectedVehicleClass: string;
   vehicleClassOptions: Array<{ value: string; label: string }>;
   filteredCities: string[];
@@ -33,7 +37,9 @@ type Props = {
   onSetOpenTime: (v: string) => void;
   onSetCloseTime: (v: string) => void;
   onSetCountry: (v: string) => void;
+  onSetAdminLevel1: (v: string) => void;
   onSetCity: (v: string) => void;
+  onSetArea: (v: string) => void;
   onSetCitySearch: (v: string) => void;
   onSetVehicleClass: (v: string) => void;
 };
@@ -47,8 +53,11 @@ export function TransferDetailsForm({
   openTime,
   closeTime,
   selectedCountry,
+  selectedAdminLevel1,
   selectedCity,
+  selectedArea,
   citySearch,
+  availableRegions,
   selectedVehicleClass,
   vehicleClassOptions,
   filteredCities,
@@ -60,7 +69,9 @@ export function TransferDetailsForm({
   onSetOpenTime,
   onSetCloseTime,
   onSetCountry,
+  onSetAdminLevel1,
   onSetCity,
+  onSetArea,
   onSetCitySearch,
   onSetVehicleClass,
 }: Props) {
@@ -121,26 +132,22 @@ export function TransferDetailsForm({
             ))}
           </select>
         </label>
-        <label className="tm-field">
-          <span className="tm-field-label">Country</span>
-          <select
-            className="tm-input"
-            name="country"
-            value={selectedCountry}
-            disabled={disabled}
-            onChange={(e) => {
-              onSetCountry(e.target.value);
-              onSetCity("");
-              onSetCitySearch("");
-            }}
-            required
-          >
-            <option value="" disabled>Select country</option>
-            {operatingCountryOptions.map((country) => (
-              <option key={country} value={country}>{country}</option>
-            ))}
-          </select>
-        </label>
+        <TypeaheadInput
+          label="Country"
+          placeholder="Search country"
+          value={selectedCountry}
+          disabled={disabled}
+          options={[...operatingCountryOptions]}
+          onSelect={onSetCountry}
+        />
+        <TypeaheadInput
+          label="State / Region"
+          placeholder="Search state or region"
+          value={selectedAdminLevel1}
+          disabled={disabled || !selectedCountry}
+          options={availableRegions}
+          onSelect={onSetAdminLevel1}
+        />
         <label className="tm-field">
           <span className="tm-field-label">City</span>
           <input
@@ -163,6 +170,20 @@ export function TransferDetailsForm({
               <option key={city} value={city}>{city}</option>
             ))}
           </select>
+          {item.cityReviewStatus === "pending" ? (
+            <p className="mt-2 text-xs text-amber-700">
+              This city is pending moderation review. You can submit this listing, but admin cannot approve it until city review is completed.
+            </p>
+          ) : null}
+          {item.cityReviewStatus === "rejected" ? (
+            <p className="mt-2 text-xs text-rose-700">
+              This city was rejected during moderation. Select an approved city before submitting.
+            </p>
+          ) : null}
+        </label>
+        <label className="tm-field">
+          <span className="tm-field-label">Area</span>
+          <input className="tm-input" name="area" value={selectedArea} disabled={disabled} onChange={(e) => onSetArea(e.target.value)} required />
         </label>
         <div className="tm-field">
           <span className="tm-field-label">Coverage Area</span>

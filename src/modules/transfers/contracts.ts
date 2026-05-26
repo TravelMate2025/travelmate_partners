@@ -37,6 +37,11 @@ export type TransferListing = {
   luggageCapacity: number;
   features: string[];
   coverageArea: string;
+  country?: string;
+  adminLevel1?: string;
+  city?: string;
+  area?: string;
+  cityReviewStatus?: "pending" | "approved" | "rejected" | null;
   operatingHours: string;
   currency: string;
   baseFare: number;
@@ -58,7 +63,11 @@ export type CreateTransferInput = {
   vehicleClass: string;
   passengerCapacity: number;
   luggageCapacity: number;
-  coverageArea: string;
+  coverageArea?: string;
+  country?: string;
+  adminLevel1?: string;
+  city?: string;
+  area?: string;
 };
 
 export type UpdateTransferInput = Partial<
@@ -74,6 +83,10 @@ export type UpdateTransferInput = Partial<
     | "luggageCapacity"
     | "features"
     | "coverageArea"
+    | "country"
+    | "adminLevel1"
+    | "city"
+    | "area"
     | "operatingHours"
     | "currency"
     | "baseFare"

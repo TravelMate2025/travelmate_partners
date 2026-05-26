@@ -2,6 +2,7 @@
 
 import { FormEvent } from "react";
 
+import { TypeaheadInput } from "@/components/common/typeahead-input";
 import { operatingCountryOptions } from "@/modules/profile/location-options";
 import { getSaleModeContent } from "@/modules/stays/property-type-options";
 import { stayTimeOptions } from "@/modules/stays/time-options";
@@ -15,8 +16,11 @@ type Props = {
   selectedAmenities: string[];
   selectedPropertyType: string;
   selectedCountry: string;
+  selectedAdminLevel1: string;
   selectedCity: string;
+  selectedArea: string;
   citySearch: string;
+  availableRegions: string[];
   propertyTypeOptions: Array<{ value: string; label: string }>;
   amenityOptions: Array<{ value: string; label: string }>;
   filteredCities: string[];
@@ -27,7 +31,9 @@ type Props = {
   onToggleAmenity: (value: string) => void;
   onSetPropertyType: (v: string) => void;
   onSetCountry: (v: string) => void;
+  onSetAdminLevel1: (v: string) => void;
   onSetCity: (v: string) => void;
+  onSetArea: (v: string) => void;
   onSetCitySearch: (v: string) => void;
 };
 
@@ -38,8 +44,11 @@ export function StayDetailsForm({
   selectedAmenities,
   selectedPropertyType,
   selectedCountry,
+  selectedAdminLevel1,
   selectedCity,
+  selectedArea,
   citySearch,
+  availableRegions,
   propertyTypeOptions,
   amenityOptions,
   filteredCities,
@@ -50,7 +59,9 @@ export function StayDetailsForm({
   onToggleAmenity,
   onSetPropertyType,
   onSetCountry,
+  onSetAdminLevel1,
   onSetCity,
+  onSetArea,
   onSetCitySearch,
 }: Props) {
   const disabled = !canEditDetails || saving;
@@ -101,6 +112,14 @@ export function StayDetailsForm({
           <input className="tm-input" name="address" defaultValue={stay.address} disabled={disabled} placeholder="Address" />
         </label>
         <div className="grid gap-3 md:grid-cols-2">
+          <TypeaheadInput
+            label="State / Region"
+            placeholder="Search state or region"
+            value={selectedAdminLevel1}
+            disabled={disabled || !selectedCountry}
+            options={availableRegions}
+            onSelect={onSetAdminLevel1}
+          />
           <label className="tm-field">
             <span className="tm-field-label">City</span>
             <input
@@ -123,26 +142,28 @@ export function StayDetailsForm({
                 <option key={city} value={city}>{city}</option>
               ))}
             </select>
+            {stay.cityReviewStatus === "pending" ? (
+              <p className="mt-2 text-xs text-amber-700">
+                This city is pending moderation review. You can submit this listing, but admin cannot approve it until city review is completed.
+              </p>
+            ) : null}
+            {stay.cityReviewStatus === "rejected" ? (
+              <p className="mt-2 text-xs text-rose-700">
+                This city was rejected during moderation. Select an approved city before submitting.
+              </p>
+            ) : null}
           </label>
+          <TypeaheadInput
+            label="Country"
+            placeholder="Search country"
+            value={selectedCountry}
+            disabled={disabled}
+            options={[...operatingCountryOptions]}
+            onSelect={onSetCountry}
+          />
           <label className="tm-field">
-            <span className="tm-field-label">Country</span>
-            <select
-              className="tm-input"
-              name="country"
-              value={selectedCountry}
-              disabled={disabled}
-              onChange={(e) => {
-                onSetCountry(e.target.value);
-                onSetCity("");
-                onSetCitySearch("");
-              }}
-              required
-            >
-              <option value="" disabled>Select country</option>
-              {operatingCountryOptions.map((country) => (
-                <option key={country} value={country}>{country}</option>
-              ))}
-            </select>
+            <span className="tm-field-label">Area</span>
+            <input className="tm-input" name="area" value={selectedArea} disabled={disabled} onChange={(e) => onSetArea(e.target.value)} required />
           </label>
         </div>
         <div className="grid gap-3 md:grid-cols-2">

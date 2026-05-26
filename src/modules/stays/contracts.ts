@@ -52,6 +52,9 @@ export type StayListing = {
   address: string;
   city: string;
   country: string;
+  adminLevel1?: string;
+  area?: string;
+  cityReviewStatus?: "pending" | "approved" | "rejected" | null;
   latitude?: string;
   longitude?: string;
   amenities: string[];
@@ -74,6 +77,8 @@ export type CreateStayInput = {
   address: string;
   city: string;
   country: string;
+  adminLevel1?: string;
+  area?: string;
 };
 
 export type UpdateStayInput = Partial<
@@ -85,6 +90,8 @@ export type UpdateStayInput = Partial<
     | "address"
     | "city"
     | "country"
+    | "adminLevel1"
+    | "area"
     | "latitude"
     | "longitude"
     | "amenities"

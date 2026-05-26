@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { FALLBACK_SPACE_TYPES, fetchCatalogOptions } from "@/modules/catalog/catalog-options-client";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { buildStayQualityReport } from "@/modules/data-quality/listing-quality";
-import { localityOptionsByCountry, operatingCountryOptions } from "@/modules/profile/location-options";
+import {
+  operatingCityOptionsByCountryRegion,
+  operatingCountryOptions,
+  operatingRegionOptionsByCountry,
+} from "@/modules/profile/location-options";
 import { stayAmenityOptions } from "@/modules/stays/amenity-options";
 import { normalizeStayPropertyType, stayPropertyTypeOptions } from "@/modules/stays/property-type-options";
 import { stayTimeOptions } from "@/modules/stays/time-options";
@@ -59,7 +63,9 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
   const [roomMaxPerBooking, setRoomMaxPerBooking] = useState("1");
   const [roomFormMessage, setRoomFormMessage] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedAdminLevel1, setSelectedAdminLevel1] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
+  const [selectedArea, setSelectedArea] = useState("");
   const [citySearch, setCitySearch] = useState("");
   const [selectedPropertyType, setSelectedPropertyType] = useState("");
   const [propertyTypeOptions, setPropertyTypeOptions] = useState<Array<{ value: string; label: string }>>(
@@ -72,29 +78,54 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     FALLBACK_SPACE_TYPES.map((item) => ({ value: item.code, label: item.label })),
   );
 
-  const availableCities = selectedCountry
-    ? (localityOptionsByCountry[selectedCountry as keyof typeof localityOptionsByCountry] ?? [])
-    : [];
+  const availableRegions = selectedCountry ? (operatingRegionOptionsByCountry[selectedCountry] ?? []) : [];
+  const availableCities =
+    selectedCountry && selectedAdminLevel1
+      ? (operatingCityOptionsByCountryRegion[selectedCountry]?.[selectedAdminLevel1] ?? [])
+      : [];
   const knownPropertyTypeValues = new Set(propertyTypeOptions.map((item) => item.value));
   const knownAmenityValues = new Set(amenityOptions.map((item) => item.value));
-  const filteredCities = citySearch.trim()
+  const filteredCitiesBase = citySearch.trim()
     ? availableCities.filter((city) => city.toLowerCase().includes(citySearch.trim().toLowerCase()))
     : availableCities;
+  const filteredCities =
+    selectedCity && !filteredCitiesBase.some((city) => city.toLowerCase() === selectedCity.toLowerCase())
+      ? [selectedCity, ...filteredCitiesBase]
+      : filteredCitiesBase;
 
   function applyStayToState(item: StayListing) {
     setSelectedAmenities(item.amenities);
     setSelectedPropertyType(normalizeStayPropertyType(item.propertyType));
     const normalizedCountry = normalizeCountry(item.country);
     setSelectedCountry(normalizedCountry);
+    setSelectedAdminLevel1(item.adminLevel1 ?? "");
     if (normalizedCountry) {
-      const localities =
-        localityOptionsByCountry[normalizedCountry as keyof typeof localityOptionsByCountry] ?? [];
+      const regions = operatingRegionOptionsByCountry[normalizedCountry] ?? [];
+      const localities = regions.flatMap(
+        (region) => operatingCityOptionsByCountryRegion[normalizedCountry]?.[region] ?? [],
+      );
       setSelectedCity(
-        localities.find((l) => l.toLowerCase() === item.city.trim().toLowerCase()) ?? "",
+        localities.find((l) => l.toLowerCase() === item.city.trim().toLowerCase()) ?? item.city.trim(),
       );
     } else {
-      setSelectedCity("");
+      setSelectedCity(item.city.trim());
     }
+    setSelectedArea(item.area ?? item.city ?? "");
+    setCitySearch("");
+  }
+
+  function setCountrySelection(value: string) {
+    setSelectedCountry(value);
+    setSelectedAdminLevel1("");
+    setSelectedCity("");
+    setSelectedArea("");
+    setCitySearch("");
+  }
+
+  function setAdminLevel1Selection(value: string) {
+    setSelectedAdminLevel1(value);
+    setSelectedCity("");
+    setSelectedArea("");
     setCitySearch("");
   }
 
@@ -102,7 +133,6 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     if (!userId) return;
 
     let active = true;
-    setStay(null);
     setAppeal(null);
     setShowAppealForm(false);
     setAppealMessage("");
@@ -214,6 +244,8 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
         address: String(form.get("address") ?? ""),
         city: selectedCity,
         country: selectedCountry,
+        adminLevel1: selectedAdminLevel1,
+        area: selectedArea,
         latitude: String(form.get("latitude") ?? ""),
         longitude: String(form.get("longitude") ?? ""),
         amenities: selectedAmenities,
@@ -451,8 +483,11 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     roomMaxPerBooking,
     roomFormMessage,
     selectedCountry,
+    selectedAdminLevel1,
     selectedCity,
+    selectedArea,
     citySearch,
+    availableRegions,
     selectedPropertyType,
     propertyTypeOptions,
     amenityOptions,
@@ -475,8 +510,10 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     setRoomIsBookable,
     setRoomTotalInventory,
     setRoomMaxPerBooking,
-    setSelectedCountry,
+    setSelectedCountry: setCountrySelection,
+    setSelectedAdminLevel1: setAdminLevel1Selection,
     setSelectedCity,
+    setSelectedArea,
     setCitySearch,
     setSelectedPropertyType,
     refresh,

@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { fetchCatalogOptions } from "@/modules/catalog/catalog-options-client";
 import { buildTransferQualityReport } from "@/modules/data-quality/listing-quality";
 import { useToastMessage } from "@/components/common/use-toast-message";
-import { localityOptionsByCountry, operatingCountryOptions } from "@/modules/profile/location-options";
+import {
+  operatingCityOptionsByCountryRegion,
+  operatingCountryOptions,
+  operatingRegionOptionsByCountry,
+} from "@/modules/profile/location-options";
 import type { ListingAppeal, TransferListing, TransferStatus, TransferType } from "@/modules/transfers/contracts";
 import { transfersClient } from "@/modules/transfers/transfers-client";
 import { normalizeTransferVehicleClass, transferVehicleClassOptions } from "@/modules/transfers/vehicle-options";
@@ -59,9 +63,9 @@ function parseCoverageArea(value: string): { country: string; city: string } | n
   const [cityRaw, countryRaw] = parts;
   const country = normalizeCountry(countryRaw);
   if (!country) return null;
-  const localities = localityOptionsByCountry[country as keyof typeof localityOptionsByCountry] ?? [];
-  const city = localities.find((entry) => entry.toLowerCase() === cityRaw.toLowerCase()) ?? "";
-  if (!city) return null;
+  const regions = operatingRegionOptionsByCountry[country] ?? [];
+  const cities = regions.flatMap((region) => operatingCityOptionsByCountryRegion[country]?.[region] ?? []);
+  const city = cities.find((entry) => entry.toLowerCase() === cityRaw.toLowerCase()) ?? cityRaw;
   return { country, city };
 }
 
@@ -102,27 +106,49 @@ export function useTransferDetail(userId: string | undefined, transferId: string
   const [openTime, setOpenTime] = useState(DEFAULT_OPEN);
   const [closeTime, setCloseTime] = useState(DEFAULT_CLOSE);
   const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedAdminLevel1, setSelectedAdminLevel1] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
+  const [selectedArea, setSelectedArea] = useState("");
   const [citySearch, setCitySearch] = useState("");
   const [selectedVehicleClass, setSelectedVehicleClass] = useState("");
   const [vehicleClassOptions, setVehicleClassOptions] = useState<Array<{ value: string; label: string }>>(
     [...transferVehicleClassOptions],
   );
 
-  const availableCities = selectedCountry
-    ? (localityOptionsByCountry[selectedCountry as keyof typeof localityOptionsByCountry] ?? [])
-    : [];
+  const availableRegions = selectedCountry ? (operatingRegionOptionsByCountry[selectedCountry] ?? []) : [];
+  const availableCities =
+    selectedCountry && selectedAdminLevel1
+      ? (operatingCityOptionsByCountryRegion[selectedCountry]?.[selectedAdminLevel1] ?? [])
+      : [];
   const knownVehicleClassValues = new Set(vehicleClassOptions.map((opt) => opt.value));
   const knownFeatureValues = new Set(TRANSFER_FEATURE_OPTIONS.map((opt) => opt.value));
-  const filteredCities = citySearch.trim()
+  const filteredCitiesBase = citySearch.trim()
     ? availableCities.filter((city) => city.toLowerCase().includes(citySearch.trim().toLowerCase()))
     : availableCities;
+  const filteredCities =
+    selectedCity && !filteredCitiesBase.some((city) => city.toLowerCase() === selectedCity.toLowerCase())
+      ? [selectedCity, ...filteredCitiesBase]
+      : filteredCitiesBase;
+
+  function setCountrySelection(value: string) {
+    setSelectedCountry(value);
+    setSelectedAdminLevel1("");
+    setSelectedCity("");
+    setSelectedArea("");
+    setCitySearch("");
+  }
+
+  function setAdminLevel1Selection(value: string) {
+    setSelectedAdminLevel1(value);
+    setSelectedCity("");
+    setSelectedArea("");
+    setCitySearch("");
+  }
 
   useEffect(() => {
     if (!userId) return;
 
     let active = true;
-    setItem(null);
     setAppeal(null);
     setShowAppealForm(false);
     setAppealMessage("");
@@ -157,8 +183,10 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         const parsedHours = parseOperatingHours(normalizedResult.operatingHours);
         setOpenTime(parsedHours.open);
         setCloseTime(parsedHours.close);
-        setSelectedCountry(parsedCoverage?.country ?? "");
-        setSelectedCity(parsedCoverage?.city ?? "");
+        setSelectedCountry(parsedCoverage?.country ?? normalizeCountry(normalizedResult.country ?? "") ?? "");
+        setSelectedCity(parsedCoverage?.city ?? (normalizedResult.city ?? ""));
+        setSelectedAdminLevel1(normalizedResult.adminLevel1 ?? "");
+        setSelectedArea(normalizedResult.area ?? normalizedResult.city ?? "");
         setCitySearch("");
         setSelectedVehicleClass(normalizeTransferVehicleClass(normalizedResult.vehicleClass));
 
@@ -238,6 +266,10 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         luggageCapacity: Number(form.get("luggageCapacity") ?? 0),
         features: selectedFeatures,
         coverageArea: `${selectedCity}, ${selectedCountry}`,
+        country: selectedCountry,
+        adminLevel1: selectedAdminLevel1,
+        city: selectedCity,
+        area: selectedArea,
         operatingHours: `${openTime}-${closeTime}`,
         currency: selectedCurrency,
         baseFare: Number(form.get("baseFare") ?? 0),
@@ -389,8 +421,11 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     openTime,
     closeTime,
     selectedCountry,
+    selectedAdminLevel1,
     selectedCity,
+    selectedArea,
     citySearch,
+    availableRegions,
     selectedVehicleClass,
     vehicleClassOptions,
     availableCities,
@@ -406,8 +441,10 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setSelectedCurrency,
     setOpenTime,
     setCloseTime,
-    setSelectedCountry,
+    setSelectedCountry: setCountrySelection,
+    setSelectedAdminLevel1: setAdminLevel1Selection,
     setSelectedCity,
+    setSelectedArea,
     setCitySearch,
     setSelectedVehicleClass,
     saveDetails,

@@ -99,8 +99,11 @@ export default function TransferDetailPage() {
         openTime={detail.openTime}
         closeTime={detail.closeTime}
         selectedCountry={detail.selectedCountry}
+        selectedAdminLevel1={detail.selectedAdminLevel1}
         selectedCity={detail.selectedCity}
+        selectedArea={detail.selectedArea}
         citySearch={detail.citySearch}
+        availableRegions={detail.availableRegions}
         selectedVehicleClass={detail.selectedVehicleClass}
         vehicleClassOptions={detail.vehicleClassOptions}
         filteredCities={detail.filteredCities}
@@ -111,12 +114,10 @@ export default function TransferDetailPage() {
         onSetCurrency={detail.setSelectedCurrency}
         onSetOpenTime={detail.setOpenTime}
         onSetCloseTime={detail.setCloseTime}
-        onSetCountry={(v) => {
-          detail.setSelectedCountry(v);
-          detail.setSelectedCity("");
-          detail.setCitySearch("");
-        }}
+        onSetCountry={detail.setSelectedCountry}
+        onSetAdminLevel1={detail.setSelectedAdminLevel1}
         onSetCity={detail.setSelectedCity}
+        onSetArea={detail.setSelectedArea}
         onSetCitySearch={detail.setCitySearch}
         onSetVehicleClass={detail.setSelectedVehicleClass}
       />

@@ -117,8 +117,11 @@ export default function StayDetailPage() {
             selectedAmenities={detail.selectedAmenities}
             selectedPropertyType={detail.selectedPropertyType}
             selectedCountry={detail.selectedCountry}
+            selectedAdminLevel1={detail.selectedAdminLevel1}
             selectedCity={detail.selectedCity}
+            selectedArea={detail.selectedArea}
             citySearch={detail.citySearch}
+            availableRegions={detail.availableRegions}
             propertyTypeOptions={detail.propertyTypeOptions}
             amenityOptions={detail.amenityOptions}
             filteredCities={detail.filteredCities}
@@ -128,12 +131,10 @@ export default function StayDetailPage() {
             onRefresh={detail.refresh}
             onToggleAmenity={detail.toggleAmenity}
             onSetPropertyType={detail.setSelectedPropertyType}
-            onSetCountry={(v) => {
-              detail.setSelectedCountry(v);
-              detail.setSelectedCity("");
-              detail.setCitySearch("");
-            }}
+            onSetCountry={detail.setSelectedCountry}
+            onSetAdminLevel1={detail.setSelectedAdminLevel1}
             onSetCity={detail.setSelectedCity}
+            onSetArea={detail.setSelectedArea}
             onSetCitySearch={detail.setCitySearch}
           />
 

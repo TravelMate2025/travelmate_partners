@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { authClient } from "@/modules/auth/auth-client";
+import { TypeaheadInput } from "@/components/common/typeahead-input";
 import { getErrorMessage, isAuthenticationError } from "@/modules/auth/http-errors";
 import { onboardingProgress } from "@/modules/profile/checklist";
 import type { OnboardingStepKey, PartnerOnboarding, PartnerProfileData } from "@/modules/profile/contracts";
@@ -34,6 +35,8 @@ export default function OnboardingPage() {
   const [stepIndex, setStepIndex] = useState(0);
   const [onboarding, setOnboarding] = useState<PartnerOnboarding | null>(null);
   const [formData, setFormData] = useState<PartnerProfileData | null>(null);
+  const [countrySuggestions, setCountrySuggestions] = useState<string[]>([]);
+  const [adminLevel1Suggestions, setAdminLevel1Suggestions] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -92,19 +95,6 @@ export default function OnboardingPage() {
         : [],
     [formData, onboarding],
   );
-  const availableCities = useMemo(
-    () =>
-      formData
-        ? formData.operatingCountries.flatMap((country) =>
-            formData.operatingRegions.flatMap(
-              (region) =>
-                onboarding?.options?.citiesByCountryRegion[country]?.[region] ??
-                [...(operatingCityOptionsByCountryRegion[country]?.[region] ?? [])],
-            ),
-          )
-        : [],
-    [formData, onboarding],
-  );
 
   if (loading || !onboarding || !formData) {
     if (!loading && loadError) {
@@ -155,9 +145,39 @@ export default function OnboardingPage() {
                 supportContactEmail: currentData.supportContactEmail,
               }
             : {
+                operatingCoverage: currentData.operatingCountries.flatMap((country) => {
+                  const countryRegions =
+                    onboarding.options?.regionsByCountry[country] ??
+                    [...(operatingRegionOptionsByCountry[country as keyof typeof operatingRegionOptionsByCountry] ?? [])];
+                  const selectedRegions = currentData.operatingRegions.filter((region) =>
+                    countryRegions.includes(region),
+                  );
+                  return selectedRegions.flatMap((adminLevel1) => {
+                    const regionCities =
+                      onboarding.options?.citiesByCountryRegion[country]?.[adminLevel1] ??
+                      [...(operatingCityOptionsByCountryRegion[country]?.[adminLevel1] ?? [])];
+                    return regionCities.map((city) => ({
+                      country,
+                      adminLevel1,
+                      city,
+                    }));
+                  });
+                }),
                 operatingCountries: currentData.operatingCountries,
                 operatingRegions: currentData.operatingRegions,
-                operatingCities: currentData.operatingCities,
+                operatingCities: currentData.operatingCountries.flatMap((country) => {
+                  const countryRegions =
+                    onboarding.options?.regionsByCountry[country] ??
+                    [...(operatingRegionOptionsByCountry[country as keyof typeof operatingRegionOptionsByCountry] ?? [])];
+                  const selectedRegions = currentData.operatingRegions.filter((region) =>
+                    countryRegions.includes(region),
+                  );
+                  return selectedRegions.flatMap(
+                    (adminLevel1) =>
+                      onboarding.options?.citiesByCountryRegion[country]?.[adminLevel1] ??
+                      [...(operatingCityOptionsByCountryRegion[country]?.[adminLevel1] ?? [])],
+                  );
+                }),
                 coverageNotes: currentData.coverageNotes,
                 payoutMethod: currentData.payoutMethod,
                 settlementCurrency: currentData.settlementCurrency,
@@ -200,7 +220,7 @@ export default function OnboardingPage() {
     }
   }
 
-  function toggleListValue(field: "operatingCountries" | "operatingRegions" | "operatingCities", value: string) {
+  function toggleListValue(field: "operatingCountries" | "operatingRegions", value: string) {
     setFormData((prev) => {
       if (!prev) return prev;
       const current = prev[field];
@@ -245,10 +265,7 @@ export default function OnboardingPage() {
         };
       }
 
-      return {
-        ...prev,
-        operatingCities: nextValues,
-      };
+      return prev;
     });
   }
 
@@ -334,11 +351,25 @@ export default function OnboardingPage() {
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
                   <p className="text-sm font-semibold text-slate-900">Operating coverage</p>
                   <p className="mt-1 text-sm text-slate-600">
-                    Select the countries, regions, and cities you actively serve. This keeps coverage structured for routing, compliance, and reporting.
+                    Select the countries and regions you actively serve. Cities are derived automatically per selected region for structured routing and reporting.
                   </p>
                 </div>
                 <label className="block">
                   <span className="mb-2 block text-sm font-medium text-slate-700">Operating countries</span>
+                  <TypeaheadInput
+                    label="Find country"
+                    placeholder="Type country name"
+                    options={countrySuggestions.length > 0 ? countrySuggestions : countryOptions}
+                    onQueryChange={(query) => {
+                      const raw = query.trim().toLowerCase();
+                      setCountrySuggestions(raw ? countryOptions.filter((entry) => entry.toLowerCase().includes(raw)) : countryOptions);
+                    }}
+                    onSelect={(value) => {
+                      if (!formData.operatingCountries.includes(value)) {
+                        toggleListValue("operatingCountries", value);
+                      }
+                    }}
+                  />
                   <div className="grid gap-2 sm:grid-cols-2">
                     {countryOptions.map((country) => (
                       <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700" key={country}>
@@ -354,6 +385,21 @@ export default function OnboardingPage() {
                 </label>
                 <label className="block">
                   <span className="mb-2 block text-sm font-medium text-slate-700">Operating states / regions</span>
+                  <TypeaheadInput
+                    label="Find state / region"
+                    placeholder="Type state or region"
+                    disabled={formData.operatingCountries.length === 0}
+                    options={adminLevel1Suggestions.length > 0 ? adminLevel1Suggestions : availableRegions}
+                    onQueryChange={(query) => {
+                      const raw = query.trim().toLowerCase();
+                      setAdminLevel1Suggestions(raw ? availableRegions.filter((entry) => entry.toLowerCase().includes(raw)) : availableRegions);
+                    }}
+                    onSelect={(value) => {
+                      if (!formData.operatingRegions.includes(value)) {
+                        toggleListValue("operatingRegions", value);
+                      }
+                    }}
+                  />
                   <div className="grid gap-2 sm:grid-cols-2">
                     {availableRegions.length > 0 ? (
                       availableRegions.map((region) => (
@@ -368,25 +414,6 @@ export default function OnboardingPage() {
                       ))
                     ) : (
                       <p className="text-sm text-slate-500">Select at least one country to choose states or regions.</p>
-                    )}
-                  </div>
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-slate-700">Operating cities</span>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {availableCities.length > 0 ? (
-                      availableCities.map((city) => (
-                        <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700" key={city}>
-                          <input
-                            checked={formData.operatingCities.includes(city)}
-                            onChange={() => toggleListValue("operatingCities", city)}
-                            type="checkbox"
-                          />
-                          <span>{city}</span>
-                        </label>
-                      ))
-                    ) : (
-                      <p className="text-sm text-slate-500">Select at least one region to choose cities.</p>
                     )}
                   </div>
                 </label>

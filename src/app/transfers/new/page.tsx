@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 
 import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
+import { TypeaheadInput } from "@/components/common/typeahead-input";
 import { fetchCatalogOptions } from "@/modules/catalog/catalog-options-client";
-import { localityOptionsByCountry, operatingCountryOptions } from "@/modules/profile/location-options";
+import { operatingCityOptionsByCountryRegion, operatingCountryOptions, operatingRegionOptionsByCountry } from "@/modules/profile/location-options";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import type { TransferType } from "@/modules/transfers/contracts";
 import { transfersClient } from "@/modules/transfers/transfers-client";
@@ -19,18 +20,19 @@ export default function NewTransferPage() {
   const [message, setMessage] = useState("");
   useToastMessage(message);
   const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedAdminLevel1, setSelectedAdminLevel1] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
-  const [citySearch, setCitySearch] = useState("");
+  const [area, setArea] = useState("");
+  const [countrySuggestions, setCountrySuggestions] = useState<string[]>([]);
+  const [adminLevel1Suggestions, setAdminLevel1Suggestions] = useState<string[]>([]);
+  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
   const [vehicleClassOptions, setVehicleClassOptions] = useState<Array<{ value: string; label: string }>>(
     [...transferVehicleClassOptions],
   );
 
-  const availableCities = selectedCountry
-    ? (localityOptionsByCountry[selectedCountry as keyof typeof localityOptionsByCountry] ?? [])
+  const availableCities = selectedCountry && selectedAdminLevel1
+    ? (operatingCityOptionsByCountryRegion[selectedCountry]?.[selectedAdminLevel1] ?? [])
     : [];
-  const filteredCities = citySearch.trim()
-    ? availableCities.filter((city) => city.toLowerCase().includes(citySearch.trim().toLowerCase()))
-    : availableCities;
 
   useEffect(() => {
     let active = true;
@@ -73,7 +75,10 @@ export default function NewTransferPage() {
         vehicleClass: String(form.get("vehicleClass") ?? ""),
         passengerCapacity: Number(form.get("passengerCapacity") ?? 0),
         luggageCapacity: Number(form.get("luggageCapacity") ?? 0),
-        coverageArea: `${selectedCity}, ${selectedCountry}`,
+        country: selectedCountry,
+        adminLevel1: selectedAdminLevel1,
+        city: selectedCity,
+        area,
       });
 
       router.push(`/transfers/${item.id}`);
@@ -145,54 +150,68 @@ export default function NewTransferPage() {
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
+            <TypeaheadInput
+              label="Country"
+              placeholder="Type country"
+              value={selectedCountry}
+              options={countrySuggestions.length > 0 ? countrySuggestions : [...operatingCountryOptions]}
+              onQueryChange={(query) => {
+                const raw = query.trim().toLowerCase();
+                const rows = [...operatingCountryOptions];
+                setCountrySuggestions(raw ? rows.filter((entry) => entry.toLowerCase().includes(raw)) : rows);
+              }}
+              onSelect={(value) => {
+                setSelectedCountry(value);
+                setSelectedAdminLevel1("");
+                setSelectedCity("");
+                setArea("");
+                setAdminLevel1Suggestions([]);
+                setCitySuggestions([]);
+              }}
+            />
+            <TypeaheadInput
+              label="State / Region"
+              placeholder="Type state or region"
+              value={selectedAdminLevel1}
+              options={
+                adminLevel1Suggestions.length > 0
+                  ? adminLevel1Suggestions
+                  : [...(operatingRegionOptionsByCountry[selectedCountry as keyof typeof operatingRegionOptionsByCountry] ?? [])]
+              }
+              disabled={!selectedCountry}
+              onQueryChange={(query) => {
+                const source = [...(operatingRegionOptionsByCountry[selectedCountry as keyof typeof operatingRegionOptionsByCountry] ?? [])];
+                const raw = query.trim().toLowerCase();
+                setAdminLevel1Suggestions(raw ? source.filter((entry) => entry.toLowerCase().includes(raw)) : source);
+              }}
+              onSelect={(value) => {
+                setSelectedAdminLevel1(value);
+                setSelectedCity("");
+                setArea("");
+                setCitySuggestions([]);
+              }}
+            />
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <TypeaheadInput
+              label="City"
+              placeholder="Type city"
+              value={selectedCity}
+              options={citySuggestions.length > 0 ? citySuggestions : availableCities}
+              allowCustomValue
+              disabled={!selectedAdminLevel1}
+              onQueryChange={(query) => {
+                const raw = query.trim().toLowerCase();
+                setCitySuggestions(raw ? availableCities.filter((entry) => entry.toLowerCase().includes(raw)) : availableCities);
+              }}
+              onSelect={(value) => {
+                setSelectedCity(value);
+                setArea(value);
+              }}
+            />
             <label className="tm-field">
-              <span className="tm-field-label">Country</span>
-              <select
-                className="tm-input"
-                name="country"
-                value={selectedCountry}
-                onChange={(event) => {
-                  const nextCountry = event.target.value;
-                  setSelectedCountry(nextCountry);
-                  setSelectedCity("");
-                  setCitySearch("");
-                }}
-                required
-              >
-                <option value="" disabled>
-                  Select country
-                </option>
-                {operatingCountryOptions.map((country) => (
-                  <option key={country} value={country}>
-                    {country}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="tm-field">
-              <span className="tm-field-label">City</span>
-              <input
-                className="tm-input mb-2"
-                placeholder="Search city"
-                value={citySearch}
-                onChange={(event) => setCitySearch(event.target.value)}
-              />
-              <select
-                className="tm-input"
-                name="city"
-                value={selectedCity}
-                onChange={(event) => setSelectedCity(event.target.value)}
-                required
-              >
-                <option value="" disabled>
-                  Select city
-                </option>
-                {filteredCities.map((city) => (
-                  <option key={city} value={city}>
-                    {city}
-                  </option>
-                ))}
-              </select>
+              <span className="tm-field-label">Area</span>
+              <input className="tm-input" name="area" value={area} onChange={(event) => setArea(event.target.value)} required />
             </label>
           </div>
 
