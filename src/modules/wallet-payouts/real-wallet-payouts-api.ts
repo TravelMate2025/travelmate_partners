@@ -19,10 +19,12 @@ export const realWalletPayoutsApi: WalletPayoutsApi = {
   },
 
   async listSettlements(userId: string): Promise<SettlementRecord[]> {
-    const response = await apiRequest<Envelope<SettlementRecord[]>>(
-      `/partners/${userId}/wallet/settlements`,
-    );
-    return response.data;
+    const response = await apiRequest<
+      Envelope<{ results: SettlementRecord[]; total: number; page: number; pageSize: number }>
+    >(`/partners/${userId}/wallet/settlements`);
+    // Backend now returns a paginated envelope; extract the results array so
+    // callers continue to receive SettlementRecord[] without change.
+    return response.data.results;
   },
 
   async getSettlementSettings(userId: string): Promise<SettlementSettings> {
