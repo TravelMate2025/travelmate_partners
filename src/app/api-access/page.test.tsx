@@ -148,6 +148,67 @@ describe("ApiAccessPage payment endpoints and responseFields", () => {
       expect(screen.getByText(/inventory.read, payments.read, payments.write/i)).toBeInTheDocument();
     });
   });
+
+  it("renders corrected curl snippets for catalog fallback and quote examples", async () => {
+    getOverviewMock.mockResolvedValue({
+      application: { id: "app-4", status: "approved", credentialMetadata: { revealAvailable: false } },
+      statusOptions: ["approved"],
+    });
+    getCatalogMock.mockResolvedValue({
+      access: {
+        environment: "production",
+        keyStatus: "active",
+        scopes: ["bookings.write"],
+        productLanes: ["bookings"],
+        status: "approved",
+      },
+      endpoints: [],
+      policyExplainer: { blockedGuidance: "", scopeGuide: [] },
+    });
+
+    render(<ApiAccessPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Start with key introspection/i)).toBeInTheDocument();
+    });
+
+    const snippets = screen.getAllByText((content, node) => {
+      if (node?.tagName !== "PRE") {
+        return false;
+      }
+      return content.includes("curl -sS");
+    });
+
+    expect(snippets.some((node) => node.textContent?.includes("http://localhost:8000/api/v1/public/catalog"))).toBe(true);
+    expect(snippets.some((node) => node.textContent?.includes("/api/v1/api/v1/public/catalog"))).toBe(false);
+
+    const quoteSnippet = snippets.find((node) => node.textContent?.includes("/public/bookings/quote"));
+    expect(quoteSnippet?.textContent).toContain('"cancellationOptionId":"FREE_CANCELLATION"');
+    expect(quoteSnippet?.textContent).not.toContain('"baseAmount"');
+    expect(quoteSnippet?.textContent).not.toContain('"taxAmount"');
+    expect(quoteSnippet?.textContent).not.toContain('"feeAmount"');
+  });
+
+  it("does not crash when catalog payload is partial", async () => {
+    getOverviewMock.mockResolvedValue({
+      application: { id: "app-5", status: "approved", credentialMetadata: { revealAvailable: false } },
+      statusOptions: ["approved"],
+    });
+    getCatalogMock.mockResolvedValue({
+      endpoints: [],
+    });
+
+    render(<ApiAccessPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Authorized endpoints: 0/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/Environment: Not assigned/i)).toBeInTheDocument();
+    expect(screen.getByText(/Key status: Not issued/i)).toBeInTheDocument();
+    expect(screen.getByText(/Scopes: None/i)).toBeInTheDocument();
+    expect(screen.getByText(/Products: None/i)).toBeInTheDocument();
+  });
 });
 
 describe("ApiAccessPage overflow hardening", () => {

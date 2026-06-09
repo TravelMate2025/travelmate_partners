@@ -90,13 +90,17 @@ export default function ApiAccessPage() {
 
   const status = overview?.application?.status ?? "no_application";
   const canSubmit = status === "no_application" || status === "rejected" || status === "blocked";
-  const primaryEndpoint = catalog?.endpoints?.[0];
+  const catalogAccess = catalog?.access;
+  const catalogScopes = catalogAccess?.scopes ?? [];
+  const catalogProductLanes = catalogAccess?.productLanes ?? [];
+  const catalogEndpoints = catalog?.endpoints ?? [];
+  const primaryEndpoint = catalogEndpoints[0];
   const sampleCatalogCurl = primaryEndpoint
     ? `curl -sS "${appConfig.apiBaseUrl}${primaryEndpoint.path}" \\\n  -H "X-API-Key-Id: <your_key_id>" \\\n  -H "X-API-Client-Secret: <your_client_secret>"`
-    : `curl -sS "${appConfig.apiBaseUrl}/api/v1/public/catalog" \\\n  -H "X-API-Key-Id: <your_key_id>" \\\n  -H "X-API-Client-Secret: <your_client_secret>"`;
+    : `curl -sS "${appConfig.apiBaseUrl}/public/catalog" \\\n  -H "X-API-Key-Id: <your_key_id>" \\\n  -H "X-API-Client-Secret: <your_client_secret>"`;
   const sampleIntrospectCurl = `curl -sS "${appConfig.apiBaseUrl}/public/auth/introspect" \\\n  -H "X-API-Key-Id: <your_key_id>" \\\n  -H "X-API-Client-Secret: <your_client_secret>"`;
   const sampleBookingsCurl = `curl -sS "${appConfig.apiBaseUrl}/public/bookings?page=1&pageSize=10&status=completed&bookingReference=BOOK&completedFrom=2026-04-01T00:00:00Z&completedTo=2026-05-01T23:59:59Z" \\\n  -H "X-API-Key-Id: <your_key_id>" \\\n  -H "X-API-Client-Secret: <your_client_secret>"`;
-  const sampleQuoteCurl = `curl -sS "${appConfig.apiBaseUrl}/public/bookings/quote" \\\n  -X POST \\\n  -H "Content-Type: application/json" \\\n  -H "X-API-Key-Id: <your_key_id>" \\\n  -H "X-API-Client-Secret: <your_client_secret>" \\\n  -d '{"listingType":"stay","listingId":"<stay_id>","roomSelections":[{"roomId":"<room_id>","quantity":1}],"ratePlanId":"<rate_plan_id>","baseAmount":50000,"taxAmount":0,"feeAmount":0}'`;
+  const sampleQuoteCurl = `curl -sS "${appConfig.apiBaseUrl}/public/bookings/quote" \\\n  -X POST \\\n  -H "Content-Type: application/json" \\\n  -H "X-API-Key-Id: <your_key_id>" \\\n  -H "X-API-Client-Secret: <your_client_secret>" \\\n  -d '{"listingType":"stay","listingId":"<stay_id>","roomSelections":[{"roomId":"<room_id>","quantity":1}],"ratePlanId":"<rate_plan_id>","cancellationOptionId":"FREE_CANCELLATION","currency":"NGN","checkInDate":"2026-06-20","checkOutDate":"2026-06-22"}'`;
 
   async function copyText(label: string, value: string) {
     try {
@@ -253,19 +257,19 @@ export default function ApiAccessPage() {
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <div className="min-w-0 rounded-md border border-slate-200 p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">My Access</p>
-            <p className="mt-2 text-sm text-slate-700">Environment: {catalog?.access.environment ?? "Not assigned"}</p>
-            <p className="mt-1 text-sm text-slate-700">Key status: {catalog?.access.keyStatus ?? "Not issued"}</p>
+            <p className="mt-2 text-sm text-slate-700">Environment: {catalogAccess?.environment ?? "Not assigned"}</p>
+            <p className="mt-1 text-sm text-slate-700">Key status: {catalogAccess?.keyStatus ?? "Not issued"}</p>
             <p className="mt-1 text-sm text-slate-700">
-              Scopes: {catalog?.access.scopes.length ? catalog.access.scopes.join(", ") : "None"}
+              Scopes: {catalogScopes.length ? catalogScopes.join(", ") : "None"}
             </p>
             <p className="mt-1 text-sm text-slate-700">
-              Products: {catalog?.access.productLanes.length ? catalog.access.productLanes.join(", ") : "None"}
+              Products: {catalogProductLanes.length ? catalogProductLanes.join(", ") : "None"}
             </p>
           </div>
           <div className="min-w-0 rounded-md border border-slate-200 p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">API Catalog</p>
             <p className="mt-2 text-sm text-slate-700">
-              Authorized endpoints: {catalog?.endpoints.length ?? 0}
+              Authorized endpoints: {catalogEndpoints.length}
             </p>
             <div className="mt-3 flex flex-col gap-2">
               <button
@@ -285,13 +289,13 @@ export default function ApiAccessPage() {
                 Download Postman
               </button>
             </div>
-            {catalog?.access.status !== "approved" ? (
+            {catalogAccess?.status !== "approved" ? (
               <p className="mt-2 text-sm text-amber-700">Catalog endpoints will appear after your API access is approved.</p>
             ) : null}
           </div>
         </div>
         <div className="mt-4 space-y-2">
-          {(catalog?.endpoints ?? []).map((endpoint) => (
+          {catalogEndpoints.map((endpoint) => (
             <article className="min-w-0 rounded-md border border-slate-200 p-3" key={endpoint.id}>
               <p className="break-all text-sm font-semibold text-slate-900">
                 {endpoint.method} {endpoint.path}
@@ -324,7 +328,7 @@ export default function ApiAccessPage() {
             ))}
           </div>
         </div>
-        {catalog?.access.keyStatus === "active" ? (
+        {catalogAccess?.keyStatus === "active" ? (
           <div className="mt-5 rounded-md border border-slate-200 p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Try It</p>
             <p className="mt-2 text-sm text-slate-700">Start with key introspection, then call one authorized endpoint.</p>
