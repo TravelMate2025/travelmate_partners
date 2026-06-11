@@ -1,4 +1,20 @@
-export type BookingStatus = "confirmed" | "amended" | "cancelled" | "completed" | "refunded";
+export type BookingStatus =
+  | "confirmed"
+  | "amended"
+  | "cancelled"
+  | "completed"
+  | "refunded"
+  | "payment_failed";
+export type BookingPaymentStatus = "pending" | "requires_action" | "succeeded" | "failed" | "refunded" | null;
+export type BookingServiceStatus = "pending_completion" | "completed" | null;
+export type BookingOperationalStatus =
+  | "awaiting_payment"
+  | "confirmed"
+  | "amended"
+  | "cancelled"
+  | "completed"
+  | "payment_failed"
+  | "refunded";
 
 export type RoomSelection = {
   roomId: string;
@@ -49,6 +65,10 @@ export type BookingRecord = {
   grossAmount: number;
   currency: string;
   status: BookingStatus;
+  bookingStatus: BookingStatus;
+  paymentStatus: BookingPaymentStatus;
+  serviceStatus?: BookingServiceStatus;
+  operationalStatus: BookingOperationalStatus;
   createdAt: string;
   updatedAt: string;
 };
@@ -71,7 +91,7 @@ export type BookingsApi = {
     options?: {
       page?: number;
       pageSize?: number;
-      status?: BookingStatus | "";
+      status?: BookingOperationalStatus | "";
       from?: string;
       to?: string;
     },

@@ -6,17 +6,32 @@ import { use, useEffect, useState } from "react";
 import { PartnerShell } from "@/components/common/partner-shell";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import { bookingsClient } from "@/modules/bookings/bookings-client";
-import type { BookingRecord, BookingStatus } from "@/modules/bookings/contracts";
+import type { BookingOperationalStatus, BookingRecord } from "@/modules/bookings/contracts";
 
-function statusBadgeClass(status: BookingStatus): string {
-  const map: Record<BookingStatus, string> = {
+function statusBadgeClass(status: BookingOperationalStatus): string {
+  const map: Record<BookingOperationalStatus, string> = {
+    awaiting_payment: "bg-amber-100 text-amber-800",
     confirmed: "bg-green-100 text-green-800",
     amended: "bg-blue-100 text-blue-800",
     completed: "bg-slate-100 text-slate-700",
+    payment_failed: "bg-rose-100 text-rose-700",
     cancelled: "bg-red-100 text-red-700",
     refunded: "bg-yellow-100 text-yellow-800",
   };
   return map[status] ?? "bg-slate-100 text-slate-700";
+}
+
+function statusLabel(status: BookingOperationalStatus): string {
+  const map: Record<BookingOperationalStatus, string> = {
+    awaiting_payment: "Awaiting payment",
+    confirmed: "Confirmed",
+    amended: "Amended",
+    completed: "Completed",
+    payment_failed: "Payment failed",
+    cancelled: "Cancelled",
+    refunded: "Refunded",
+  };
+  return map[status] ?? status.replace(/_/g, " ");
 }
 
 function formatDate(iso: string | null) {
@@ -107,9 +122,9 @@ export default function BookingDetailPage({ params }: Props) {
       }
     >
       {/* Status banner */}
-      <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4">
-        <span className={`inline-block rounded-full px-3 py-1 text-sm font-semibold capitalize ${statusBadgeClass(booking.status)}`}>
-          {booking.status}
+        <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4">
+        <span className={`inline-block rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClass(booking.operationalStatus)}`}>
+          {statusLabel(booking.operationalStatus)}
         </span>
         <span className="text-sm text-slate-600">
           Created {formatDateTime(booking.createdAt)}
@@ -154,6 +169,12 @@ export default function BookingDetailPage({ params }: Props) {
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Last Updated</dt>
             <dd className="mt-1 text-sm text-slate-900">{formatDateTime(booking.updatedAt)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Payment Status</dt>
+            <dd className="mt-1 text-sm text-slate-900">
+              {booking.paymentStatus ? booking.paymentStatus.replace(/_/g, " ") : "Pending"}
+            </dd>
           </div>
         </dl>
       </section>

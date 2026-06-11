@@ -255,6 +255,10 @@
 - On updates, system triggers re-verification and alerts.
 - Django-backed verification integration is deferred to the backend phase.
 
+### 2.17 Settlement/Disbursement Hardening Dependency Note
+- Partner wallet hardening for settlement and disbursement semantics is defined canonically in `api/plan.md` under Phase 16 (`130.1a`–`130.5a`).
+- `partner_app/plan.md` should track only partner-facing flow behavior, UI acceptance, and rollout notes for that backend work.
+
 ### 2.16 Listing Suspension Appeal Flow
 - Partner opens a listing detail page for a listing in `paused_by_admin` state.
 - Partner sees "Suspended by platform" notice with the moderation feedback reason.

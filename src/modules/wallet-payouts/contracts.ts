@@ -24,6 +24,7 @@ export type WalletSummary = {
   pendingBalance: number;
   availableBalance: number;
   paidBalance: number;
+  disbursedBalance?: number;
   currency: string;
   reserveHoldDays: number;
 };

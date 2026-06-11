@@ -7,26 +7,47 @@ import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import { bookingsClient } from "@/modules/bookings/bookings-client";
-import type { BookingRecord, BookingStatus, BookingsListResult } from "@/modules/bookings/contracts";
+import type {
+  BookingOperationalStatus,
+  BookingRecord,
+  BookingsListResult,
+} from "@/modules/bookings/contracts";
 
-const STATUS_OPTIONS: { label: string; value: BookingStatus | "" }[] = [
+const STATUS_OPTIONS: { label: string; value: BookingOperationalStatus | "" }[] = [
   { label: "All", value: "" },
+  { label: "Awaiting Payment", value: "awaiting_payment" },
   { label: "Confirmed", value: "confirmed" },
   { label: "Amended", value: "amended" },
   { label: "Completed", value: "completed" },
+  { label: "Payment Failed", value: "payment_failed" },
   { label: "Cancelled", value: "cancelled" },
   { label: "Refunded", value: "refunded" },
 ];
 
-function statusBadgeClass(status: BookingStatus): string {
-  const map: Record<BookingStatus, string> = {
+function statusBadgeClass(status: BookingOperationalStatus): string {
+  const map: Record<BookingOperationalStatus, string> = {
+    awaiting_payment: "bg-amber-100 text-amber-800",
     confirmed: "bg-green-100 text-green-800",
     amended: "bg-blue-100 text-blue-800",
     completed: "bg-slate-100 text-slate-700",
+    payment_failed: "bg-rose-100 text-rose-700",
     cancelled: "bg-red-100 text-red-700",
     refunded: "bg-yellow-100 text-yellow-800",
   };
   return map[status] ?? "bg-slate-100 text-slate-700";
+}
+
+function statusLabel(status: BookingOperationalStatus): string {
+  const map: Record<BookingOperationalStatus, string> = {
+    awaiting_payment: "Awaiting payment",
+    confirmed: "Confirmed",
+    amended: "Amended",
+    completed: "Completed",
+    payment_failed: "Payment failed",
+    cancelled: "Cancelled",
+    refunded: "Refunded",
+  };
+  return map[status] ?? status.replace(/_/g, " ");
 }
 
 function formatDate(iso: string | null) {
@@ -50,7 +71,7 @@ export default function BookingsPage() {
   const [message, setMessage] = useState("");
   useToastMessage(message);
 
-  const [statusFilter, setStatusFilter] = useState<BookingStatus | "">("");
+  const [statusFilter, setStatusFilter] = useState<BookingOperationalStatus | "">("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [page, setPage] = useState(1);
@@ -121,7 +142,7 @@ export default function BookingsPage() {
             <select
               className="tm-input"
               value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value as BookingStatus | ""); setPage(1); }}
+              onChange={(e) => { setStatusFilter(e.target.value as BookingOperationalStatus | ""); setPage(1); }}
             >
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -247,9 +268,12 @@ function BookingRow({ booking }: { booking: BookingRecord }) {
       <td className="px-4 py-3 text-slate-700">{booking.guestCount}</td>
       <td className="px-4 py-3 font-medium text-slate-900">{formatCurrency(booking.grossAmount, booking.currency)}</td>
       <td className="px-4 py-3">
-        <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${statusBadgeClass(booking.status)}`}>
-          {booking.status}
+        <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusBadgeClass(booking.operationalStatus)}`}>
+          {statusLabel(booking.operationalStatus)}
         </span>
+        {booking.paymentStatus ? (
+          <p className="mt-1 text-xs text-slate-500">Payment: {booking.paymentStatus.replace(/_/g, " ")}</p>
+        ) : null}
       </td>
       <td className="px-4 py-3 text-slate-600">{formatDate(booking.createdAt)}</td>
       <td className="px-4 py-3">

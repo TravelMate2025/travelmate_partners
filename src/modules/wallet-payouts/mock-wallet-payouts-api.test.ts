@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { mockWalletPayoutsApi } from "@/modules/wallet-payouts/mock-wallet-payouts-api";
 
 describe("mockWalletPayoutsApi", () => {
-  it("supports settlement settings, booking completion, refund tracking, lifecycle progression, and statement download", async () => {
+  it("supports settlement settings, booking completion, refund tracking, stable read semantics, and statement download", async () => {
     const userId = "u1";
     const summary = await mockWalletPayoutsApi.getWalletSummary(userId);
     const settings = await mockWalletPayoutsApi.getSettlementSettings(userId);
@@ -26,13 +26,13 @@ describe("mockWalletPayoutsApi", () => {
     });
     expect(created.status).toBe("pending_completion");
 
-    let afterList = await mockWalletPayoutsApi.listSettlements(userId);
-    const step1 = afterList.find((item) => item.id === created.id);
-    expect(step1?.status).toBe("processing");
+    const afterList = await mockWalletPayoutsApi.listSettlements(userId);
+    const createdRecord = afterList.find((item) => item.id === created.id);
+    expect(createdRecord?.status).toBe("pending_completion");
 
-    afterList = await mockWalletPayoutsApi.listSettlements(userId);
-    const step2 = afterList.find((item) => item.id === created.id);
-    expect(step2?.status).toBe("paid");
+    const updatedSummary = await mockWalletPayoutsApi.getWalletSummary(userId);
+    expect(updatedSummary.pendingBalance).toBeGreaterThan(0);
+    expect(updatedSummary.availableBalance).toBeGreaterThanOrEqual(0);
 
     const refunded = await mockWalletPayoutsApi.recordCancellationRefund(userId, {
       settlementId: created.id,

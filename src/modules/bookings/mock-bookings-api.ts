@@ -1,9 +1,25 @@
-import type { BookingRecord, BookingsApi, BookingsListResult, BookingStatus } from "@/modules/bookings/contracts";
+import type {
+  BookingOperationalStatus,
+  BookingRecord,
+  BookingsApi,
+  BookingsListResult,
+  BookingStatus,
+} from "@/modules/bookings/contracts";
 
 const MOCK_STATUSES: BookingStatus[] = ["confirmed", "completed", "cancelled", "amended", "refunded"];
+const MOCK_OPERATIONAL_STATUSES: BookingOperationalStatus[] = [
+  "awaiting_payment",
+  "confirmed",
+  "completed",
+  "cancelled",
+  "amended",
+  "refunded",
+  "payment_failed",
+];
 
 function mockRecord(index: number): BookingRecord {
   const status = MOCK_STATUSES[index % MOCK_STATUSES.length];
+  const operationalStatus = MOCK_OPERATIONAL_STATUSES[index % MOCK_OPERATIONAL_STATUSES.length];
   const base = new Date("2026-04-01");
   base.setDate(base.getDate() + index * 3);
   const checkIn = new Date(base);
@@ -60,6 +76,15 @@ function mockRecord(index: number): BookingRecord {
     grossAmount: (index + 1) * 35000,
     currency: "NGN",
     status,
+    bookingStatus: operationalStatus === "payment_failed" ? "payment_failed" : status,
+    paymentStatus:
+      operationalStatus === "awaiting_payment"
+        ? null
+        : operationalStatus === "payment_failed"
+          ? "failed"
+          : "succeeded",
+    serviceStatus: operationalStatus === "awaiting_payment" || operationalStatus === "payment_failed" ? "pending_completion" : "completed",
+    operationalStatus,
     createdAt: base.toISOString(),
     updatedAt: base.toISOString(),
   };
@@ -71,7 +96,7 @@ export const mockBookingsApi: BookingsApi = {
   async listBookings(_userId, options = {}) {
     const { page = 1, pageSize = 20, status, from, to } = options;
     let records = [...ALL_RECORDS];
-    if (status) records = records.filter((r) => r.status === status);
+    if (status) records = records.filter((r) => r.operationalStatus === status);
     if (from) records = records.filter((r) => r.createdAt >= from);
     if (to) records = records.filter((r) => r.createdAt <= `${to}T23:59:59`);
     const total = records.length;

@@ -229,10 +229,13 @@ function syncSummaryFromSettlements(
   settlements: Array<SettlementRecord & { lifecycleStep: number }>,
 ) {
   const pendingBalance = settlements
-    .filter((item) => item.status === "pending_completion" || item.status === "processing")
+    .filter((item) => item.status === "pending_completion" && !item.disbursedAt)
+    .reduce((sum, item) => sum + item.netAmount, 0);
+  const availableBalance = settlements
+    .filter((item) => item.status === "processing" && !item.disbursedAt)
     .reduce((sum, item) => sum + item.netAmount, 0);
   const paidBalance = settlements
-    .filter((item) => item.status === "paid")
+    .filter((item) => item.status === "paid" && !item.disbursedAt)
     .reduce((sum, item) => {
       const refundReduction =
         item.refundStatus === "refunded" || item.refundStatus === "recovered"
@@ -240,32 +243,14 @@ function syncSummaryFromSettlements(
           : 0;
       return sum + Math.max(0, item.netAmount - refundReduction);
     }, 0);
+  const disbursedBalance = settlements
+    .filter((item) => Boolean(item.disbursedAt))
+    .reduce((sum, item) => sum + item.netAmount, 0);
 
   summary.pendingBalance = pendingBalance;
   summary.paidBalance = paidBalance;
-  summary.availableBalance = 0;
-}
-
-function advanceLifecycle(
-  settlements: Array<SettlementRecord & { lifecycleStep: number }>,
-) {
-  let changed = false;
-  const updated = settlements.map((item) => {
-    if (item.lifecycleStep >= 2 || item.status === "failed" || item.status === "reversed") {
-      return item;
-    }
-    const nextStep = item.lifecycleStep + 1;
-    const nextStatus: SettlementStatus = nextStep === 1 ? "processing" : "paid";
-    changed = true;
-    return {
-      ...item,
-      lifecycleStep: nextStep,
-      status: nextStatus,
-      paidAt: nextStatus === "paid" ? nowIso() : item.paidAt,
-      updatedAt: nowIso(),
-    };
-  });
-  return { updated, changed };
+  summary.availableBalance = availableBalance;
+  summary.disbursedBalance = disbursedBalance;
 }
 
 async function emitSettlementStatus(userId: string, label: string) {
@@ -310,17 +295,8 @@ export const mockWalletPayoutsApi: WalletPayoutsApi = {
   async listSettlements(userId) {
     const state = readState();
     const userState = ensureUser(state, userId);
-    const { updated, changed } = advanceLifecycle(userState.settlements);
-    userState.settlements = updated;
     userState.summary.reserveHoldDays = userState.settings.reserveHoldDays;
     syncSummaryFromSettlements(userState.summary, userState.settlements);
-
-    if (changed) {
-      const moving = updated.find((item) => item.lifecycleStep === 1 || item.lifecycleStep === 2);
-      if (moving) {
-        await emitSettlementStatus(userId, `${moving.settlementReference} is ${moving.status}`);
-      }
-    }
 
     writeState(state);
     return [...userState.settlements]
