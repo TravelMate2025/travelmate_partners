@@ -11,6 +11,8 @@ describe("mockWalletPayoutsApi", () => {
 
     expect(summary.currency).toBe("NGN");
     expect(summary.reserveHoldDays).toBeGreaterThan(0);
+    expect(summary.disbursedBalance).toBe(0);
+    expect(summary.refundOutstandingBalance).toBe(0);
     expect(settings.reserveHoldDays).toBeGreaterThan(0);
     expect(settlements.length).toBeGreaterThan(0);
 
@@ -33,6 +35,7 @@ describe("mockWalletPayoutsApi", () => {
     const updatedSummary = await mockWalletPayoutsApi.getWalletSummary(userId);
     expect(updatedSummary.pendingBalance).toBeGreaterThan(0);
     expect(updatedSummary.availableBalance).toBeGreaterThanOrEqual(0);
+    expect(updatedSummary.refundOutstandingBalance).toBe(0);
 
     const refunded = await mockWalletPayoutsApi.recordCancellationRefund(userId, {
       settlementId: created.id,
@@ -42,9 +45,14 @@ describe("mockWalletPayoutsApi", () => {
     });
     expect(refunded.refundStatus).toBe("partner_notified");
 
+    const refundSummary = await mockWalletPayoutsApi.getWalletSummary(userId);
+    expect(refundSummary.refundOutstandingBalance).toBe(8000);
+
     const statement = await mockWalletPayoutsApi.downloadSettlementStatement(userId, created.id);
     expect(statement).toContain("field,value");
     expect(statement).toContain("settlementReference");
+    expect(statement).toContain("refundAmountTotal");
+    expect(statement).toContain("refundOutstandingAmount");
   });
 
   it("supports settlement account submission, otp verification, masking, and re-verification after updates", async () => {

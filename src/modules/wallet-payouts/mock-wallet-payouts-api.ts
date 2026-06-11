@@ -149,6 +149,8 @@ function ensureUser(state: State, userId: string) {
       pendingBalance: 0,
       availableBalance: 0,
       paidBalance: 0,
+      disbursedBalance: 0,
+      refundOutstandingBalance: 0,
       currency: "NGN",
       reserveHoldDays: 2,
     };
@@ -224,6 +226,15 @@ function ensureUser(state: State, userId: string) {
   return state.byUserId[userId];
 }
 
+function getRefundExposure(item: SettlementRecord) {
+  const refundAmountTotal = item.refundAmountTotal ?? item.refundedAmount ?? 0;
+  const refundRecoveredAmount =
+    item.refundRecoveredAmount ??
+    (item.refundStatus === "refunded" || item.refundStatus === "recovered" ? refundAmountTotal : 0);
+  const refundOutstandingAmount = Math.max(0, refundAmountTotal - refundRecoveredAmount);
+  return { refundAmountTotal, refundRecoveredAmount, refundOutstandingAmount };
+}
+
 function syncSummaryFromSettlements(
   summary: WalletSummary,
   settlements: Array<SettlementRecord & { lifecycleStep: number }>,
@@ -237,20 +248,25 @@ function syncSummaryFromSettlements(
   const paidBalance = settlements
     .filter((item) => item.status === "paid" && !item.disbursedAt)
     .reduce((sum, item) => {
-      const refundReduction =
-        item.refundStatus === "refunded" || item.refundStatus === "recovered"
-          ? item.refundedAmount ?? 0
-          : 0;
-      return sum + Math.max(0, item.netAmount - refundReduction);
+      const { refundRecoveredAmount } = getRefundExposure(item);
+      return sum + Math.max(0, item.netAmount - refundRecoveredAmount);
     }, 0);
   const disbursedBalance = settlements
     .filter((item) => Boolean(item.disbursedAt))
-    .reduce((sum, item) => sum + item.netAmount, 0);
+    .reduce((sum, item) => {
+      const { refundRecoveredAmount } = getRefundExposure(item);
+      return sum + Math.max(0, item.netAmount - refundRecoveredAmount);
+    }, 0);
+  const refundOutstandingBalance = settlements.reduce(
+    (sum, item) => sum + getRefundExposure(item).refundOutstandingAmount,
+    0,
+  );
 
   summary.pendingBalance = pendingBalance;
   summary.paidBalance = paidBalance;
   summary.availableBalance = availableBalance;
   summary.disbursedBalance = disbursedBalance;
+  summary.refundOutstandingBalance = refundOutstandingBalance;
 }
 
 async function emitSettlementStatus(userId: string, label: string) {
@@ -427,7 +443,15 @@ export const mockWalletPayoutsApi: WalletPayoutsApi = {
       throw new Error("Refund reason is required.");
     }
 
-    target.refundedAmount = input.refundAmount;
+    const refundAmountTotal = input.refundAmount;
+    const refundRecoveredAmount =
+      input.status === "refunded" || input.status === "recovered" ? refundAmountTotal : 0;
+    const refundOutstandingAmount = Math.max(0, refundAmountTotal - refundRecoveredAmount);
+
+    target.refundAmountTotal = refundAmountTotal;
+    target.refundRecoveredAmount = refundRecoveredAmount;
+    target.refundOutstandingAmount = refundOutstandingAmount;
+    target.refundedAmount = refundAmountTotal;
     target.refundReason = input.reason.trim();
     target.refundStatus = input.status ?? "partner_notified";
     target.updatedAt = nowIso();
@@ -458,6 +482,9 @@ export const mockWalletPayoutsApi: WalletPayoutsApi = {
       `totalDeductions,${settlement.totalDeductions}`,
       `netAmount,${settlement.netAmount}`,
       `refundStatus,${settlement.refundStatus ?? ""}`,
+      `refundAmountTotal,${settlement.refundAmountTotal ?? settlement.refundedAmount ?? 0}`,
+      `refundRecoveredAmount,${settlement.refundRecoveredAmount ?? 0}`,
+      `refundOutstandingAmount,${settlement.refundOutstandingAmount ?? 0}`,
       `refundedAmount,${settlement.refundedAmount ?? 0}`,
       `currency,${settlement.currency}`,
       `completedAt,${settlement.completedAt}`,

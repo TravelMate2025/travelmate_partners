@@ -23,6 +23,29 @@ const DISBURSEMENT_STATUS_CLASSES: Record<DisbursementStatus, string> = {
   cancelled: "text-slate-500",
 };
 
+function formatSettlementStage(status: SettlementRecord["status"], disbursedAt?: string | null) {
+  if (disbursedAt) {
+    return "Disbursed";
+  }
+
+  const labels: Record<SettlementRecord["status"], string> = {
+    pending_completion: "Pending completion / on hold",
+    processing: "Available for settlement processing",
+    paid: "Paid / awaiting disbursement",
+    failed: "Failed settlement",
+    reversed: "Reversed",
+  };
+
+  return labels[status];
+}
+
+function formatRefundExposure(item: SettlementRecord) {
+  const total = item.refundAmountTotal ?? item.refundedAmount ?? 0;
+  const recovered = item.refundRecoveredAmount ?? (item.refundStatus === "refunded" || item.refundStatus === "recovered" ? total : 0);
+  const outstanding = item.refundOutstandingAmount ?? Math.max(0, total - recovered);
+  return { total, recovered, outstanding };
+}
+
 type Props = {
   settlements: SettlementRecord[];
   summary: WalletSummary | null;
@@ -117,6 +140,9 @@ export function SettlementHistorySection({
                   <p className="mt-1 text-xs text-slate-600">
                     {item.status} • {formatDateTimeUTC(item.createdAt)}
                   </p>
+                  <p className="mt-1 text-xs font-medium text-slate-700">
+                    Stage: {formatSettlementStage(item.status, item.disbursedAt)}
+                  </p>
                   <p className="mt-1 text-xs text-slate-600">Booking: {item.bookingReference}</p>
                   <p className="mt-2 text-sm text-slate-700">
                     Gross: {item.grossAmount} {item.currency} • Net: {item.netAmount} {item.currency}
@@ -136,7 +162,13 @@ export function SettlementHistorySection({
                   {item.refundStatus ? (
                     <p className="mt-2 text-xs text-slate-700">
                       Refund: {item.refundStatus}
-                      {item.refundedAmount ? ` (${item.refundedAmount} ${item.currency})` : ""}
+                      {(() => {
+                        const exposure = formatRefundExposure(item);
+                        if (!exposure.total) {
+                          return "";
+                        }
+                        return ` · total ${exposure.total} ${item.currency}, recovered ${exposure.recovered} ${item.currency}, outstanding ${exposure.outstanding} ${item.currency}`;
+                      })()}
                     </p>
                   ) : null}
                 </div>

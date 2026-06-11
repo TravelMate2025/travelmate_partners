@@ -9,6 +9,39 @@ import { SettlementBookingsSection } from "./settlement-bookings-section";
 import { SettlementHistorySection } from "./settlement-history-section";
 import { useWalletPayoutsDetail } from "./use-wallet-payouts-detail";
 
+const BALANCE_CARDS = [
+  {
+    key: "pending",
+    label: "Pending completion",
+    description: "On hold while the reserve window and completion checks finish.",
+    field: "pendingBalance" as const,
+  },
+  {
+    key: "available",
+    label: "Available",
+    description: "Ready for settlement processing after release conditions pass.",
+    field: "availableBalance" as const,
+  },
+  {
+    key: "paid",
+    label: "Paid",
+    description: "Settled on the platform but not yet disbursed to the payout account.",
+    field: "paidBalance" as const,
+  },
+  {
+    key: "disbursed",
+    label: "Disbursed",
+    description: "Released to the payout account and reflected in the disbursement trail.",
+    field: "disbursedBalance" as const,
+  },
+  {
+    key: "refund",
+    label: "Refund exposure",
+    description: "Outstanding refund amount still tracked against settled bookings.",
+    field: "refundOutstandingBalance" as const,
+  },
+] as const;
+
 export default function WalletPayoutsPage() {
   const { user, loading } = usePartnerAccess();
   const detail = useWalletPayoutsDetail(user?.id);
@@ -47,25 +80,16 @@ export default function WalletPayoutsPage() {
     >
       <section className="tm-panel p-6">
         <h2 className="tm-section-title">Balances</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <div className="tm-soft-note">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">Pending</p>
-            <p className="mt-1 text-xl font-semibold text-slate-900">
-              {summary?.pendingBalance ?? 0} {summary?.currency ?? "NGN"}
-            </p>
-          </div>
-          <div className="tm-soft-note">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">Available</p>
-            <p className="mt-1 text-xl font-semibold text-slate-900">
-              {summary?.availableBalance ?? 0} {summary?.currency ?? "NGN"}
-            </p>
-          </div>
-          <div className="tm-soft-note">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">Paid</p>
-            <p className="mt-1 text-xl font-semibold text-slate-900">
-              {summary?.paidBalance ?? 0} {summary?.currency ?? "NGN"}
-            </p>
-          </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {BALANCE_CARDS.map((card) => (
+            <div className="tm-soft-note" key={card.key}>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">{card.label}</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">
+                {summary?.[card.field] ?? 0} {summary?.currency ?? "NGN"}
+              </p>
+              <p className="mt-2 text-xs text-slate-500">{card.description}</p>
+            </div>
+          ))}
         </div>
       </section>
 

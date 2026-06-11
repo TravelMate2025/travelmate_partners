@@ -37,11 +37,11 @@ describe("Flow 2.14 strict alignment (wallet, earnings, and booking settlement)"
 
     const step1 = await walletPayoutsClient.listSettlements(userId);
     const createdStep1 = step1.find((item) => item.id === created.id);
-    expect(createdStep1?.status).toBe("processing");
+    expect(createdStep1?.status).toBe("pending_completion");
 
     const step2 = await walletPayoutsClient.listSettlements(userId);
     const createdStep2 = step2.find((item) => item.id === created.id);
-    expect(createdStep2?.status).toBe("paid");
+    expect(createdStep2?.status).toBe("pending_completion");
     expect(createdStep2?.totalDeductions).toBeGreaterThanOrEqual(0);
 
     const refunded = await walletPayoutsClient.recordCancellationRefund(userId, {
@@ -51,6 +51,9 @@ describe("Flow 2.14 strict alignment (wallet, earnings, and booking settlement)"
       status: "partner_notified",
     });
     expect(refunded.refundStatus).toBe("partner_notified");
+
+    const refundSummary = await walletPayoutsClient.getWalletSummary(userId);
+    expect(refundSummary.refundOutstandingBalance).toBe(5000);
 
     const statement = await walletPayoutsClient.downloadSettlementStatement(
       userId,

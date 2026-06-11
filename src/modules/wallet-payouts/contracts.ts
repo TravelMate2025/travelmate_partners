@@ -25,6 +25,7 @@ export type WalletSummary = {
   availableBalance: number;
   paidBalance: number;
   disbursedBalance?: number;
+  refundOutstandingBalance?: number;
   currency: string;
   reserveHoldDays: number;
 };
@@ -71,6 +72,9 @@ export type SettlementRecord = {
   currency: string;
   status: SettlementStatus;
   refundStatus?: RefundStatus;
+  refundAmountTotal?: number;
+  refundRecoveredAmount?: number;
+  refundOutstandingAmount?: number;
   refundedAmount?: number;
   refundReason?: string;
   failureReason?: string;
