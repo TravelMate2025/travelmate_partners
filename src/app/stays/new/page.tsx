@@ -29,7 +29,6 @@ export default function NewStayPage() {
   const [area, setArea] = useState("");
   const [countrySuggestions, setCountrySuggestions] = useState<string[]>([]);
   const [adminLevel1Suggestions, setAdminLevel1Suggestions] = useState<string[]>([]);
-  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
   const [liveCities, setLiveCities] = useState<string[]>([]);
   const [selectedPropertyType, setSelectedPropertyType] = useState("");
   const [propertyTypeOptions, setPropertyTypeOptions] = useState<Array<{ value: string; label: string }>>(
@@ -39,7 +38,7 @@ export default function NewStayPage() {
   const availableCities = selectedCountry && selectedAdminLevel1
     ? (operatingCityOptionsByCountryRegion[selectedCountry]?.[selectedAdminLevel1] ?? [])
     : [];
-  const cityOptions = citySuggestions.length > 0 ? citySuggestions : (liveCities.length > 0 ? liveCities : availableCities);
+  const cityOptions = liveCities.length > 0 ? liveCities : availableCities;
   const saleModeContent = getSaleModeContent(selectedPropertyType);
 
   useEffect(() => {
@@ -98,11 +97,11 @@ export default function NewStayPage() {
 
   useEffect(() => {
     let active = true;
-    if (!user || !selectedCountry || !selectedAdminLevel1) {
-      setLiveCities([]);
-      return () => {
-        active = false;
-      };
+      if (!user || !selectedCountry || !selectedAdminLevel1) {
+        setLiveCities([]);
+        return () => {
+          active = false;
+        };
     }
     profileClient
       .listGeographyCities(user.id, selectedCountry, selectedAdminLevel1)
@@ -224,14 +223,13 @@ export default function NewStayPage() {
                   setCountrySuggestions(raw ? rows.filter((entry) => entry.toLowerCase().includes(raw)) : rows);
                 }}
                 onSelect={(value) => {
-                  setSelectedCountry(value);
-                  setSelectedAdminLevel1("");
-                  setSelectedCity("");
-                  setArea("");
-                  setAdminLevel1Suggestions([]);
-                  setCitySuggestions([]);
-                  setLiveCities([]);
-                }}
+      setSelectedCountry(value);
+      setSelectedAdminLevel1("");
+      setSelectedCity("");
+      setArea("");
+      setAdminLevel1Suggestions([]);
+      setLiveCities([]);
+    }}
               />
               <TypeaheadInput
                 label="State / Region"
@@ -244,46 +242,25 @@ export default function NewStayPage() {
                   const raw = query.trim().toLowerCase();
                   setAdminLevel1Suggestions(raw ? source.filter((entry) => entry.toLowerCase().includes(raw)) : source);
                 }}
-                onSelect={(value) => {
-                  setSelectedAdminLevel1(value);
-                  setSelectedCity("");
-                  setArea("");
-                  setCitySuggestions([]);
-                  setLiveCities([]);
-                }}
-              />
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <TypeaheadInput
-                label="City"
-                placeholder="Type city"
-                value={selectedCity}
-                options={cityOptions}
-                allowCustomValue
-                disabled={!selectedAdminLevel1}
-                onQueryChange={async (query) => {
-                  const raw = query.trim().toLowerCase();
-                  if (user && selectedCountry && selectedAdminLevel1) {
-                    try {
-                      const rows = await profileClient.listGeographyCities(
-                        user.id,
-                        selectedCountry,
-                        selectedAdminLevel1,
-                        query,
-                      );
-                      setCitySuggestions(rows);
-                      return;
-                    } catch {
-                      // Fallback to local options below.
-                    }
-                  }
-                  const fallback = liveCities.length > 0 ? liveCities : availableCities;
-                  setCitySuggestions(raw ? fallback.filter((entry) => entry.toLowerCase().includes(raw)) : fallback);
-                }}
-                onSelect={(value) => {
-                  setSelectedCity(value);
-                  setArea(value);
-                }}
+              onSelect={(value) => {
+                setSelectedAdminLevel1(value);
+                setSelectedCity("");
+                setArea("");
+                setLiveCities([]);
+              }}
+            />
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <TypeaheadInput
+              label="City"
+              placeholder="Type city"
+              value={selectedCity}
+              options={cityOptions}
+              disabled={!selectedAdminLevel1}
+              onSelect={(value) => {
+                setSelectedCity(value);
+                setArea(value);
+              }}
               />
               <label className="tm-field">
                 <span className="tm-field-label">Area</span>

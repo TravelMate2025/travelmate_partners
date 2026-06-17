@@ -66,7 +66,6 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
   const [selectedAdminLevel1, setSelectedAdminLevel1] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedArea, setSelectedArea] = useState("");
-  const [citySearch, setCitySearch] = useState("");
   const [selectedPropertyType, setSelectedPropertyType] = useState("");
   const [propertyTypeOptions, setPropertyTypeOptions] = useState<Array<{ value: string; label: string }>>(
     [...stayPropertyTypeOptions],
@@ -85,13 +84,10 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
       : [];
   const knownPropertyTypeValues = new Set(propertyTypeOptions.map((item) => item.value));
   const knownAmenityValues = new Set(amenityOptions.map((item) => item.value));
-  const filteredCitiesBase = citySearch.trim()
-    ? availableCities.filter((city) => city.toLowerCase().includes(citySearch.trim().toLowerCase()))
-    : availableCities;
-  const filteredCities =
-    selectedCity && !filteredCitiesBase.some((city) => city.toLowerCase() === selectedCity.toLowerCase())
-      ? [selectedCity, ...filteredCitiesBase]
-      : filteredCitiesBase;
+  const cityOptions =
+    selectedCity && !availableCities.some((city) => city.toLowerCase() === selectedCity.toLowerCase())
+      ? [selectedCity, ...availableCities]
+      : availableCities;
 
   function applyStayToState(item: StayListing) {
     setSelectedAmenities(item.amenities);
@@ -111,7 +107,6 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
       setSelectedCity(item.city.trim());
     }
     setSelectedArea(item.area ?? item.city ?? "");
-    setCitySearch("");
   }
 
   function setCountrySelection(value: string) {
@@ -119,14 +114,12 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     setSelectedAdminLevel1("");
     setSelectedCity("");
     setSelectedArea("");
-    setCitySearch("");
   }
 
   function setAdminLevel1Selection(value: string) {
     setSelectedAdminLevel1(value);
     setSelectedCity("");
     setSelectedArea("");
-    setCitySearch("");
   }
 
   useEffect(() => {
@@ -494,14 +487,13 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     selectedAdminLevel1,
     selectedCity,
     selectedArea,
-    citySearch,
     availableRegions,
     selectedPropertyType,
     propertyTypeOptions,
     amenityOptions,
     spaceTypeOptions,
     availableCities,
-    filteredCities,
+    cityOptions,
     knownPropertyTypeValues,
     knownAmenityValues,
     canSubmit,
@@ -522,7 +514,6 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     setSelectedAdminLevel1: setAdminLevel1Selection,
     setSelectedCity,
     setSelectedArea,
-    setCitySearch,
     setSelectedPropertyType,
     refresh,
     saveDetails,

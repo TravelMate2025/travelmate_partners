@@ -27,11 +27,10 @@ type Props = {
   selectedAdminLevel1: string;
   selectedCity: string;
   selectedArea: string;
-  citySearch: string;
   availableRegions: string[];
   selectedVehicleClass: string;
   vehicleClassOptions: Array<{ value: string; label: string }>;
-  filteredCities: string[];
+  cityOptions: string[];
   knownVehicleClassValues: Set<string>;
   knownFeatureValues: Set<string>;
   selectedTransferType: string;
@@ -51,7 +50,6 @@ type Props = {
   onSetAdminLevel1: (v: string) => void;
   onSetCity: (v: string) => void;
   onSetArea: (v: string) => void;
-  onSetCitySearch: (v: string) => void;
   onSetVehicleClass: (v: string) => void;
   onSetTransferType: (v: string) => void;
   onAddDestinationRoute: () => void;
@@ -424,11 +422,10 @@ export function TransferDetailsForm({
   selectedAdminLevel1,
   selectedCity,
   selectedArea,
-  citySearch,
   availableRegions,
   selectedVehicleClass,
   vehicleClassOptions,
-  filteredCities,
+  cityOptions,
   knownVehicleClassValues,
   knownFeatureValues,
   selectedTransferType,
@@ -448,7 +445,6 @@ export function TransferDetailsForm({
   onSetAdminLevel1,
   onSetCity,
   onSetArea,
-  onSetCitySearch,
   onSetVehicleClass,
   onSetTransferType,
   onAddDestinationRoute,
@@ -463,9 +459,9 @@ export function TransferDetailsForm({
 
   const showOriginSuggestButton =
     !disabled &&
-    originAreaOptionsLoaded &&
     selectedArea &&
-    !originAreaOptions.some((option) => option.toLowerCase() === selectedArea.trim().toLowerCase()) &&
+    (!originAreaOptionsLoaded ||
+      !originAreaOptions.some((option) => option.toLowerCase() === selectedArea.trim().toLowerCase())) &&
     !originAreaSuggestionPending;
 
   const destinationSummary = useMemo(() => {
@@ -555,32 +551,16 @@ export function TransferDetailsForm({
           options={availableRegions}
           onSelect={onSetAdminLevel1}
         />
-        <label className="tm-field">
-          <span className="tm-field-label">City</span>
-          <input
-            className="tm-input mb-2"
+        <div className="tm-field">
+          <TypeaheadInput
+            label="City"
             placeholder="Search city"
-            value={citySearch}
-            disabled={disabled}
-            onChange={(e) => onSetCitySearch(e.target.value)}
-          />
-          <select
-            className="tm-input"
-            name="city"
             value={selectedCity}
-            disabled={disabled}
-            onChange={(e) => onSetCity(e.target.value)}
-            required
-          >
-            <option value="" disabled>
-              Select city
-            </option>
-            {filteredCities.map((city) => (
-              <option key={city} value={city}>
-                {city}
-              </option>
-            ))}
-          </select>
+            disabled={disabled || !selectedAdminLevel1}
+            options={cityOptions}
+            onSelect={onSetCity}
+          />
+          <input type="hidden" name="city" value={selectedCity} />
           {item.cityReviewStatus === "pending" ? (
             <p className="mt-2 text-xs text-amber-700">
               This city is pending moderation review. You can submit this listing, but admin cannot approve it until city review is completed.
@@ -591,12 +571,14 @@ export function TransferDetailsForm({
               This city was rejected during moderation. Select an approved city before submitting.
             </p>
           ) : null}
-        </label>
+        </div>
         <div className="tm-field">
           <TypeaheadInput
             label="Area"
             placeholder={
-              originAreaOptionsLoadFailed
+              !selectedCity
+                ? "Select city first"
+                : originAreaOptionsLoadFailed
                 ? "Catalog unavailable right now"
                 : originAreaOptionsLoaded
                   ? "Search or type area name"

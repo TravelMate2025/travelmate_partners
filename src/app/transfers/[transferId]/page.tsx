@@ -102,11 +102,10 @@ export default function TransferDetailPage() {
         selectedAdminLevel1={detail.selectedAdminLevel1}
         selectedCity={detail.selectedCity}
         selectedArea={detail.selectedArea}
-        citySearch={detail.citySearch}
         availableRegions={detail.availableRegions}
         selectedVehicleClass={detail.selectedVehicleClass}
         vehicleClassOptions={detail.vehicleClassOptions}
-        filteredCities={detail.filteredCities}
+        cityOptions={detail.cityOptions}
         knownVehicleClassValues={detail.knownVehicleClassValues}
         knownFeatureValues={detail.knownFeatureValues}
         selectedTransferType={detail.selectedTransferType}
@@ -126,7 +125,6 @@ export default function TransferDetailPage() {
         onSetAdminLevel1={detail.setSelectedAdminLevel1}
         onSetCity={detail.setSelectedCity}
         onSetArea={detail.setSelectedArea}
-        onSetCitySearch={detail.setCitySearch}
         onSetVehicleClass={detail.setSelectedVehicleClass}
         onSetTransferType={detail.setSelectedTransferType}
         onSuggestOriginArea={detail.suggestOriginArea}

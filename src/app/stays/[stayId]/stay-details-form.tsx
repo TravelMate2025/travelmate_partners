@@ -19,11 +19,10 @@ type Props = {
   selectedAdminLevel1: string;
   selectedCity: string;
   selectedArea: string;
-  citySearch: string;
   availableRegions: string[];
   propertyTypeOptions: Array<{ value: string; label: string }>;
   amenityOptions: Array<{ value: string; label: string }>;
-  filteredCities: string[];
+  cityOptions: string[];
   knownPropertyTypeValues: Set<string>;
   knownAmenityValues: Set<string>;
   onSaveDetails: (event: FormEvent<HTMLFormElement>) => void;
@@ -34,7 +33,6 @@ type Props = {
   onSetAdminLevel1: (v: string) => void;
   onSetCity: (v: string) => void;
   onSetArea: (v: string) => void;
-  onSetCitySearch: (v: string) => void;
 };
 
 export function StayDetailsForm({
@@ -47,11 +45,10 @@ export function StayDetailsForm({
   selectedAdminLevel1,
   selectedCity,
   selectedArea,
-  citySearch,
   availableRegions,
   propertyTypeOptions,
   amenityOptions,
-  filteredCities,
+  cityOptions,
   knownPropertyTypeValues,
   knownAmenityValues,
   onSaveDetails,
@@ -62,7 +59,6 @@ export function StayDetailsForm({
   onSetAdminLevel1,
   onSetCity,
   onSetArea,
-  onSetCitySearch,
 }: Props) {
   const disabled = !canEditDetails || saving;
   const saleModeContent = getSaleModeContent(selectedPropertyType || stay.propertyType);
@@ -122,26 +118,15 @@ export function StayDetailsForm({
           />
           <label className="tm-field">
             <span className="tm-field-label">City</span>
-            <input
-              className="tm-input mb-2"
+            <TypeaheadInput
+              label="City"
               placeholder="Search city"
-              value={citySearch}
-              disabled={disabled}
-              onChange={(e) => onSetCitySearch(e.target.value)}
-            />
-            <select
-              className="tm-input"
-              name="city"
               value={selectedCity}
-              disabled={disabled}
-              onChange={(e) => onSetCity(e.target.value)}
-              required
-            >
-              <option value="" disabled>Select city</option>
-              {filteredCities.map((city) => (
-                <option key={city} value={city}>{city}</option>
-              ))}
-            </select>
+              disabled={disabled || !selectedAdminLevel1}
+              options={cityOptions}
+              onSelect={onSetCity}
+            />
+            <input type="hidden" name="city" value={selectedCity} />
             {stay.cityReviewStatus === "pending" ? (
               <p className="mt-2 text-xs text-amber-700">
                 This city is pending moderation review. You can submit this listing, but admin cannot approve it until city review is completed.

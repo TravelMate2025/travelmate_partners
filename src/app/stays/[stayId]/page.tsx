@@ -120,11 +120,10 @@ export default function StayDetailPage() {
             selectedAdminLevel1={detail.selectedAdminLevel1}
             selectedCity={detail.selectedCity}
             selectedArea={detail.selectedArea}
-            citySearch={detail.citySearch}
             availableRegions={detail.availableRegions}
             propertyTypeOptions={detail.propertyTypeOptions}
             amenityOptions={detail.amenityOptions}
-            filteredCities={detail.filteredCities}
+            cityOptions={detail.cityOptions}
             knownPropertyTypeValues={detail.knownPropertyTypeValues}
             knownAmenityValues={detail.knownAmenityValues}
             onSaveDetails={detail.saveDetails}
@@ -135,7 +134,6 @@ export default function StayDetailPage() {
             onSetAdminLevel1={detail.setSelectedAdminLevel1}
             onSetCity={detail.setSelectedCity}
             onSetArea={detail.setSelectedArea}
-            onSetCitySearch={detail.setCitySearch}
           />
 
           <StayRoomsSection

@@ -11,6 +11,7 @@ import { profileClient } from "@/modules/profile/profile-client";
 import { operatingCityOptionsByCountryRegion, operatingCountryOptions, operatingRegionOptionsByCountry } from "@/modules/profile/location-options";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import type { TransferType } from "@/modules/transfers/contracts";
+import { fetchCatalogAreas, submitLocalitySuggestion } from "@/modules/transfers/geography-client";
 import { transfersClient } from "@/modules/transfers/transfers-client";
 import { transferVehicleClassOptions } from "@/modules/transfers/vehicle-options";
 
@@ -26,8 +27,11 @@ export default function NewTransferPage() {
   const [area, setArea] = useState("");
   const [countrySuggestions, setCountrySuggestions] = useState<string[]>([]);
   const [adminLevel1Suggestions, setAdminLevel1Suggestions] = useState<string[]>([]);
-  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
   const [liveCities, setLiveCities] = useState<string[]>([]);
+  const [originAreaOptions, setOriginAreaOptions] = useState<string[]>([]);
+  const [originAreaOptionsLoaded, setOriginAreaOptionsLoaded] = useState(false);
+  const [originAreaOptionsLoadFailed, setOriginAreaOptionsLoadFailed] = useState(false);
+  const [originAreaSuggestionPending, setOriginAreaSuggestionPending] = useState(false);
   const [vehicleClassOptions, setVehicleClassOptions] = useState<Array<{ value: string; label: string }>>(
     [...transferVehicleClassOptions],
   );
@@ -35,7 +39,7 @@ export default function NewTransferPage() {
   const availableCities = selectedCountry && selectedAdminLevel1
     ? (operatingCityOptionsByCountryRegion[selectedCountry]?.[selectedAdminLevel1] ?? [])
     : [];
-  const cityOptions = citySuggestions.length > 0 ? citySuggestions : (liveCities.length > 0 ? liveCities : availableCities);
+  const cityOptions = liveCities.length > 0 ? liveCities : availableCities;
 
   useEffect(() => {
     let active = true;
@@ -79,6 +83,65 @@ export default function NewTransferPage() {
       active = false;
     };
   }, [user, selectedCountry, selectedAdminLevel1]);
+
+  useEffect(() => {
+    if (!user || !selectedCountry || !selectedAdminLevel1 || !selectedCity) {
+      setOriginAreaOptions([]);
+      setOriginAreaOptionsLoaded(false);
+      setOriginAreaOptionsLoadFailed(false);
+      setOriginAreaSuggestionPending(false);
+      return;
+    }
+
+    let active = true;
+    setOriginAreaOptionsLoadFailed(false);
+    fetchCatalogAreas(user.id, selectedCountry, selectedAdminLevel1, selectedCity)
+      .then((rows) => {
+        if (!active) return;
+        setOriginAreaOptions(rows);
+        setOriginAreaOptionsLoaded(true);
+      })
+      .catch(() => {
+        if (!active) return;
+        setOriginAreaOptions([]);
+        setOriginAreaOptionsLoaded(false);
+        setOriginAreaOptionsLoadFailed(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedAdminLevel1, selectedCity, selectedCountry, user]);
+
+  useEffect(() => {
+    if (!originAreaOptionsLoaded || !area) {
+      setOriginAreaSuggestionPending(false);
+      return;
+    }
+    setOriginAreaSuggestionPending(
+      !originAreaOptions.some((option) => option.toLowerCase() === area.trim().toLowerCase()),
+    );
+  }, [area, originAreaOptions, originAreaOptionsLoaded]);
+
+  const showOriginSuggestButton =
+    !!user &&
+    !saving &&
+    area &&
+    (!originAreaOptionsLoaded ||
+      !originAreaOptions.some((option) => option.toLowerCase() === area.trim().toLowerCase())) &&
+    !originAreaSuggestionPending;
+
+  async function suggestOriginArea() {
+    if (!user || !selectedCountry || !selectedAdminLevel1 || !selectedCity || !area) return;
+    await submitLocalitySuggestion(user.id, {
+      country: selectedCountry,
+      adminLevel1: selectedAdminLevel1,
+      city: selectedCity,
+      area,
+    });
+    setOriginAreaSuggestionPending(true);
+    setMessage(`Submitted "${area}" for catalog review.`);
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -185,7 +248,6 @@ export default function NewTransferPage() {
                 setSelectedCity("");
                 setArea("");
                 setAdminLevel1Suggestions([]);
-                setCitySuggestions([]);
                 setLiveCities([]);
               }}
             />
@@ -208,7 +270,6 @@ export default function NewTransferPage() {
                 setSelectedAdminLevel1(value);
                 setSelectedCity("");
                 setArea("");
-                setCitySuggestions([]);
                 setLiveCities([]);
               }}
             />
@@ -219,36 +280,55 @@ export default function NewTransferPage() {
               placeholder="Type city"
               value={selectedCity}
               options={cityOptions}
-              allowCustomValue
               disabled={!selectedAdminLevel1}
-              onQueryChange={async (query) => {
-                const raw = query.trim().toLowerCase();
-                if (user && selectedCountry && selectedAdminLevel1) {
-                  try {
-                    const rows = await profileClient.listGeographyCities(
-                      user.id,
-                      selectedCountry,
-                      selectedAdminLevel1,
-                      query,
-                    );
-                    setCitySuggestions(rows);
-                    return;
-                  } catch {
-                    // Fallback to local options below.
-                  }
-                }
-                const fallback = liveCities.length > 0 ? liveCities : availableCities;
-                setCitySuggestions(raw ? fallback.filter((entry) => entry.toLowerCase().includes(raw)) : fallback);
-              }}
               onSelect={(value) => {
                 setSelectedCity(value);
                 setArea(value);
+                setOriginAreaOptions([]);
+                setOriginAreaOptionsLoaded(false);
+                setOriginAreaOptionsLoadFailed(false);
+                setOriginAreaSuggestionPending(false);
               }}
             />
-            <label className="tm-field">
-              <span className="tm-field-label">Area</span>
-              <input className="tm-input" name="area" value={area} onChange={(event) => setArea(event.target.value)} required />
-            </label>
+            <div className="tm-field">
+              <TypeaheadInput
+                label="Area"
+                placeholder={
+                  !selectedCity
+                    ? "Select city first"
+                    : originAreaOptionsLoadFailed
+                    ? "Catalog unavailable right now"
+                    : originAreaOptionsLoaded
+                      ? "Search or type area name"
+                      : "Loading areas…"
+                }
+                value={area}
+                disabled={!selectedCity}
+                options={originAreaOptions}
+                allowCustomValue
+                onSelect={setArea}
+              />
+              <input type="hidden" name="area" value={area} />
+              {originAreaOptionsLoadFailed ? (
+                <p className="mt-1 text-xs text-amber-700">
+                  We could not load catalog areas right now. You can keep editing, but catalog validation will be checked again on save.
+                </p>
+              ) : null}
+              {showOriginSuggestButton ? (
+                <button
+                  type="button"
+                  className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
+                  onClick={suggestOriginArea}
+                >
+                  Suggest &ldquo;{area}&rdquo; as a new area
+                </button>
+              ) : null}
+              {originAreaSuggestionPending ? (
+                <p className="mt-1 text-xs text-amber-700">
+                  This area is awaiting catalog approval. You can save a draft but cannot submit until it is reviewed.
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">

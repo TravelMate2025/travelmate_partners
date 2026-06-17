@@ -143,12 +143,14 @@ function normalizeDestinationRouteDrafts(
 export function canSubmitTransferDetails(input: {
   status?: string;
   selectedArea: string;
+  originAreaOptionsLoaded: boolean;
   originAreaSuggestionPending: boolean;
   destinationRoutes: DestinationRouteDraft[];
   destinationRoutePendingById: Record<string, { area: boolean; subArea: boolean }>;
 }): boolean {
   if (input.status !== "draft" && input.status !== "rejected") return false;
   if (!input.selectedArea || input.originAreaSuggestionPending) return false;
+  if (!input.originAreaOptionsLoaded) return false;
   if (input.destinationRoutes.length < 1) return false;
   for (const route of input.destinationRoutes) {
     if (!route.destinationCity || !route.destinationArea) return false;
@@ -188,7 +190,6 @@ export function useTransferDetail(userId: string | undefined, transferId: string
   const [selectedAdminLevel1, setSelectedAdminLevel1] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedArea, setSelectedArea] = useState("");
-  const [citySearch, setCitySearch] = useState("");
   const [selectedVehicleClass, setSelectedVehicleClass] = useState("");
   const [selectedTransferType, setSelectedTransferType] = useState("");
   const [vehicleClassOptions, setVehicleClassOptions] = useState<Array<{ value: string; label: string }>>(
@@ -215,13 +216,10 @@ export function useTransferDetail(userId: string | undefined, transferId: string
       : [];
   const knownVehicleClassValues = new Set(vehicleClassOptions.map((opt) => opt.value));
   const knownFeatureValues = new Set(TRANSFER_FEATURE_OPTIONS.map((opt) => opt.value));
-  const filteredCitiesBase = citySearch.trim()
-    ? availableCities.filter((city) => city.toLowerCase().includes(citySearch.trim().toLowerCase()))
-    : availableCities;
-  const filteredCities =
-    selectedCity && !filteredCitiesBase.some((city) => city.toLowerCase() === selectedCity.toLowerCase())
-      ? [selectedCity, ...filteredCitiesBase]
-      : filteredCitiesBase;
+  const cityOptions =
+    selectedCity && !availableCities.some((city) => city.toLowerCase() === selectedCity.toLowerCase())
+      ? [selectedCity, ...availableCities]
+      : availableCities;
 
   const destinationCityOptions = useMemo(
     () => derivedDestinationCityOptions(selectedCountry, selectedAdminLevel1),
@@ -233,16 +231,22 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setSelectedAdminLevel1("");
     setSelectedCity("");
     setSelectedArea("");
-    setCitySearch("");
     setDestinationRoutes([makeDestinationRouteDraft()]);
     setDestinationRoutePendingById({});
+    setOriginAreaOptions([]);
+    setOriginAreaOptionsLoaded(false);
+    setOriginAreaOptionsLoadFailed(false);
+    setOriginAreaSuggestionPending(false);
   }
 
   function setAdminLevel1Selection(value: string) {
     setSelectedAdminLevel1(value);
     setSelectedCity("");
     setSelectedArea("");
-    setCitySearch("");
+    setOriginAreaOptions([]);
+    setOriginAreaOptionsLoaded(false);
+    setOriginAreaOptionsLoadFailed(false);
+    setOriginAreaSuggestionPending(false);
   }
 
   function setDestinationRoute(routeId: string, patch: Partial<DestinationRouteDraft>) {
@@ -368,7 +372,6 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         setSelectedCity(parsedCoverage?.city ?? (normalizedResult.city ?? ""));
         setSelectedAdminLevel1(normalizedResult.adminLevel1 ?? "");
         setSelectedArea(normalizedResult.area ?? normalizedResult.city ?? "");
-        setCitySearch("");
         setSelectedVehicleClass(normalizeTransferVehicleClass(normalizedResult.vehicleClass));
         setSelectedTransferType(normalizedResult.transferType ?? "");
         setDestinationRoutes(normalizeDestinationRouteDrafts(normalizedResult));
@@ -404,6 +407,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     return canSubmitTransferDetails({
       status: item?.status,
       selectedArea,
+      originAreaOptionsLoaded,
       originAreaSuggestionPending,
       destinationRoutes,
       destinationRoutePendingById,
@@ -411,6 +415,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
   }, [
     item?.status,
     selectedArea,
+    originAreaOptionsLoaded,
     originAreaSuggestionPending,
     destinationRoutes,
     destinationRoutePendingById,
@@ -646,14 +651,12 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     selectedAdminLevel1,
     selectedCity,
     selectedArea,
-    citySearch,
     availableRegions,
     selectedVehicleClass,
     vehicleClassOptions,
-    availableCities,
+    cityOptions,
     knownVehicleClassValues,
     knownFeatureValues,
-    filteredCities,
     selectedTransferType,
     destinationRoutes,
     destinationCityOptions,
@@ -675,7 +678,6 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setSelectedAdminLevel1: setAdminLevel1Selection,
     setSelectedCity,
     setSelectedArea,
-    setCitySearch,
     setSelectedVehicleClass,
     setSelectedTransferType,
     addDestinationRoute,
