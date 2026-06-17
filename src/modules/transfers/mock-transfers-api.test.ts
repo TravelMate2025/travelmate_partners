@@ -19,11 +19,17 @@ describe("mockTransfersApi", () => {
       name: "City Airport Shuttle",
       transferType: "airport",
       pickupPoint: "MM2",
-      dropoffPoint: "Victoria Island",
       vehicleClass: "SUV",
       passengerCapacity: 4,
       luggageCapacity: 3,
       coverageArea: "Lagos Island",
+      destinationRoutes: [
+        {
+          destinationCity: "Lagos",
+          destinationArea: "Victoria Island",
+          destinationSubArea: "",
+        },
+      ],
     });
 
     let updated = await mockTransfersApi.updateStatus(userId, item.id, "pending");
