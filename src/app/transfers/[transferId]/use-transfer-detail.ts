@@ -15,6 +15,11 @@ import type { ListingAppeal, TransferListing, TransferStatus, TransferType } fro
 import { transfersClient } from "@/modules/transfers/transfers-client";
 import { normalizeTransferVehicleClass, transferVehicleClassOptions } from "@/modules/transfers/vehicle-options";
 import { stayTimeOptions } from "@/modules/stays/time-options";
+import {
+  fetchCatalogAreas,
+  fetchCatalogSubAreas,
+  submitLocalitySuggestion,
+} from "@/modules/transfers/geography-client";
 
 export const DEFAULT_OPEN = "06:00";
 export const DEFAULT_CLOSE = "23:00";
@@ -79,6 +84,20 @@ export function parseOperatingHours(value: string): { open: string; close: strin
   return { open: DEFAULT_OPEN, close: DEFAULT_CLOSE };
 }
 
+export function findRegionForCity(country: string, city: string): string {
+  const regions = operatingRegionOptionsByCountry[country] ?? [];
+  for (const region of regions) {
+    const cities = operatingCityOptionsByCountryRegion[country]?.[region] ?? [];
+    if (cities.includes(city)) return region;
+  }
+  return "";
+}
+
+export function derivedDestinationCityOptions(country: string): string[] {
+  const regions = operatingRegionOptionsByCountry[country] ?? [];
+  return regions.flatMap((r) => operatingCityOptionsByCountryRegion[country]?.[r] ?? []);
+}
+
 function normalizeTransferListing(entry: TransferListing): TransferListing {
   return {
     ...entry,
@@ -111,9 +130,28 @@ export function useTransferDetail(userId: string | undefined, transferId: string
   const [selectedArea, setSelectedArea] = useState("");
   const [citySearch, setCitySearch] = useState("");
   const [selectedVehicleClass, setSelectedVehicleClass] = useState("");
+  const [selectedTransferType, setSelectedTransferType] = useState("");
   const [vehicleClassOptions, setVehicleClassOptions] = useState<Array<{ value: string; label: string }>>(
     [...transferVehicleClassOptions],
   );
+
+  // Destination route fields
+  const [selectedDestinationCity, setSelectedDestinationCity] = useState("");
+  const [selectedDestinationArea, setSelectedDestinationArea] = useState("");
+  const [selectedDestinationSubArea, setSelectedDestinationSubArea] = useState("");
+
+  // Catalog-backed area options
+  const [originAreaOptions, setOriginAreaOptions] = useState<string[]>([]);
+  const [originAreaOptionsLoaded, setOriginAreaOptionsLoaded] = useState(false);
+  const [destinationAreaOptions, setDestinationAreaOptions] = useState<string[]>([]);
+  const [destinationAreaOptionsLoaded, setDestinationAreaOptionsLoaded] = useState(false);
+  const [destinationSubAreaOptions, setDestinationSubAreaOptions] = useState<string[]>([]);
+  const [destinationSubAreaOptionsLoaded, setDestinationSubAreaOptionsLoaded] = useState(false);
+
+  // Pending suggestion flags
+  const [originAreaSuggestionPending, setOriginAreaSuggestionPending] = useState(false);
+  const [destinationAreaSuggestionPending, setDestinationAreaSuggestionPending] = useState(false);
+  const [destinationSubAreaSuggestionPending, setDestinationSubAreaSuggestionPending] = useState(false);
 
   const availableRegions = selectedCountry ? (operatingRegionOptionsByCountry[selectedCountry] ?? []) : [];
   const availableCities =
@@ -130,12 +168,20 @@ export function useTransferDetail(userId: string | undefined, transferId: string
       ? [selectedCity, ...filteredCitiesBase]
       : filteredCitiesBase;
 
+  const destinationCityOptions = useMemo(
+    () => derivedDestinationCityOptions(selectedCountry),
+    [selectedCountry],
+  );
+
   function setCountrySelection(value: string) {
     setSelectedCountry(value);
     setSelectedAdminLevel1("");
     setSelectedCity("");
     setSelectedArea("");
     setCitySearch("");
+    setSelectedDestinationCity("");
+    setSelectedDestinationArea("");
+    setSelectedDestinationSubArea("");
   }
 
   function setAdminLevel1Selection(value: string) {
@@ -144,6 +190,128 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setSelectedArea("");
     setCitySearch("");
   }
+
+  function setDestinationCitySelection(value: string) {
+    setSelectedDestinationCity(value);
+    setSelectedDestinationArea("");
+    setSelectedDestinationSubArea("");
+  }
+
+  function setDestinationAreaSelection(value: string) {
+    setSelectedDestinationArea(value);
+    setSelectedDestinationSubArea("");
+  }
+
+  // Load origin area options
+  useEffect(() => {
+    if (!userId || !selectedCountry || !selectedAdminLevel1 || !selectedCity) {
+      setOriginAreaOptions([]);
+      setOriginAreaOptionsLoaded(false);
+      return;
+    }
+    let active = true;
+    fetchCatalogAreas(userId, selectedCountry, selectedAdminLevel1, selectedCity)
+      .then((areas) => {
+        if (!active) return;
+        setOriginAreaOptions(areas);
+        setOriginAreaOptionsLoaded(true);
+      })
+      .catch(() => {
+        if (!active) return;
+        setOriginAreaOptions([]);
+        setOriginAreaOptionsLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [userId, selectedCountry, selectedAdminLevel1, selectedCity]);
+
+  // Load destination area options
+  useEffect(() => {
+    if (!userId || !selectedCountry || !selectedDestinationCity) {
+      setDestinationAreaOptions([]);
+      setDestinationAreaOptionsLoaded(false);
+      return;
+    }
+    const destAdminLevel1 = findRegionForCity(selectedCountry, selectedDestinationCity);
+    if (!destAdminLevel1) {
+      setDestinationAreaOptions([]);
+      setDestinationAreaOptionsLoaded(true);
+      return;
+    }
+    let active = true;
+    fetchCatalogAreas(userId, selectedCountry, destAdminLevel1, selectedDestinationCity)
+      .then((areas) => {
+        if (!active) return;
+        setDestinationAreaOptions(areas);
+        setDestinationAreaOptionsLoaded(true);
+      })
+      .catch(() => {
+        if (!active) return;
+        setDestinationAreaOptions([]);
+        setDestinationAreaOptionsLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [userId, selectedCountry, selectedDestinationCity]);
+
+  // Load destination sub-area options
+  useEffect(() => {
+    if (!userId || !selectedCountry || !selectedDestinationCity || !selectedDestinationArea) {
+      setDestinationSubAreaOptions([]);
+      setDestinationSubAreaOptionsLoaded(false);
+      return;
+    }
+    const destAdminLevel1 = findRegionForCity(selectedCountry, selectedDestinationCity);
+    if (!destAdminLevel1) {
+      setDestinationSubAreaOptions([]);
+      setDestinationSubAreaOptionsLoaded(true);
+      return;
+    }
+    let active = true;
+    fetchCatalogSubAreas(userId, selectedCountry, destAdminLevel1, selectedDestinationCity, selectedDestinationArea)
+      .then((subAreas) => {
+        if (!active) return;
+        setDestinationSubAreaOptions(subAreas);
+        setDestinationSubAreaOptionsLoaded(true);
+      })
+      .catch(() => {
+        if (!active) return;
+        setDestinationSubAreaOptions([]);
+        setDestinationSubAreaOptionsLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [userId, selectedCountry, selectedDestinationCity, selectedDestinationArea]);
+
+  // Detect origin area pending: non-empty value not in loaded catalog
+  useEffect(() => {
+    if (!originAreaOptionsLoaded || !selectedArea) {
+      setOriginAreaSuggestionPending(false);
+      return;
+    }
+    setOriginAreaSuggestionPending(!originAreaOptions.includes(selectedArea));
+  }, [originAreaOptions, originAreaOptionsLoaded, selectedArea]);
+
+  // Detect destination area pending
+  useEffect(() => {
+    if (!destinationAreaOptionsLoaded || !selectedDestinationArea) {
+      setDestinationAreaSuggestionPending(false);
+      return;
+    }
+    setDestinationAreaSuggestionPending(!destinationAreaOptions.includes(selectedDestinationArea));
+  }, [destinationAreaOptions, destinationAreaOptionsLoaded, selectedDestinationArea]);
+
+  // Detect destination sub-area pending
+  useEffect(() => {
+    if (!destinationSubAreaOptionsLoaded || !selectedDestinationSubArea) {
+      setDestinationSubAreaSuggestionPending(false);
+      return;
+    }
+    setDestinationSubAreaSuggestionPending(!destinationSubAreaOptions.includes(selectedDestinationSubArea));
+  }, [destinationSubAreaOptions, destinationSubAreaOptionsLoaded, selectedDestinationSubArea]);
 
   useEffect(() => {
     if (!userId) return;
@@ -189,6 +357,10 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         setSelectedArea(normalizedResult.area ?? normalizedResult.city ?? "");
         setCitySearch("");
         setSelectedVehicleClass(normalizeTransferVehicleClass(normalizedResult.vehicleClass));
+        setSelectedTransferType(normalizedResult.transferType ?? "");
+        setSelectedDestinationCity(normalizedResult.destinationCity ?? "");
+        setSelectedDestinationArea(normalizedResult.destinationArea ?? "");
+        setSelectedDestinationSubArea(normalizedResult.destinationSubArea ?? "");
 
         if (normalizedResult.status === "paused_by_admin") {
           const existingAppeal = await transfersClient.getAppeal(userId, transferId).catch(() => null);
@@ -216,10 +388,21 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     };
   }, [router, transferId, userId]);
 
-  const canSubmit = useMemo(
-    () => item?.status === "draft" || item?.status === "rejected",
-    [item?.status],
-  );
+  const canSubmit = useMemo(() => {
+    if (item?.status !== "draft" && item?.status !== "rejected") return false;
+    if (!selectedArea || originAreaSuggestionPending) return false;
+    if (!selectedDestinationCity || !selectedDestinationArea) return false;
+    if (destinationAreaSuggestionPending) return false;
+    return true;
+  }, [
+    item?.status,
+    selectedArea,
+    originAreaSuggestionPending,
+    selectedDestinationCity,
+    selectedDestinationArea,
+    destinationAreaSuggestionPending,
+  ]);
+
   const canEditDetails = useMemo(
     () => item?.status === "draft" || item?.status === "rejected",
     [item?.status],
@@ -232,6 +415,10 @@ export function useTransferDetail(userId: string | undefined, transferId: string
   function syncTransfer(updated: TransferListing) {
     const normalized = normalizeTransferListing(updated);
     setSelectedVehicleClass(normalizeTransferVehicleClass(normalized.vehicleClass));
+    setSelectedTransferType(normalized.transferType ?? "");
+    setSelectedDestinationCity(normalized.destinationCity ?? "");
+    setSelectedDestinationArea(normalized.destinationArea ?? "");
+    setSelectedDestinationSubArea(normalized.destinationSubArea ?? "");
     setItem(normalized);
     setAllTransfers((prev) => {
       const index = prev.findIndex((entry) => entry.id === normalized.id);
@@ -258,7 +445,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
       const updated = await transfersClient.updateTransfer(userId, item.id, {
         name: String(form.get("name") ?? ""),
         description: String(form.get("description") ?? ""),
-        transferType: String(form.get("transferType") ?? "") as TransferType,
+        transferType: selectedTransferType as TransferType,
         pickupPoint: String(form.get("pickupPoint") ?? ""),
         dropoffPoint: String(form.get("dropoffPoint") ?? ""),
         vehicleClass: selectedVehicleClass,
@@ -270,6 +457,9 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         adminLevel1: selectedAdminLevel1,
         city: selectedCity,
         area: selectedArea,
+        destinationCity: selectedDestinationCity,
+        destinationArea: selectedDestinationArea,
+        destinationSubArea: selectedDestinationSubArea,
         operatingHours: `${openTime}-${closeTime}`,
         currency: selectedCurrency,
         baseFare: Number(form.get("baseFare") ?? 0),
@@ -407,6 +597,57 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     syncTransfer(updated);
   }
 
+  async function suggestOriginArea() {
+    if (!userId || !selectedArea || !selectedCountry || !selectedAdminLevel1 || !selectedCity) return;
+    try {
+      await submitLocalitySuggestion(userId, {
+        country: selectedCountry,
+        adminLevel1: selectedAdminLevel1,
+        city: selectedCity,
+        area: selectedArea,
+      });
+      setOriginAreaSuggestionPending(true);
+      setMessage("Area suggestion submitted. Awaiting catalog approval.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to submit area suggestion.");
+    }
+  }
+
+  async function suggestDestinationArea() {
+    if (!userId || !selectedDestinationArea || !selectedCountry || !selectedDestinationCity) return;
+    const destAdminLevel1 = findRegionForCity(selectedCountry, selectedDestinationCity);
+    try {
+      await submitLocalitySuggestion(userId, {
+        country: selectedCountry,
+        adminLevel1: destAdminLevel1,
+        city: selectedDestinationCity,
+        area: selectedDestinationArea,
+      });
+      setDestinationAreaSuggestionPending(true);
+      setMessage("Destination area suggestion submitted. Awaiting catalog approval.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to submit destination area suggestion.");
+    }
+  }
+
+  async function suggestDestinationSubArea() {
+    if (!userId || !selectedDestinationSubArea || !selectedCountry || !selectedDestinationCity || !selectedDestinationArea) return;
+    const destAdminLevel1 = findRegionForCity(selectedCountry, selectedDestinationCity);
+    try {
+      await submitLocalitySuggestion(userId, {
+        country: selectedCountry,
+        adminLevel1: destAdminLevel1,
+        city: selectedDestinationCity,
+        area: selectedDestinationArea,
+        subArea: selectedDestinationSubArea,
+      });
+      setDestinationSubAreaSuggestionPending(true);
+      setMessage("Sub-area suggestion submitted. Awaiting catalog approval.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to submit sub-area suggestion.");
+    }
+  }
+
   return {
     item,
     saving,
@@ -432,6 +673,20 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     knownVehicleClassValues,
     knownFeatureValues,
     filteredCities,
+    selectedTransferType,
+    selectedDestinationCity,
+    selectedDestinationArea,
+    selectedDestinationSubArea,
+    destinationCityOptions,
+    originAreaOptions,
+    originAreaOptionsLoaded,
+    destinationAreaOptions,
+    destinationAreaOptionsLoaded,
+    destinationSubAreaOptions,
+    destinationSubAreaOptionsLoaded,
+    originAreaSuggestionPending,
+    destinationAreaSuggestionPending,
+    destinationSubAreaSuggestionPending,
     canSubmit,
     canEditDetails,
     qualityReport,
@@ -447,6 +702,13 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setSelectedArea,
     setCitySearch,
     setSelectedVehicleClass,
+    setSelectedTransferType,
+    setSelectedDestinationCity: setDestinationCitySelection,
+    setSelectedDestinationArea: setDestinationAreaSelection,
+    setSelectedDestinationSubArea,
+    suggestOriginArea,
+    suggestDestinationArea,
+    suggestDestinationSubArea,
     saveDetails,
     changeStatus,
     archive,

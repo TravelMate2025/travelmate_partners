@@ -109,6 +109,20 @@ export default function TransferDetailPage() {
         filteredCities={detail.filteredCities}
         knownVehicleClassValues={detail.knownVehicleClassValues}
         knownFeatureValues={detail.knownFeatureValues}
+        selectedTransferType={detail.selectedTransferType}
+        selectedDestinationCity={detail.selectedDestinationCity}
+        selectedDestinationArea={detail.selectedDestinationArea}
+        selectedDestinationSubArea={detail.selectedDestinationSubArea}
+        destinationCityOptions={detail.destinationCityOptions}
+        originAreaOptions={detail.originAreaOptions}
+        originAreaOptionsLoaded={detail.originAreaOptionsLoaded}
+        destinationAreaOptions={detail.destinationAreaOptions}
+        destinationAreaOptionsLoaded={detail.destinationAreaOptionsLoaded}
+        destinationSubAreaOptions={detail.destinationSubAreaOptions}
+        destinationSubAreaOptionsLoaded={detail.destinationSubAreaOptionsLoaded}
+        originAreaSuggestionPending={detail.originAreaSuggestionPending}
+        destinationAreaSuggestionPending={detail.destinationAreaSuggestionPending}
+        destinationSubAreaSuggestionPending={detail.destinationSubAreaSuggestionPending}
         onSaveDetails={detail.saveDetails}
         onToggleFeature={detail.toggleFeature}
         onSetCurrency={detail.setSelectedCurrency}
@@ -120,6 +134,13 @@ export default function TransferDetailPage() {
         onSetArea={detail.setSelectedArea}
         onSetCitySearch={detail.setCitySearch}
         onSetVehicleClass={detail.setSelectedVehicleClass}
+        onSetTransferType={detail.setSelectedTransferType}
+        onSetDestinationCity={detail.setSelectedDestinationCity}
+        onSetDestinationArea={detail.setSelectedDestinationArea}
+        onSetDestinationSubArea={detail.setSelectedDestinationSubArea}
+        onSuggestOriginArea={detail.suggestOriginArea}
+        onSuggestDestinationArea={detail.suggestDestinationArea}
+        onSuggestDestinationSubArea={detail.suggestDestinationSubArea}
       />
 
       <TransferImagesSection

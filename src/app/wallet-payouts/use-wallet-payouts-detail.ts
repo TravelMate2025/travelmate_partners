@@ -263,11 +263,16 @@ export function useWalletPayoutsDetail(userId: string | undefined) {
     setMessage("");
     const form = new FormData(formElement);
     try {
+      const PARTNER_ACTIONABLE_STATUSES: RefundStatus[] = ["partner_notified", "refunded", "disputed"];
+      const rawStatus = String(form.get("status") ?? "partner_notified");
+      const status = PARTNER_ACTIONABLE_STATUSES.includes(rawStatus as RefundStatus)
+        ? (rawStatus as RefundStatus)
+        : "partner_notified";
       await walletPayoutsClient.recordCancellationRefund(userId, {
         settlementId: selectedSettlementId,
         refundAmount: Number(form.get("refundAmount") ?? 0),
         reason: String(form.get("reason") ?? ""),
-        status: String(form.get("status") ?? "partner_notified") as RefundStatus,
+        status,
       });
       const [summaryResult, settlementResult] = await Promise.all([
         walletPayoutsClient.getWalletSummary(userId),
@@ -297,9 +302,12 @@ export function useWalletPayoutsDetail(userId: string | undefined) {
       anchor.href = url;
       anchor.download = `settlement-statement-${settlementId}.csv`;
       document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      URL.revokeObjectURL(url);
+      try {
+        anchor.click();
+      } finally {
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+      }
       setMessage("Settlement statement downloaded.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to download settlement statement.");

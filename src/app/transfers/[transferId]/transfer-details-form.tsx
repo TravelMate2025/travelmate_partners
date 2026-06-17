@@ -31,6 +31,20 @@ type Props = {
   filteredCities: string[];
   knownVehicleClassValues: Set<string>;
   knownFeatureValues: Set<string>;
+  selectedTransferType: string;
+  selectedDestinationCity: string;
+  selectedDestinationArea: string;
+  selectedDestinationSubArea: string;
+  destinationCityOptions: string[];
+  originAreaOptions: string[];
+  originAreaOptionsLoaded: boolean;
+  destinationAreaOptions: string[];
+  destinationAreaOptionsLoaded: boolean;
+  destinationSubAreaOptions: string[];
+  destinationSubAreaOptionsLoaded: boolean;
+  originAreaSuggestionPending: boolean;
+  destinationAreaSuggestionPending: boolean;
+  destinationSubAreaSuggestionPending: boolean;
   onSaveDetails: (event: FormEvent<HTMLFormElement>) => void;
   onToggleFeature: (value: string) => void;
   onSetCurrency: (v: string) => void;
@@ -42,6 +56,13 @@ type Props = {
   onSetArea: (v: string) => void;
   onSetCitySearch: (v: string) => void;
   onSetVehicleClass: (v: string) => void;
+  onSetTransferType: (v: string) => void;
+  onSetDestinationCity: (v: string) => void;
+  onSetDestinationArea: (v: string) => void;
+  onSetDestinationSubArea: (v: string) => void;
+  onSuggestOriginArea: () => void;
+  onSuggestDestinationArea: () => void;
+  onSuggestDestinationSubArea: () => void;
 };
 
 export function TransferDetailsForm({
@@ -63,6 +84,20 @@ export function TransferDetailsForm({
   filteredCities,
   knownVehicleClassValues,
   knownFeatureValues,
+  selectedTransferType,
+  selectedDestinationCity,
+  selectedDestinationArea,
+  selectedDestinationSubArea,
+  destinationCityOptions,
+  originAreaOptions,
+  originAreaOptionsLoaded,
+  destinationAreaOptions,
+  destinationAreaOptionsLoaded,
+  destinationSubAreaOptions,
+  destinationSubAreaOptionsLoaded,
+  originAreaSuggestionPending,
+  destinationAreaSuggestionPending,
+  destinationSubAreaSuggestionPending,
   onSaveDetails,
   onToggleFeature,
   onSetCurrency,
@@ -74,8 +109,36 @@ export function TransferDetailsForm({
   onSetArea,
   onSetCitySearch,
   onSetVehicleClass,
+  onSetTransferType,
+  onSetDestinationCity,
+  onSetDestinationArea,
+  onSetDestinationSubArea,
+  onSuggestOriginArea,
+  onSuggestDestinationArea,
+  onSuggestDestinationSubArea,
 }: Props) {
   const disabled = !canEditDetails || saving;
+
+  const showOriginSuggestButton =
+    !disabled &&
+    originAreaOptionsLoaded &&
+    selectedArea &&
+    !originAreaOptions.includes(selectedArea) &&
+    !originAreaSuggestionPending;
+
+  const showDestinationAreaSuggestButton =
+    !disabled &&
+    destinationAreaOptionsLoaded &&
+    selectedDestinationArea &&
+    !destinationAreaOptions.includes(selectedDestinationArea) &&
+    !destinationAreaSuggestionPending;
+
+  const showDestinationSubAreaSuggestButton =
+    !disabled &&
+    destinationSubAreaOptionsLoaded &&
+    selectedDestinationSubArea &&
+    !destinationSubAreaOptions.includes(selectedDestinationSubArea) &&
+    !destinationSubAreaSuggestionPending;
 
   return (
     <form className="tm-panel p-6" onSubmit={onSaveDetails}>
@@ -97,7 +160,13 @@ export function TransferDetailsForm({
         </label>
         <label className="tm-field">
           <span className="tm-field-label">Transfer Type</span>
-          <select className="tm-input" name="transferType" defaultValue={item.transferType || ""} disabled={disabled}>
+          <select
+            className="tm-input"
+            name="transferType"
+            value={selectedTransferType}
+            disabled={disabled}
+            onChange={(e) => onSetTransferType(e.target.value)}
+          >
             <option value="">Select transfer type</option>
             <option value="one_way">One-way</option>
             <option value="return">Return</option>
@@ -181,10 +250,31 @@ export function TransferDetailsForm({
             </p>
           ) : null}
         </label>
-        <label className="tm-field">
-          <span className="tm-field-label">Area</span>
-          <input className="tm-input" name="area" value={selectedArea} disabled={disabled} onChange={(e) => onSetArea(e.target.value)} required />
-        </label>
+        <div className="tm-field">
+          <TypeaheadInput
+            label="Area"
+            placeholder={originAreaOptionsLoaded ? "Search or type area name" : "Loading areas…"}
+            value={selectedArea}
+            disabled={disabled}
+            options={originAreaOptions}
+            allowCustomValue
+            onSelect={onSetArea}
+          />
+          {showOriginSuggestButton ? (
+            <button
+              type="button"
+              className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
+              onClick={onSuggestOriginArea}
+            >
+              Suggest &ldquo;{selectedArea}&rdquo; as a new area
+            </button>
+          ) : null}
+          {originAreaSuggestionPending ? (
+            <p className="mt-1 text-xs text-amber-700">
+              This area is awaiting catalog approval. You cannot submit this listing until it is approved.
+            </p>
+          ) : null}
+        </div>
         <div className="tm-field">
           <span className="tm-field-label">Coverage Area</span>
           <p className="tm-input">{selectedCity && selectedCountry ? `${selectedCity}, ${selectedCountry}` : "Select city and country"}</p>
@@ -250,6 +340,112 @@ export function TransferDetailsForm({
           <input className="tm-input" name="nightSurcharge" defaultValue={item.nightSurcharge} disabled={disabled} placeholder="Night surcharge" type="number" />
         </label>
       </div>
+
+      {/* Destination Section */}
+      <div className="mt-6 border-t border-slate-200 pt-5">
+        <h3 className="text-sm font-semibold text-slate-800">Destination Route</h3>
+        <p className="mt-1 text-xs text-slate-500">
+          Set the destination for this transfer. Required for submission.
+        </p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <TypeaheadInput
+            label="Destination City"
+            placeholder={selectedCountry ? "Search destination city" : "Select country first"}
+            value={selectedDestinationCity}
+            disabled={disabled || !selectedCountry}
+            options={destinationCityOptions}
+            onSelect={onSetDestinationCity}
+          />
+          <div className="tm-field">
+            <TypeaheadInput
+              label="Destination Area"
+              placeholder={
+                !selectedDestinationCity
+                  ? "Select destination city first"
+                  : destinationAreaOptionsLoaded
+                    ? "Search or type area name"
+                    : "Loading areas…"
+              }
+              value={selectedDestinationArea}
+              disabled={disabled || !selectedDestinationCity}
+              options={destinationAreaOptions}
+              allowCustomValue
+              onSelect={onSetDestinationArea}
+            />
+            {showDestinationAreaSuggestButton ? (
+              <button
+                type="button"
+                className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
+                onClick={onSuggestDestinationArea}
+              >
+                Suggest &ldquo;{selectedDestinationArea}&rdquo; as a new area
+              </button>
+            ) : null}
+            {destinationAreaSuggestionPending ? (
+              <p className="mt-1 text-xs text-amber-700">
+                This destination area is awaiting catalog approval. You cannot submit this listing until it is approved.
+              </p>
+            ) : null}
+          </div>
+          <div className="tm-field">
+            <TypeaheadInput
+              label="Destination Sub-area (optional)"
+              placeholder={
+                !selectedDestinationArea
+                  ? "Select destination area first"
+                  : destinationSubAreaOptionsLoaded
+                    ? "Search or type sub-area name"
+                    : "Loading sub-areas…"
+              }
+              value={selectedDestinationSubArea}
+              disabled={disabled || !selectedDestinationArea}
+              options={destinationSubAreaOptions}
+              allowCustomValue
+              onSelect={onSetDestinationSubArea}
+            />
+            {showDestinationSubAreaSuggestButton ? (
+              <button
+                type="button"
+                className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
+                onClick={onSuggestDestinationSubArea}
+              >
+                Suggest &ldquo;{selectedDestinationSubArea}&rdquo; as a new sub-area
+              </button>
+            ) : null}
+            {destinationSubAreaSuggestionPending ? (
+              <p className="mt-1 text-xs text-amber-700">
+                This sub-area is awaiting catalog approval.
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {/* Route Summary Card — shown only for return transfers */}
+      {selectedTransferType === "return" && selectedCity && selectedDestinationCity ? (
+        <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <h3 className="text-sm font-semibold text-slate-800">Route Summary</h3>
+          <p className="mt-1 text-xs text-slate-500">Both directions are published for return transfers.</p>
+          <div className="mt-3 space-y-2 text-sm text-slate-700">
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 rounded bg-slate-200 px-1.5 py-0.5 text-xs font-medium text-slate-600">A → B</span>
+              <span>
+                {selectedCity}{selectedArea ? ` (${selectedArea})` : ""}
+                {" → "}
+                {selectedDestinationCity}{selectedDestinationArea ? ` (${selectedDestinationArea})` : ""}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 rounded bg-slate-200 px-1.5 py-0.5 text-xs font-medium text-slate-600">B → A</span>
+              <span>
+                {selectedDestinationCity}{selectedDestinationArea ? ` (${selectedDestinationArea})` : ""}
+                {" → "}
+                {selectedCity}{selectedArea ? ` (${selectedArea})` : ""}
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <label className="tm-field mt-3 block">
         <span className="tm-field-label">Description</span>

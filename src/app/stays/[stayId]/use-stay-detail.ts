@@ -334,8 +334,16 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     const [item] = copy.splice(index, 1);
     copy.splice(nextIndex, 0, item);
 
-    const updated = await staysClient.reorderImages(userId, stay.id, copy);
-    syncStay(updated);
+    setSaving(true);
+    setMessage("");
+    try {
+      const updated = await staysClient.reorderImages(userId, stay.id, copy);
+      syncStay(updated);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to reorder images.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function replaceImage(imageId: string, file: File) {

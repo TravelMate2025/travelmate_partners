@@ -41,6 +41,9 @@ export type TransferListing = {
   adminLevel1?: string;
   city?: string;
   area?: string;
+  destinationCity?: string;
+  destinationArea?: string;
+  destinationSubArea?: string;
   cityReviewStatus?: "pending" | "approved" | "rejected" | null;
   operatingHours: string;
   currency: string;
@@ -68,6 +71,9 @@ export type CreateTransferInput = {
   adminLevel1?: string;
   city?: string;
   area?: string;
+  destinationCity?: string;
+  destinationArea?: string;
+  destinationSubArea?: string;
 };
 
 export type UpdateTransferInput = Partial<
@@ -87,6 +93,9 @@ export type UpdateTransferInput = Partial<
     | "adminLevel1"
     | "city"
     | "area"
+    | "destinationCity"
+    | "destinationArea"
+    | "destinationSubArea"
     | "operatingHours"
     | "currency"
     | "baseFare"

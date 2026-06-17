@@ -95,11 +95,9 @@ export function SettlementHistorySection({
           <label className="tm-field">
             <span className="tm-field-label">Refund Status</span>
             <select className="tm-input" name="status" defaultValue="partner_notified">
-              <option value="requested">Requested</option>
               <option value="partner_notified">Partner Notified</option>
               <option value="refunded">Refunded</option>
               <option value="disputed">Disputed</option>
-              <option value="recovered">Recovered</option>
             </select>
           </label>
           <label className="tm-field">

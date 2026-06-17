@@ -54,7 +54,6 @@ type RequestOptions = {
 };
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
-let csrfTokenCache: string | null = null;
 
 function readCookie(name: string): string | null {
   if (typeof document === "undefined") {
@@ -95,7 +94,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   if (isUnsafeMethod(method)) {
-    const csrfToken = readCookie("csrftoken") ?? csrfTokenCache;
+    const csrfToken = readCookie("csrftoken");
     if (csrfToken) {
       headers["X-CSRFToken"] = csrfToken;
     }
@@ -133,10 +132,6 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   const rawText = await response.text();
-  const headerToken = response.headers?.get?.("X-CSRFToken");
-  if (headerToken && headerToken.trim()) {
-    csrfTokenCache = headerToken.trim();
-  }
   const data = parseResponsePayload(rawText);
 
   if (!response.ok) {

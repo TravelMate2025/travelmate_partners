@@ -17,7 +17,7 @@ export function canTransition(from: StayStatus, to: StayStatus) {
 
 export function validateStayForSubmission(item: StayListing) {
   const required = [item.propertyType, item.name, item.description, item.address, item.city, item.country];
-  return required.every((field) => field.trim().length > 0);
+  return required.every((field) => String(field ?? "").trim().length > 0);
 }
 
 export function transitionStatus(item: StayListing, next: StayStatus): StayListing {

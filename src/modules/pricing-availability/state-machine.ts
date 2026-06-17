@@ -54,10 +54,7 @@ function validateBlackoutDates(dates: string[]) {
   }
 }
 
-function validateRatePlans(ratePlans: StayRatePlan[], hasCancellationOptions: boolean) {
-  if (hasCancellationOptions && (!Array.isArray(ratePlans) || ratePlans.length === 0)) {
-    return;
-  }
+function validateRatePlans(ratePlans: StayRatePlan[]) {
   if (!Array.isArray(ratePlans) || ratePlans.length === 0) {
     throw new Error("At least one active rate plan is required.");
   }
@@ -177,10 +174,7 @@ export function validatePricingAvailabilityInput(input: UpsertPricingAvailabilit
   validateBlackoutDates(input.blackoutDates);
   validateCancellationOptions(input.cancellationOptions);
   validateRoomCancellationOptions(input.roomCancellationOptions);
-  validateRatePlans(
-    input.ratePlans,
-    Boolean(input.cancellationOptions?.length || input.roomCancellationOptions?.length),
-  );
+  validateRatePlans(input.ratePlans);
 }
 
 export function createDefaultPricingAvailability(

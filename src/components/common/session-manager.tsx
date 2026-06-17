@@ -71,6 +71,9 @@ export function SessionManager() {
       router.replace("/auth/login");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to logout all sessions.");
+      // Keep navigation deterministic even if the server call fails — sessions
+      // may have been partially revoked, so redirect to login either way.
+      router.replace("/auth/login");
     }
   }
 

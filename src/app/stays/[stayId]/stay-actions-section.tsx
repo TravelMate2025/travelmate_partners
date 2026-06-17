@@ -172,7 +172,7 @@ export function StayActionsSection({
               </button>
             </>
           ) : null}
-          {stay.status !== "archived" && stay.status !== "paused_by_admin" && stay.status !== "paused" ? (
+          {stay.status !== "archived" && stay.status !== "paused_by_admin" ? (
             <button
               className="tm-btn tm-btn-outline"
               disabled={saving}

@@ -11,7 +11,7 @@ export type ListingAppeal = {
   message: string;
   status: ListingAppealStatus;
   resolution: ListingAppealResolution | null;
-  resolutionNote: string;
+  resolutionNote: string | null;
   resolvedAt: string | null;
   createdAt: string;
   updatedAt: string;
