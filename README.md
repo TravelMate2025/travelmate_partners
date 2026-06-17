@@ -13,6 +13,8 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+`npm run dev` clears stale dev servers for this app on nearby local ports, but leaves other apps alone and lets Next pick the next available port when 3000 is already in use. It uses webpack dev mode for stability before starting a fresh one.
+
 ## Testing
 
 ```bash
@@ -32,13 +34,23 @@ Set these in `.env.local`:
 
 ```bash
 NEXT_PUBLIC_USE_MOCK_API=true
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_API_BASE_URL=/api/v1
 ```
 
 - `NEXT_PUBLIC_USE_MOCK_API=true`: use frontend mock data adapter.
 - `NEXT_PUBLIC_USE_MOCK_API=false`: call real backend APIs at `NEXT_PUBLIC_API_BASE_URL`.
 - `NEXT_PUBLIC_USE_REAL_NOTIFICATIONS_API=true`: use real notifications API even when `NEXT_PUBLIC_USE_MOCK_API=true` (default `true`).
-- Keep the frontend and API on matching hostnames in local development (`localhost` with `localhost`, or `127.0.0.1` with `127.0.0.1`) so session and CSRF cookies work for document uploads and other unsafe requests.
+- The partner app proxies same-origin `/api/v1` requests to the Django backend in local development so auth cookies stay on the same site.
+- For a ready-to-use local partner login, seed the API first:
+
+```bash
+cd api
+./venv/bin/python manage.py seed_partner_users
+```
+
+- Demo credentials:
+  - `partner@travelmate.test` / `TravelMate!2026`
+  - `settlement-demo@travelmate.test` / `TravelMate!2026`
 
 ## Current Implemented Routes
 

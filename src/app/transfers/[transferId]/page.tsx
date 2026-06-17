@@ -110,19 +110,13 @@ export default function TransferDetailPage() {
         knownVehicleClassValues={detail.knownVehicleClassValues}
         knownFeatureValues={detail.knownFeatureValues}
         selectedTransferType={detail.selectedTransferType}
-        selectedDestinationCity={detail.selectedDestinationCity}
-        selectedDestinationArea={detail.selectedDestinationArea}
-        selectedDestinationSubArea={detail.selectedDestinationSubArea}
+        destinationRoutes={detail.destinationRoutes}
+        destinationRoutePendingById={detail.destinationRoutePendingById}
         destinationCityOptions={detail.destinationCityOptions}
         originAreaOptions={detail.originAreaOptions}
         originAreaOptionsLoaded={detail.originAreaOptionsLoaded}
-        destinationAreaOptions={detail.destinationAreaOptions}
-        destinationAreaOptionsLoaded={detail.destinationAreaOptionsLoaded}
-        destinationSubAreaOptions={detail.destinationSubAreaOptions}
-        destinationSubAreaOptionsLoaded={detail.destinationSubAreaOptionsLoaded}
+        originAreaOptionsLoadFailed={detail.originAreaOptionsLoadFailed}
         originAreaSuggestionPending={detail.originAreaSuggestionPending}
-        destinationAreaSuggestionPending={detail.destinationAreaSuggestionPending}
-        destinationSubAreaSuggestionPending={detail.destinationSubAreaSuggestionPending}
         onSaveDetails={detail.saveDetails}
         onToggleFeature={detail.toggleFeature}
         onSetCurrency={detail.setSelectedCurrency}
@@ -135,12 +129,12 @@ export default function TransferDetailPage() {
         onSetCitySearch={detail.setCitySearch}
         onSetVehicleClass={detail.setSelectedVehicleClass}
         onSetTransferType={detail.setSelectedTransferType}
-        onSetDestinationCity={detail.setSelectedDestinationCity}
-        onSetDestinationArea={detail.setSelectedDestinationArea}
-        onSetDestinationSubArea={detail.setSelectedDestinationSubArea}
         onSuggestOriginArea={detail.suggestOriginArea}
-        onSuggestDestinationArea={detail.suggestDestinationArea}
-        onSuggestDestinationSubArea={detail.suggestDestinationSubArea}
+        onAddDestinationRoute={detail.addDestinationRoute}
+        onRemoveDestinationRoute={detail.removeDestinationRoute}
+        onMoveDestinationRoute={detail.moveDestinationRoute}
+        onSetDestinationRoute={detail.setDestinationRoute}
+        onSetDestinationRoutePending={detail.setDestinationRoutePending}
       />
 
       <TransferImagesSection

@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
-import type { TransferListing, TransferStatus } from "@/modules/transfers/contracts";
+import type { TransferListing } from "@/modules/transfers/contracts";
+import type { TransferStatus } from "@/modules/transfers/contracts";
 import { transfersClient } from "@/modules/transfers/transfers-client";
 
 export default function TransfersPage() {
@@ -97,6 +98,14 @@ export default function TransfersPage() {
     );
   }
 
+  function routeSummary(item: TransferListing) {
+    const route = item.destinationRoutes?.[0];
+    if (route) {
+      return [route.destinationCity, route.destinationArea].filter(Boolean).join(" / ") || "Destination route";
+    }
+    return item.destinationCity || "Destination route";
+  }
+
   return (
     <PartnerShell
       title="Transfer Listings"
@@ -127,7 +136,7 @@ export default function TransfersPage() {
                   <h3 className="text-lg font-semibold text-slate-900">{item.name || "Untitled transfer"}</h3>
                   <p className="text-sm text-slate-600">
                     {item.transferType || "Transfer type not set"} • {item.pickupPoint || "Pickup"} to{" "}
-                    {item.dropoffPoint || "Dropoff"}
+                    {routeSummary(item)}
                   </p>
                   <p className="tm-status-inline mt-2">
                     Status: {item.status === "paused_by_admin" ? "Suspended by platform" : item.status}

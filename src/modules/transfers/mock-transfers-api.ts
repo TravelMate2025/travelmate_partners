@@ -119,6 +119,12 @@ async function emitIncompleteReminder(userId: string, contextLabel: string) {
 function createFromInput(userId: string, input: CreateTransferInput): TransferListing {
   const ts = nowIso();
   const coverageArea = input.coverageArea ?? (input.city && input.country ? `${input.city}, ${input.country}` : "");
+  const destinationRoutes = Array.isArray(input.destinationRoutes) ? input.destinationRoutes.map((route) => ({ ...route })) : [];
+  const firstRoute = destinationRoutes[0] ?? {
+    destinationCity: input.destinationCity ?? "",
+    destinationArea: input.destinationArea ?? "",
+    destinationSubArea: input.destinationSubArea ?? "",
+  };
   return {
     id: makeId(),
     userId,
@@ -127,7 +133,6 @@ function createFromInput(userId: string, input: CreateTransferInput): TransferLi
     description: "",
     transferType: input.transferType,
     pickupPoint: input.pickupPoint,
-    dropoffPoint: input.dropoffPoint,
     vehicleClass: input.vehicleClass,
     passengerCapacity: input.passengerCapacity,
     luggageCapacity: input.luggageCapacity,
@@ -137,6 +142,10 @@ function createFromInput(userId: string, input: CreateTransferInput): TransferLi
     adminLevel1: input.adminLevel1 ?? "",
     city: input.city ?? "",
     area: input.area ?? "",
+    destinationRoutes,
+    destinationCity: firstRoute.destinationCity ?? "",
+    destinationArea: firstRoute.destinationArea ?? "",
+    destinationSubArea: firstRoute.destinationSubArea ?? "",
     operatingHours: "",
     currency: "NGN",
     baseFare: input.baseFare ?? 0,

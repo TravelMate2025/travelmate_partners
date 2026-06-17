@@ -6,7 +6,7 @@ describe("realPricingAvailabilityApi", () => {
   const originalApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   beforeEach(() => {
-    process.env.NEXT_PUBLIC_API_BASE_URL = "http://localhost:8000/api/v1";
+    process.env.NEXT_PUBLIC_API_BASE_URL = "/api/v1";
   });
 
   afterEach(() => {

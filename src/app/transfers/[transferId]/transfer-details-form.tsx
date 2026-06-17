@@ -1,13 +1,16 @@
 "use client";
 
-import { FormEvent } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { TypeaheadInput } from "@/components/common/typeahead-input";
 import { operatingCountryOptions } from "@/modules/profile/location-options";
 import { stayTimeOptions } from "@/modules/stays/time-options";
 import type { TransferListing } from "@/modules/transfers/contracts";
+import { fetchCatalogAreas, fetchCatalogSubAreas, submitLocalitySuggestion } from "@/modules/transfers/geography-client";
 import {
   CURRENCY_OPTIONS,
+  derivedDestinationCityOptions,
+  DestinationRouteDraft,
   knownTimeValues,
   TRANSFER_FEATURE_OPTIONS,
 } from "./use-transfer-detail";
@@ -32,19 +35,13 @@ type Props = {
   knownVehicleClassValues: Set<string>;
   knownFeatureValues: Set<string>;
   selectedTransferType: string;
-  selectedDestinationCity: string;
-  selectedDestinationArea: string;
-  selectedDestinationSubArea: string;
+  destinationRoutes: DestinationRouteDraft[];
+  destinationRoutePendingById: Record<string, { area: boolean; subArea: boolean }>;
   destinationCityOptions: string[];
   originAreaOptions: string[];
   originAreaOptionsLoaded: boolean;
-  destinationAreaOptions: string[];
-  destinationAreaOptionsLoaded: boolean;
-  destinationSubAreaOptions: string[];
-  destinationSubAreaOptionsLoaded: boolean;
+  originAreaOptionsLoadFailed: boolean;
   originAreaSuggestionPending: boolean;
-  destinationAreaSuggestionPending: boolean;
-  destinationSubAreaSuggestionPending: boolean;
   onSaveDetails: (event: FormEvent<HTMLFormElement>) => void;
   onToggleFeature: (value: string) => void;
   onSetCurrency: (v: string) => void;
@@ -57,13 +54,363 @@ type Props = {
   onSetCitySearch: (v: string) => void;
   onSetVehicleClass: (v: string) => void;
   onSetTransferType: (v: string) => void;
-  onSetDestinationCity: (v: string) => void;
-  onSetDestinationArea: (v: string) => void;
-  onSetDestinationSubArea: (v: string) => void;
+  onAddDestinationRoute: () => void;
+  onRemoveDestinationRoute: (routeId: string) => void;
+  onMoveDestinationRoute: (routeId: string, direction: "up" | "down") => void;
+  onSetDestinationRoute: (routeId: string, patch: Partial<DestinationRouteDraft>) => void;
+  onSetDestinationRoutePending: (routeId: string, area: boolean, subArea: boolean) => void;
   onSuggestOriginArea: () => void;
-  onSuggestDestinationArea: () => void;
-  onSuggestDestinationSubArea: () => void;
 };
+
+type DestinationRouteEditorProps = {
+  userId?: string;
+  route: DestinationRouteDraft;
+  index: number;
+  count: number;
+  disabled: boolean;
+  selectedCountry: string;
+  selectedAdminLevel1: string;
+  cityOptions: string[];
+  pending?: { area: boolean; subArea: boolean };
+  onRemove: (routeId: string) => void;
+  onMove: (routeId: string, direction: "up" | "down") => void;
+  onSetRoute: (routeId: string, patch: Partial<DestinationRouteDraft>) => void;
+  onSetPending: (routeId: string, area: boolean, subArea: boolean) => void;
+};
+
+function DestinationRouteEditor({
+  userId,
+  route,
+  index,
+  count,
+  disabled,
+  selectedCountry,
+  selectedAdminLevel1,
+  cityOptions,
+  pending,
+  onRemove,
+  onMove,
+  onSetRoute,
+  onSetPending,
+}: DestinationRouteEditorProps) {
+  const [destinationAreaOptions, setDestinationAreaOptions] = useState<string[]>([]);
+  const [destinationAreaOptionsLoaded, setDestinationAreaOptionsLoaded] = useState(false);
+  const [destinationAreaOptionsLoadFailed, setDestinationAreaOptionsLoadFailed] = useState(false);
+  const [destinationSubAreaOptions, setDestinationSubAreaOptions] = useState<string[]>([]);
+  const [destinationSubAreaOptionsLoaded, setDestinationSubAreaOptionsLoaded] = useState(false);
+  const [destinationSubAreaOptionsLoadFailed, setDestinationSubAreaOptionsLoadFailed] = useState(false);
+  const [destinationAreaSuggestionPending, setDestinationAreaSuggestionPending] = useState(false);
+  const [destinationSubAreaSuggestionPending, setDestinationSubAreaSuggestionPending] = useState(false);
+
+  const destinationCityOptions = useMemo(() => {
+    const options = cityOptions.slice();
+    if (route.destinationCity && !options.some((option) => option.toLowerCase() === route.destinationCity.trim().toLowerCase())) {
+      options.unshift(route.destinationCity);
+    }
+    return options;
+  }, [cityOptions, route.destinationCity]);
+
+  useEffect(() => {
+    if (!userId || !selectedCountry || !selectedAdminLevel1 || !route.destinationCity) {
+      setDestinationAreaOptions([]);
+      setDestinationAreaOptionsLoaded(false);
+      setDestinationAreaOptionsLoadFailed(false);
+      onSetPending(route.id, false, false);
+      return;
+    }
+
+    let active = true;
+    setDestinationAreaOptionsLoadFailed(false);
+    fetchCatalogAreas(userId, selectedCountry, selectedAdminLevel1, route.destinationCity)
+      .then((areas) => {
+        if (!active) return;
+        setDestinationAreaOptions(areas);
+        setDestinationAreaOptionsLoaded(true);
+      })
+      .catch(() => {
+        if (!active) return;
+        setDestinationAreaOptions([]);
+        setDestinationAreaOptionsLoaded(false);
+        setDestinationAreaOptionsLoadFailed(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [route.destinationCity, route.id, selectedAdminLevel1, selectedCountry, userId]);
+
+  useEffect(() => {
+    if (!destinationAreaOptionsLoaded || !route.destinationArea) {
+      setDestinationAreaSuggestionPending(false);
+      onSetPending(route.id, false, false);
+      return;
+    }
+
+    const pendingArea = !destinationAreaOptions.some(
+      (option) => option.toLowerCase() === route.destinationArea.trim().toLowerCase(),
+    );
+    setDestinationAreaSuggestionPending(pendingArea);
+    onSetPending(route.id, pendingArea, destinationSubAreaSuggestionPending);
+  }, [
+    destinationAreaOptions,
+    destinationAreaOptionsLoaded,
+    destinationSubAreaSuggestionPending,
+    route.destinationArea,
+    route.id,
+  ]);
+
+  useEffect(() => {
+    if (!userId || !selectedCountry || !selectedAdminLevel1 || !route.destinationCity || !route.destinationArea) {
+      setDestinationSubAreaOptions([]);
+      setDestinationSubAreaOptionsLoaded(false);
+      setDestinationSubAreaOptionsLoadFailed(false);
+      onSetPending(route.id, destinationAreaSuggestionPending, false);
+      return;
+    }
+
+    let active = true;
+    setDestinationSubAreaOptionsLoadFailed(false);
+    fetchCatalogSubAreas(userId, selectedCountry, selectedAdminLevel1, route.destinationCity, route.destinationArea)
+      .then((subAreas) => {
+        if (!active) return;
+        setDestinationSubAreaOptions(subAreas);
+        setDestinationSubAreaOptionsLoaded(true);
+      })
+      .catch(() => {
+        if (!active) return;
+        setDestinationSubAreaOptions([]);
+        setDestinationSubAreaOptionsLoaded(false);
+        setDestinationSubAreaOptionsLoadFailed(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    destinationAreaSuggestionPending,
+    route.destinationArea,
+    route.destinationCity,
+    route.id,
+    selectedAdminLevel1,
+    selectedCountry,
+    userId,
+  ]);
+
+  useEffect(() => {
+    if (!destinationSubAreaOptionsLoaded || !route.destinationSubArea) {
+      setDestinationSubAreaSuggestionPending(false);
+      onSetPending(route.id, destinationAreaSuggestionPending, false);
+      return;
+    }
+
+    const pendingSubArea = !destinationSubAreaOptions.some(
+      (option) => option.toLowerCase() === route.destinationSubArea.trim().toLowerCase(),
+    );
+    setDestinationSubAreaSuggestionPending(pendingSubArea);
+    onSetPending(route.id, destinationAreaSuggestionPending, pendingSubArea);
+  }, [
+    destinationAreaSuggestionPending,
+    destinationSubAreaOptions,
+    destinationSubAreaOptionsLoaded,
+    route.destinationSubArea,
+    route.id,
+  ]);
+
+  const showDestinationAreaSuggestButton =
+    !disabled &&
+    destinationAreaOptionsLoaded &&
+    route.destinationArea &&
+    !destinationAreaOptions.some((option) => option.toLowerCase() === route.destinationArea.trim().toLowerCase()) &&
+    !destinationAreaSuggestionPending;
+
+  const showDestinationSubAreaSuggestButton =
+    !disabled &&
+    destinationSubAreaOptionsLoaded &&
+    route.destinationSubArea &&
+    !destinationSubAreaOptions.some(
+      (option) => option.toLowerCase() === route.destinationSubArea.trim().toLowerCase(),
+    ) &&
+    !destinationSubAreaSuggestionPending;
+
+  async function suggestDestinationArea() {
+    if (!userId || !selectedCountry || !selectedAdminLevel1 || !route.destinationCity || !route.destinationArea) return;
+    await submitLocalitySuggestion(userId, {
+      country: selectedCountry,
+      adminLevel1: selectedAdminLevel1,
+      city: route.destinationCity,
+      area: route.destinationArea,
+    });
+    setDestinationAreaSuggestionPending(true);
+    onSetPending(route.id, true, destinationSubAreaSuggestionPending);
+  }
+
+  async function suggestDestinationSubArea() {
+    if (
+      !userId ||
+      !selectedCountry ||
+      !selectedAdminLevel1 ||
+      !route.destinationCity ||
+      !route.destinationArea ||
+      !route.destinationSubArea
+    ) {
+      return;
+    }
+    await submitLocalitySuggestion(userId, {
+      country: selectedCountry,
+      adminLevel1: selectedAdminLevel1,
+      city: route.destinationCity,
+      area: route.destinationArea,
+      subArea: route.destinationSubArea,
+    });
+    setDestinationSubAreaSuggestionPending(true);
+    onSetPending(route.id, destinationAreaSuggestionPending, true);
+  }
+
+  const routeLocationLabel = [route.destinationCity, route.destinationArea].filter(Boolean).join(" / ") || "Unspecified";
+  const pendingArea = pending?.area ?? destinationAreaSuggestionPending;
+  const pendingSubArea = pending?.subArea ?? destinationSubAreaSuggestionPending;
+
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-900">Route {index + 1}</p>
+          <p className="mt-1 text-xs text-slate-500">{routeLocationLabel}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={disabled || index === 0}
+            onClick={() => onMove(route.id, "up")}
+          >
+            Move up
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={disabled || index === count - 1}
+            onClick={() => onMove(route.id, "down")}
+          >
+            Move down
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={disabled || count === 1}
+            onClick={() => onRemove(route.id)}
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <TypeaheadInput
+          label="Destination City"
+          placeholder={selectedCountry ? "Search destination city" : "Select country first"}
+          value={route.destinationCity}
+          disabled={disabled || !selectedCountry || !selectedAdminLevel1}
+          options={destinationCityOptions}
+          onSelect={(value) =>
+            onSetRoute(route.id, {
+              destinationCity: value,
+              destinationArea: "",
+              destinationSubArea: "",
+            })
+          }
+        />
+        <div className="tm-field">
+          <TypeaheadInput
+            label="Destination Area"
+            placeholder={
+              !route.destinationCity
+                ? "Select destination city first"
+                : destinationAreaOptionsLoadFailed
+                  ? "Catalog unavailable right now"
+                  : destinationAreaOptionsLoaded
+                    ? "Search or type area name"
+                    : "Loading areas…"
+            }
+            value={route.destinationArea}
+            disabled={disabled || !route.destinationCity}
+            options={destinationAreaOptions}
+            allowCustomValue
+            onSelect={(value) =>
+              onSetRoute(route.id, {
+                destinationArea: value,
+                destinationSubArea: "",
+              })
+            }
+          />
+          {destinationAreaOptionsLoadFailed ? (
+            <p className="mt-1 text-xs text-amber-700">
+              We could not load destination areas right now. Validation will be retried when you save.
+            </p>
+          ) : null}
+          {showDestinationAreaSuggestButton ? (
+            <button
+              type="button"
+              className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
+              onClick={suggestDestinationArea}
+            >
+              Suggest &ldquo;{route.destinationArea}&rdquo; as a new area
+            </button>
+          ) : null}
+          {pendingArea ? (
+            <p className="mt-1 text-xs text-amber-700">
+              This destination area is awaiting catalog approval.
+            </p>
+          ) : null}
+        </div>
+        <div className="tm-field">
+          <TypeaheadInput
+            label="Destination Sub-area (optional)"
+            placeholder={
+              !route.destinationArea
+                ? "Select destination area first"
+                : destinationSubAreaOptionsLoadFailed
+                  ? "Catalog unavailable right now"
+                  : destinationSubAreaOptionsLoaded
+                    ? "Search or type sub-area name"
+                    : "Loading sub-areas…"
+            }
+            value={route.destinationSubArea}
+            disabled={disabled || !route.destinationArea}
+            options={destinationSubAreaOptions}
+            allowCustomValue
+            onSelect={(value) => onSetRoute(route.id, { destinationSubArea: value })}
+          />
+          {destinationSubAreaOptionsLoadFailed ? (
+            <p className="mt-1 text-xs text-amber-700">
+              We could not load destination sub-areas right now. Validation will be retried when you save.
+            </p>
+          ) : null}
+          {showDestinationSubAreaSuggestButton ? (
+            <button
+              type="button"
+              className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
+              onClick={suggestDestinationSubArea}
+            >
+              Suggest &ldquo;{route.destinationSubArea}&rdquo; as a new sub-area
+            </button>
+          ) : null}
+          {pendingSubArea ? (
+            <p className="mt-1 text-xs text-amber-700">This sub-area is awaiting catalog approval.</p>
+          ) : null}
+        </div>
+        <div className="tm-field">
+          <span className="tm-field-label">Route Scope</span>
+          <p className="tm-input text-sm">
+            {selectedCountry && selectedAdminLevel1
+              ? `${selectedAdminLevel1}, ${selectedCountry}`
+              : "Select country and region first"}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export function TransferDetailsForm({
   item,
@@ -85,19 +432,13 @@ export function TransferDetailsForm({
   knownVehicleClassValues,
   knownFeatureValues,
   selectedTransferType,
-  selectedDestinationCity,
-  selectedDestinationArea,
-  selectedDestinationSubArea,
+  destinationRoutes,
+  destinationRoutePendingById,
   destinationCityOptions,
   originAreaOptions,
   originAreaOptionsLoaded,
-  destinationAreaOptions,
-  destinationAreaOptionsLoaded,
-  destinationSubAreaOptions,
-  destinationSubAreaOptionsLoaded,
+  originAreaOptionsLoadFailed,
   originAreaSuggestionPending,
-  destinationAreaSuggestionPending,
-  destinationSubAreaSuggestionPending,
   onSaveDetails,
   onToggleFeature,
   onSetCurrency,
@@ -110,35 +451,32 @@ export function TransferDetailsForm({
   onSetCitySearch,
   onSetVehicleClass,
   onSetTransferType,
-  onSetDestinationCity,
-  onSetDestinationArea,
-  onSetDestinationSubArea,
+  onAddDestinationRoute,
+  onRemoveDestinationRoute,
+  onMoveDestinationRoute,
+  onSetDestinationRoute,
+  onSetDestinationRoutePending,
   onSuggestOriginArea,
-  onSuggestDestinationArea,
-  onSuggestDestinationSubArea,
 }: Props) {
   const disabled = !canEditDetails || saving;
+  const destinationLabel = selectedAdminLevel1 && selectedCountry ? `${selectedAdminLevel1}, ${selectedCountry}` : "the selected state/region";
 
   const showOriginSuggestButton =
     !disabled &&
     originAreaOptionsLoaded &&
     selectedArea &&
-    !originAreaOptions.includes(selectedArea) &&
+    !originAreaOptions.some((option) => option.toLowerCase() === selectedArea.trim().toLowerCase()) &&
     !originAreaSuggestionPending;
 
-  const showDestinationAreaSuggestButton =
-    !disabled &&
-    destinationAreaOptionsLoaded &&
-    selectedDestinationArea &&
-    !destinationAreaOptions.includes(selectedDestinationArea) &&
-    !destinationAreaSuggestionPending;
-
-  const showDestinationSubAreaSuggestButton =
-    !disabled &&
-    destinationSubAreaOptionsLoaded &&
-    selectedDestinationSubArea &&
-    !destinationSubAreaOptions.includes(selectedDestinationSubArea) &&
-    !destinationSubAreaSuggestionPending;
+  const destinationSummary = useMemo(() => {
+    if (destinationRoutes.length === 0) return "Add at least one destination route.";
+    return destinationRoutes
+      .map((route, index) => {
+        const summary = [route.destinationCity, route.destinationArea].filter(Boolean).join(" / ") || "Unspecified";
+        return `${index + 1}. ${summary}${route.destinationSubArea ? ` — ${route.destinationSubArea}` : ""}`;
+      })
+      .join(" • ");
+  }, [destinationRoutes]);
 
   return (
     <form className="tm-panel p-6" onSubmit={onSaveDetails}>
@@ -179,10 +517,6 @@ export function TransferDetailsForm({
           <input className="tm-input" name="pickupPoint" defaultValue={item.pickupPoint} disabled={disabled} placeholder="Pickup point" />
         </label>
         <label className="tm-field">
-          <span className="tm-field-label">Dropoff Point</span>
-          <input className="tm-input" name="dropoffPoint" defaultValue={item.dropoffPoint} disabled={disabled} placeholder="Dropoff point" />
-        </label>
-        <label className="tm-field">
           <span className="tm-field-label">Vehicle Class</span>
           <select
             className="tm-input"
@@ -192,12 +526,16 @@ export function TransferDetailsForm({
             onChange={(e) => onSetVehicleClass(e.target.value)}
             required
           >
-            <option value="" disabled>Select vehicle class</option>
+            <option value="" disabled>
+              Select vehicle class
+            </option>
             {selectedVehicleClass && !knownVehicleClassValues.has(selectedVehicleClass) ? (
               <option value={selectedVehicleClass}>{selectedVehicleClass.replace(/_/g, " ")}</option>
             ) : null}
             {vehicleClassOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
           </select>
         </label>
@@ -234,9 +572,13 @@ export function TransferDetailsForm({
             onChange={(e) => onSetCity(e.target.value)}
             required
           >
-            <option value="" disabled>Select city</option>
+            <option value="" disabled>
+              Select city
+            </option>
             {filteredCities.map((city) => (
-              <option key={city} value={city}>{city}</option>
+              <option key={city} value={city}>
+                {city}
+              </option>
             ))}
           </select>
           {item.cityReviewStatus === "pending" ? (
@@ -253,13 +595,24 @@ export function TransferDetailsForm({
         <div className="tm-field">
           <TypeaheadInput
             label="Area"
-            placeholder={originAreaOptionsLoaded ? "Search or type area name" : "Loading areas…"}
+            placeholder={
+              originAreaOptionsLoadFailed
+                ? "Catalog unavailable right now"
+                : originAreaOptionsLoaded
+                  ? "Search or type area name"
+                  : "Loading areas…"
+            }
             value={selectedArea}
             disabled={disabled}
             options={originAreaOptions}
             allowCustomValue
             onSelect={onSetArea}
           />
+          {originAreaOptionsLoadFailed ? (
+            <p className="mt-1 text-xs text-amber-700">
+              We could not load catalog areas right now. You can keep editing, but catalog validation will be checked again on save.
+            </p>
+          ) : null}
           {showOriginSuggestButton ? (
             <button
               type="button"
@@ -296,11 +649,11 @@ export function TransferDetailsForm({
               disabled={disabled}
               onChange={(e) => onSetOpenTime(e.target.value)}
             >
-              {openTime && !knownTimeValues.has(openTime) ? (
-                <option value={openTime}>{openTime}</option>
-              ) : null}
+              {openTime && !knownTimeValues.has(openTime) ? <option value={openTime}>{openTime}</option> : null}
               {stayTimeOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
             <span className="shrink-0 text-sm text-slate-500">to</span>
@@ -310,11 +663,11 @@ export function TransferDetailsForm({
               disabled={disabled}
               onChange={(e) => onSetCloseTime(e.target.value)}
             >
-              {closeTime && !knownTimeValues.has(closeTime) ? (
-                <option value={closeTime}>{closeTime}</option>
-              ) : null}
+              {closeTime && !knownTimeValues.has(closeTime) ? <option value={closeTime}>{closeTime}</option> : null}
               {stayTimeOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
           </div>
@@ -328,7 +681,9 @@ export function TransferDetailsForm({
             onChange={(e) => onSetCurrency(e.target.value)}
           >
             {CURRENCY_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
             {!CURRENCY_OPTIONS.some((opt) => opt.value === selectedCurrency) ? (
               <option value={selectedCurrency}>{selectedCurrency}</option>
@@ -341,109 +696,71 @@ export function TransferDetailsForm({
         </label>
       </div>
 
-      {/* Destination Section */}
       <div className="mt-6 border-t border-slate-200 pt-5">
-        <h3 className="text-sm font-semibold text-slate-800">Destination Route</h3>
-        <p className="mt-1 text-xs text-slate-500">
-          Set the destination for this transfer. Required for submission.
-        </p>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <TypeaheadInput
-            label="Destination City"
-            placeholder={selectedCountry ? "Search destination city" : "Select country first"}
-            value={selectedDestinationCity}
-            disabled={disabled || !selectedCountry}
-            options={destinationCityOptions}
-            onSelect={onSetDestinationCity}
-          />
-          <div className="tm-field">
-            <TypeaheadInput
-              label="Destination Area"
-              placeholder={
-                !selectedDestinationCity
-                  ? "Select destination city first"
-                  : destinationAreaOptionsLoaded
-                    ? "Search or type area name"
-                    : "Loading areas…"
-              }
-              value={selectedDestinationArea}
-              disabled={disabled || !selectedDestinationCity}
-              options={destinationAreaOptions}
-              allowCustomValue
-              onSelect={onSetDestinationArea}
-            />
-            {showDestinationAreaSuggestButton ? (
-              <button
-                type="button"
-                className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
-                onClick={onSuggestDestinationArea}
-              >
-                Suggest &ldquo;{selectedDestinationArea}&rdquo; as a new area
-              </button>
-            ) : null}
-            {destinationAreaSuggestionPending ? (
-              <p className="mt-1 text-xs text-amber-700">
-                This destination area is awaiting catalog approval. You cannot submit this listing until it is approved.
-              </p>
-            ) : null}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800">Destination Routes</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Add one or more destination rows. Every route stays within {destinationLabel}.
+            </p>
           </div>
-          <div className="tm-field">
-            <TypeaheadInput
-              label="Destination Sub-area (optional)"
-              placeholder={
-                !selectedDestinationArea
-                  ? "Select destination area first"
-                  : destinationSubAreaOptionsLoaded
-                    ? "Search or type sub-area name"
-                    : "Loading sub-areas…"
-              }
-              value={selectedDestinationSubArea}
-              disabled={disabled || !selectedDestinationArea}
-              options={destinationSubAreaOptions}
-              allowCustomValue
-              onSelect={onSetDestinationSubArea}
+          <button
+            type="button"
+            className="rounded-md border border-[#033D89] px-3 py-1.5 text-xs font-semibold text-[#033D89] hover:bg-[#033D89] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={disabled}
+            onClick={onAddDestinationRoute}
+          >
+            Add route
+          </button>
+        </div>
+
+        <p className="mt-3 text-xs text-slate-500">{destinationSummary}</p>
+
+        <div className="mt-4 space-y-4">
+          {destinationRoutes.map((route, index) => (
+            <DestinationRouteEditor
+              key={route.id}
+              userId={item.userId}
+              route={route}
+              index={index}
+              count={destinationRoutes.length}
+              disabled={disabled}
+              selectedCountry={selectedCountry}
+              selectedAdminLevel1={selectedAdminLevel1}
+              cityOptions={destinationCityOptions}
+              pending={destinationRoutePendingById[route.id]}
+              onRemove={onRemoveDestinationRoute}
+              onMove={onMoveDestinationRoute}
+              onSetRoute={onSetDestinationRoute}
+              onSetPending={onSetDestinationRoutePending}
             />
-            {showDestinationSubAreaSuggestButton ? (
-              <button
-                type="button"
-                className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
-                onClick={onSuggestDestinationSubArea}
-              >
-                Suggest &ldquo;{selectedDestinationSubArea}&rdquo; as a new sub-area
-              </button>
-            ) : null}
-            {destinationSubAreaSuggestionPending ? (
-              <p className="mt-1 text-xs text-amber-700">
-                This sub-area is awaiting catalog approval.
-              </p>
-            ) : null}
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Route Summary Card — shown only for return transfers */}
-      {selectedTransferType === "return" && selectedCity && selectedDestinationCity ? (
+      {selectedTransferType === "return" && destinationRoutes.length > 0 ? (
         <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <h3 className="text-sm font-semibold text-slate-800">Route Summary</h3>
-          <p className="mt-1 text-xs text-slate-500">Both directions are published for return transfers.</p>
-          <div className="mt-3 space-y-2 text-sm text-slate-700">
-            <div className="flex items-center gap-2">
-              <span className="shrink-0 rounded bg-slate-200 px-1.5 py-0.5 text-xs font-medium text-slate-600">A → B</span>
-              <span>
-                {selectedCity}{selectedArea ? ` (${selectedArea})` : ""}
+          <h3 className="text-sm font-semibold text-slate-800">Return Route Summary</h3>
+          <p className="mt-1 text-xs text-slate-500">
+            Return transfers publish each destination route in both directions.
+          </p>
+          <ul className="mt-3 space-y-2 text-sm text-slate-700">
+            {destinationRoutes.map((route, index) => (
+              <li key={route.id} className="rounded-md bg-white px-3 py-2">
+                <span className="mr-2 rounded bg-slate-200 px-1.5 py-0.5 text-xs font-medium text-slate-600">
+                  {index + 1}
+                </span>
+                {selectedCity}
+                {selectedArea ? ` (${selectedArea})` : ""}
                 {" → "}
-                {selectedDestinationCity}{selectedDestinationArea ? ` (${selectedDestinationArea})` : ""}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="shrink-0 rounded bg-slate-200 px-1.5 py-0.5 text-xs font-medium text-slate-600">B → A</span>
-              <span>
-                {selectedDestinationCity}{selectedDestinationArea ? ` (${selectedDestinationArea})` : ""}
+                {[route.destinationCity, route.destinationArea].filter(Boolean).join(" / ") || "Unspecified"}
+                {route.destinationSubArea ? ` — ${route.destinationSubArea}` : ""}
                 {" → "}
-                {selectedCity}{selectedArea ? ` (${selectedArea})` : ""}
-              </span>
-            </div>
-          </div>
+                {selectedCity}
+                {selectedArea ? ` (${selectedArea})` : ""}
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 

@@ -20,7 +20,7 @@ vi.mock("@/components/common/partner-shell", () => ({
 
 vi.mock("@/lib/config", () => ({
   appConfig: {
-    apiBaseUrl: "http://localhost:8000/api/v1",
+    apiBaseUrl: "/api/v1",
   },
 }));
 
@@ -179,7 +179,7 @@ describe("ApiAccessPage payment endpoints and responseFields", () => {
       return content.includes("curl -sS");
     });
 
-    expect(snippets.some((node) => node.textContent?.includes("http://localhost:8000/api/v1/public/catalog"))).toBe(true);
+    expect(snippets.some((node) => node.textContent?.includes("/api/v1/public/catalog"))).toBe(true);
     expect(snippets.some((node) => node.textContent?.includes("/api/v1/api/v1/public/catalog"))).toBe(false);
 
     const quoteSnippet = snippets.find((node) => node.textContent?.includes("/public/bookings/quote"));

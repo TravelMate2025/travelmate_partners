@@ -6,6 +6,7 @@ import { InfoHint } from "@/components/common/info-hint";
 import { PartnerShell } from "@/components/common/partner-shell";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
+import type { TransferListing } from "@/modules/transfers/contracts";
 import { formatDateTimeUTC } from "@/lib/format";
 import { transferPricingSchedulingClient } from "@/modules/transfer-pricing-scheduling/transfer-pricing-scheduling-client";
 import type {
@@ -14,7 +15,6 @@ import type {
   UpsertScheduleWindowInput,
 } from "@/modules/transfer-pricing-scheduling/contracts";
 import { transfersClient } from "@/modules/transfers/transfers-client";
-import type { TransferListing } from "@/modules/transfers/contracts";
 
 const CURRENCY_OPTIONS = ["NGN", "USD", "GBP"];
 const DAY_OPTIONS: TransferScheduleDay[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
@@ -281,6 +281,14 @@ export default function TransferPricingSchedulingPage() {
     }
   }
 
+  function transferLabel(item: TransferListing) {
+    const route = item.destinationRoutes?.[0];
+    const destination = route
+      ? [route.destinationCity, route.destinationArea].filter(Boolean).join(" / ")
+      : item.destinationCity || "Destination route";
+    return `${item.name || "Untitled transfer"} (${item.pickupPoint} → ${destination})`;
+  }
+
   return (
     <PartnerShell
       title="Transfer Pricing & Scheduling"
@@ -307,7 +315,7 @@ export default function TransferPricingSchedulingPage() {
             <option value="">Select transfer</option>
             {transfers.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.name || "Untitled transfer"} ({item.pickupPoint} - {item.dropoffPoint})
+                {transferLabel(item)}
               </option>
             ))}
           </select>

@@ -49,7 +49,7 @@ describe("realProfileApi", () => {
     const onboarding = await realProfileApi.getOnboarding("42");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/v1/partners/42/onboarding",
+      "/api/v1/partners/42/onboarding",
       expect.objectContaining({
         method: "GET",
         credentials: "include",
@@ -97,7 +97,7 @@ describe("realProfileApi", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/v1/partners/42/onboarding",
+      "/api/v1/partners/42/onboarding",
       expect.objectContaining({
         method: "PATCH",
         body: JSON.stringify({

@@ -35,7 +35,7 @@ describe("realVerificationApi", () => {
     const verification = await realVerificationApi.getVerification("42");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/v1/partners/42/verification",
+      "/api/v1/partners/42/verification",
       expect.objectContaining({
         method: "GET",
         credentials: "include",
@@ -80,7 +80,7 @@ describe("realVerificationApi", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/v1/partners/42/verification/documents",
+      "/api/v1/partners/42/verification/documents",
       expect.objectContaining({
         method: "POST",
         body: expect.any(FormData),
@@ -113,7 +113,7 @@ describe("realVerificationApi", () => {
       }),
     );
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/v1/partners/42/verification/submit",
+      "/api/v1/partners/42/verification/submit",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({

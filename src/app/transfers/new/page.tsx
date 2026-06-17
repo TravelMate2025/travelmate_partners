@@ -97,7 +97,6 @@ export default function NewTransferPage() {
         baseFare: Number(form.get("baseFare") ?? 0),
         transferType: String(form.get("transferType") ?? "") as TransferType,
         pickupPoint: String(form.get("pickupPoint") ?? ""),
-        dropoffPoint: String(form.get("dropoffPoint") ?? ""),
         vehicleClass: String(form.get("vehicleClass") ?? ""),
         passengerCapacity: Number(form.get("passengerCapacity") ?? 0),
         luggageCapacity: Number(form.get("luggageCapacity") ?? 0),
@@ -164,16 +163,10 @@ export default function NewTransferPage() {
             </select>
           </label>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="tm-field">
-              <span className="tm-field-label">Pickup Point</span>
-              <input className="tm-input" name="pickupPoint" placeholder="Pickup point" required />
-            </label>
-            <label className="tm-field">
-              <span className="tm-field-label">Dropoff Point</span>
-              <input className="tm-input" name="dropoffPoint" placeholder="Dropoff point" required />
-            </label>
-          </div>
+          <label className="tm-field">
+            <span className="tm-field-label">Pickup Point</span>
+            <input className="tm-input" name="pickupPoint" placeholder="Pickup point" required />
+          </label>
 
           <div className="grid gap-3 md:grid-cols-2">
             <TypeaheadInput

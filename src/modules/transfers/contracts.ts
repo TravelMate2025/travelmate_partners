@@ -23,6 +23,12 @@ export type TransferImage = {
   uploadedAt: string;
 };
 
+export type TransferDestinationRoute = {
+  destinationCity: string;
+  destinationArea: string;
+  destinationSubArea?: string;
+};
+
 export type TransferListing = {
   id: string;
   userId: string;
@@ -31,7 +37,7 @@ export type TransferListing = {
   description: string;
   transferType: TransferType | "";
   pickupPoint: string;
-  dropoffPoint: string;
+  dropoffPoint?: string;
   vehicleClass: string;
   passengerCapacity: number;
   luggageCapacity: number;
@@ -41,6 +47,7 @@ export type TransferListing = {
   adminLevel1?: string;
   city?: string;
   area?: string;
+  destinationRoutes?: TransferDestinationRoute[];
   destinationCity?: string;
   destinationArea?: string;
   destinationSubArea?: string;
@@ -62,7 +69,7 @@ export type CreateTransferInput = {
   baseFare?: number;
   transferType: TransferType;
   pickupPoint: string;
-  dropoffPoint: string;
+  dropoffPoint?: string;
   vehicleClass: string;
   passengerCapacity: number;
   luggageCapacity: number;
@@ -71,6 +78,7 @@ export type CreateTransferInput = {
   adminLevel1?: string;
   city?: string;
   area?: string;
+  destinationRoutes?: TransferDestinationRoute[];
   destinationCity?: string;
   destinationArea?: string;
   destinationSubArea?: string;
@@ -93,6 +101,7 @@ export type UpdateTransferInput = Partial<
     | "adminLevel1"
     | "city"
     | "area"
+    | "destinationRoutes"
     | "destinationCity"
     | "destinationArea"
     | "destinationSubArea"

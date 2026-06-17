@@ -80,7 +80,6 @@ export function buildTransferQualityReport(
     { label: "Name", passed: hasText(transfer.name), required: true },
     { label: "Transfer Type", passed: hasText(transfer.transferType), required: true },
     { label: "Pickup Point", passed: hasText(transfer.pickupPoint), required: true },
-    { label: "Dropoff Point", passed: hasText(transfer.dropoffPoint), required: true },
     { label: "Vehicle Class", passed: hasText(transfer.vehicleClass), required: true },
     { label: "Coverage Area", passed: hasText(transfer.coverageArea), required: true },
     { label: "Description", passed: hasText(transfer.description) },
@@ -99,7 +98,6 @@ export function buildTransferQualityReport(
       item.id !== transfer.id &&
       normalize(item.transferType) === normalize(transfer.transferType) &&
       normalize(item.pickupPoint) === normalize(transfer.pickupPoint) &&
-      normalize(item.dropoffPoint) === normalize(transfer.dropoffPoint) &&
       normalize(item.vehicleClass) === normalize(transfer.vehicleClass),
   );
 
@@ -108,7 +106,7 @@ export function buildTransferQualityReport(
     missingRequiredFields,
     duplicateWarnings: duplicates.map((item) => {
       const name = item.name || "Untitled transfer";
-      return `Possible duplicate transfer found: "${name}" (${item.pickupPoint} -> ${item.dropoffPoint}).`;
+      return `Possible duplicate transfer found: "${name}" (${item.pickupPoint}).`;
     }),
   };
 }

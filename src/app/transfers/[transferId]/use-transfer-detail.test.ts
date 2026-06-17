@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canSubmitTransferDetails,
   derivedDestinationCityOptions,
   findRegionForCity,
   parseOperatingHours,
@@ -34,13 +35,23 @@ describe("findRegionForCity", () => {
     expect(findRegionForCity("", "")).toBe("");
     expect(findRegionForCity("Nigeria", "")).toBe("");
   });
+
+  it("matches cities case-insensitively", () => {
+    expect(findRegionForCity("Nigeria", "lekki")).toBe("Lagos");
+  });
 });
 
 describe("derivedDestinationCityOptions", () => {
-  it("returns all cities for a known country", () => {
+  it("returns cities for a known country and region", () => {
+    const cities = derivedDestinationCityOptions("Nigeria", "Lagos");
+    expect(cities.length).toBeGreaterThan(0);
+    expect(cities).toContain("Lekki");
+    expect(cities).not.toContain("Abuja");
+  });
+
+  it("returns all cities for a known country when no region is supplied", () => {
     const cities = derivedDestinationCityOptions("Nigeria");
     expect(cities.length).toBeGreaterThan(0);
-    // Lekki and Abuja are known cities from Lagos and FCT regions
     expect(cities).toContain("Lekki");
     expect(cities).toContain("Abuja");
   });
@@ -80,5 +91,50 @@ describe("parseOperatingHours", () => {
 
   it("trims spaces around the range parts", () => {
     expect(parseOperatingHours(" 09:00 - 21:00 ")).toEqual({ open: "09:00", close: "21:00" });
+  });
+});
+
+describe("canSubmitTransferDetails", () => {
+  it("blocks submission when destination sub-area is pending review", () => {
+    expect(
+      canSubmitTransferDetails({
+        status: "draft",
+        selectedArea: "Lekki Phase 1",
+        originAreaSuggestionPending: false,
+        destinationRoutes: [
+          { id: "route-1", destinationCity: "Abuja", destinationArea: "Garki", destinationSubArea: "Central" },
+        ],
+        destinationRoutePendingById: { "route-1": { area: false, subArea: true } },
+      }),
+    ).toBe(false);
+  });
+
+  it("allows submission when the route is complete and approved", () => {
+    expect(
+      canSubmitTransferDetails({
+        status: "draft",
+        selectedArea: "Lekki Phase 1",
+        originAreaSuggestionPending: false,
+        destinationRoutes: [
+          { id: "route-1", destinationCity: "Abuja", destinationArea: "Garki", destinationSubArea: "Central" },
+          { id: "route-2", destinationCity: "Lagos", destinationArea: "Ikeja", destinationSubArea: "" },
+        ],
+        destinationRoutePendingById: {},
+      }),
+    ).toBe(true);
+  });
+
+  it("blocks submission outside editable statuses", () => {
+    expect(
+      canSubmitTransferDetails({
+        status: "live",
+        selectedArea: "Lekki Phase 1",
+        originAreaSuggestionPending: false,
+        destinationRoutes: [
+          { id: "route-1", destinationCity: "Abuja", destinationArea: "Garki", destinationSubArea: "" },
+        ],
+        destinationRoutePendingById: {},
+      }),
+    ).toBe(false);
   });
 });

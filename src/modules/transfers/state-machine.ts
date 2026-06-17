@@ -16,11 +16,19 @@ export function canTransitionTransfer(from: TransferStatus, to: TransferStatus) 
 }
 
 export function validateTransferForSubmission(item: TransferListing) {
+  const destinationRoutes = Array.isArray(item.destinationRoutes) && item.destinationRoutes.length > 0
+    ? item.destinationRoutes
+    : item.destinationCity && item.destinationArea
+      ? [{
+          destinationCity: item.destinationCity,
+          destinationArea: item.destinationArea,
+          destinationSubArea: item.destinationSubArea ?? "",
+        }]
+      : [];
   const required = [
     item.name,
     item.transferType,
     item.pickupPoint,
-    item.dropoffPoint,
     item.vehicleClass,
     item.coverageArea,
   ];
@@ -28,7 +36,12 @@ export function validateTransferForSubmission(item: TransferListing) {
   return (
     required.every((field) => String(field).trim().length > 0) &&
     item.passengerCapacity > 0 &&
-    item.luggageCapacity >= 0
+    item.luggageCapacity >= 0 &&
+    destinationRoutes.length > 0 &&
+    destinationRoutes.every((route) =>
+      String(route.destinationCity).trim().length > 0 &&
+      String(route.destinationArea).trim().length > 0,
+    )
   );
 }
 

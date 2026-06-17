@@ -32,7 +32,7 @@ describe("apiRequest", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/v1/example",
+      "/api/v1/example",
       expect.objectContaining({
         method: "POST",
         credentials: "include",
@@ -53,7 +53,7 @@ describe("apiRequest", () => {
     await apiRequest("/example");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/v1/example",
+      "/api/v1/example",
       expect.objectContaining({
         method: "GET",
         headers: expect.not.objectContaining({
@@ -77,7 +77,7 @@ describe("apiRequest", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/v1/example",
+      "/api/v1/example",
       expect.objectContaining({
         headers: expect.not.objectContaining({
           "Content-Type": "application/json",
@@ -128,7 +128,7 @@ describe("apiRequest", () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      "http://localhost:8000/api/v1/unsafe",
+      "/api/v1/unsafe",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
