@@ -27,6 +27,7 @@ export function TypeaheadInput({
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const selectionCommittedRef = useRef(false);
 
   useEffect(() => {
     if (value !== undefined) {
@@ -78,6 +79,13 @@ export function TypeaheadInput({
     }
   }
 
+  function commitSelection(selected: string) {
+    selectionCommittedRef.current = true;
+    setQuery(selected);
+    onSelect(selected);
+    setOpen(false);
+  }
+
   return (
     <div className="tm-field relative" ref={rootRef}>
       <span className="tm-field-label">{label}</span>
@@ -93,6 +101,11 @@ export function TypeaheadInput({
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => {
+          if (selectionCommittedRef.current) {
+            selectionCommittedRef.current = false;
+            setOpen(false);
+            return;
+          }
           resolveTypedValue();
           setOpen(false);
         }}
@@ -108,9 +121,7 @@ export function TypeaheadInput({
             event.preventDefault();
             const selected = filtered[activeIndex];
             if (selected) {
-              setQuery(selected);
-              onSelect(selected);
-              setOpen(false);
+              commitSelection(selected);
             }
           }
         }}
@@ -126,9 +137,7 @@ export function TypeaheadInput({
               type="button"
               onMouseDown={(event) => {
                 event.preventDefault();
-                setQuery(entry);
-                onSelect(entry);
-                setOpen(false);
+                commitSelection(entry);
               }}
             >
               {entry}

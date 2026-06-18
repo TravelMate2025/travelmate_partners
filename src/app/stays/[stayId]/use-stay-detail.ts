@@ -372,13 +372,17 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     setRoomFormMessage("");
     try {
       const isRoomLevel = stay.saleMode === "room_level";
+      const roomRateValue = Number(roomRate);
       const totalInventory = Number(roomTotalInventory);
       const maxPerBooking = Number(roomMaxPerBooking);
+      if (isRoomLevel && roomIsBookable && roomRateValue <= 0) {
+        throw new Error("Bookable rooms must have baseRate greater than 0.");
+      }
       const updated = await staysClient.upsertRoom(userId, stay.id, {
         name: roomName,
         occupancy: Number(roomOccupancy),
         bedConfiguration: roomBed,
-        baseRate: Number(roomRate),
+        baseRate: roomRateValue,
         ...(isRoomLevel
           ? {
               isBookable: roomIsBookable,
@@ -408,8 +412,22 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
 
   async function removeRoom(roomId: string) {
     if (!userId || !stay) return;
-    const updated = await staysClient.removeRoom(userId, stay.id, roomId);
-    syncStay(updated);
+    if (!canEditDetails) {
+      setMessage("Rooms can only be removed from draft or rejected stays.");
+      return;
+    }
+    try {
+      const updated = await staysClient.removeRoom(userId, stay.id, roomId);
+      syncStay(updated);
+      setMessage("Room removed.");
+    } catch (error) {
+      const rawMessage = error instanceof Error ? error.message : "Failed to remove room.";
+      setMessage(
+        rawMessage.toLowerCase().includes("rooms can only be removed from draft or rejected stays")
+          ? `${rawMessage} Move the stay back to draft or rejected first.`
+          : rawMessage,
+      );
+    }
   }
 
   async function changeStatus(next: StayStatus) {

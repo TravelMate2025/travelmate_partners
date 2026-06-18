@@ -138,6 +138,7 @@ export default function StayDetailPage() {
 
           <StayRoomsSection
             stay={stay}
+            canEditDetails={detail.canEditDetails}
             roomName={detail.roomName}
             roomOccupancy={detail.roomOccupancy}
             roomBed={detail.roomBed}

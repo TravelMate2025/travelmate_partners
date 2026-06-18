@@ -5,6 +5,7 @@ import { resolveStaySaleMode } from "@/modules/stays/property-type-options";
 
 type Props = {
   stay: StayListing;
+  canEditDetails: boolean;
   roomName: string;
   roomOccupancy: string;
   roomBed: string;
@@ -29,6 +30,7 @@ type Props = {
 
 export function StayRoomsSection({
   stay,
+  canEditDetails,
   roomName,
   roomOccupancy,
   roomBed,
@@ -52,8 +54,10 @@ export function StayRoomsSection({
 }: Props) {
   const saleMode = stay.saleMode || resolveStaySaleMode(stay.propertyType);
   const isRoomLevel = saleMode === "room_level";
+  const disabled = !canEditDetails;
   const totalInventory = Number(roomTotalInventory);
   const maxPerBooking = Number(roomMaxPerBooking);
+  const roomRateValue = Number(roomRate);
   const roomLevelHints: string[] = [];
   if (isRoomLevel && roomIsBookable && totalInventory < 1) {
     roomLevelHints.push("Bookable rooms must have Total Inventory of at least 1.");
@@ -61,9 +65,13 @@ export function StayRoomsSection({
   if (isRoomLevel && roomIsBookable && maxPerBooking < 1) {
     roomLevelHints.push("Bookable rooms must have Max Per Booking of at least 1.");
   }
+  if (isRoomLevel && roomIsBookable && roomRateValue <= 0) {
+    roomLevelHints.push("Bookable rooms must have Base Rate greater than 0.");
+  }
   if (isRoomLevel && roomIsBookable && totalInventory >= 1 && maxPerBooking > totalInventory) {
     roomLevelHints.push("Max Per Booking cannot be greater than Total Inventory.");
   }
+  const canAddRoom = !disabled && (!isRoomLevel || !roomIsBookable || roomRateValue > 0);
   return (
     <section className="tm-panel p-6">
       <h2 className="tm-section-title">Rooms / Units</h2>
@@ -79,22 +87,27 @@ export function StayRoomsSection({
           Leave <strong>Base Rate</strong> as 0; the property price is set in the Pricing &amp; Availability section.
         </div>
       )}
+      {disabled ? (
+        <p className="mt-2 text-sm text-amber-700">
+          Room editing is only available in draft or rejected stays.
+        </p>
+      ) : null}
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <label className="tm-field">
           <span className="tm-field-label">Room Name</span>
-          <input className="tm-input" placeholder="Room name" value={roomName} onChange={(e) => onSetRoomName(e.target.value)} />
+          <input className="tm-input" placeholder="Room name" value={roomName} disabled={disabled} onChange={(e) => onSetRoomName(e.target.value)} />
         </label>
         <label className="tm-field">
           <span className="tm-field-label">Occupancy</span>
-          <input className="tm-input" placeholder="Occupancy" type="number" value={roomOccupancy} onChange={(e) => onSetRoomOccupancy(e.target.value)} />
+          <input className="tm-input" placeholder="Occupancy" type="number" value={roomOccupancy} disabled={disabled} onChange={(e) => onSetRoomOccupancy(e.target.value)} />
         </label>
         <label className="tm-field">
           <span className="tm-field-label">Bed Configuration</span>
-          <input className="tm-input" placeholder="Bed configuration" value={roomBed} onChange={(e) => onSetRoomBed(e.target.value)} />
+          <input className="tm-input" placeholder="Bed configuration" value={roomBed} disabled={disabled} onChange={(e) => onSetRoomBed(e.target.value)} />
         </label>
         <label className="tm-field">
           <span className="tm-field-label">Base Rate</span>
-          <input className="tm-input" placeholder="Base rate" type="number" value={roomRate} onChange={(e) => onSetRoomRate(e.target.value)} />
+          <input className="tm-input" placeholder="Base rate" type="number" value={roomRate} disabled={disabled} onChange={(e) => onSetRoomRate(e.target.value)} />
         </label>
         {isRoomLevel ? (
           <>
@@ -103,6 +116,7 @@ export function StayRoomsSection({
               <select
                 className="tm-input"
                 value={roomIsBookable ? "true" : "false"}
+                disabled={disabled}
                 onChange={(e) => onSetRoomIsBookable(e.target.value === "true")}
               >
                 <option value="true">Yes</option>
@@ -112,32 +126,34 @@ export function StayRoomsSection({
             </label>
             <label className="tm-field">
               <span className="tm-field-label">Total Inventory</span>
-              <input
-                className="tm-input"
-                placeholder="Total inventory"
-                type="number"
-                min={0}
-                value={roomTotalInventory}
-                onChange={(e) => onSetRoomTotalInventory(e.target.value)}
-              />
+                <input
+                  className="tm-input"
+                  placeholder="Total inventory"
+                  type="number"
+                  min={0}
+                  value={roomTotalInventory}
+                  disabled={disabled}
+                  onChange={(e) => onSetRoomTotalInventory(e.target.value)}
+                />
               <p className="mt-1 text-xs text-slate-500">Total rooms of this type available for sale.</p>
             </label>
             <label className="tm-field">
               <span className="tm-field-label">Max Per Booking</span>
-              <input
-                className="tm-input"
-                placeholder="Max per booking"
-                type="number"
-                min={0}
-                value={roomMaxPerBooking}
-                onChange={(e) => onSetRoomMaxPerBooking(e.target.value)}
-              />
+                <input
+                  className="tm-input"
+                  placeholder="Max per booking"
+                  type="number"
+                  min={0}
+                  value={roomMaxPerBooking}
+                  disabled={disabled}
+                  onChange={(e) => onSetRoomMaxPerBooking(e.target.value)}
+                />
               <p className="mt-1 text-xs text-slate-500">Maximum rooms a guest can book in one reservation.</p>
             </label>
           </>
         ) : null}
       </div>
-      <button className="tm-btn tm-btn-accent mt-3" onClick={() => void onAddRoom()} type="button">
+      <button className="tm-btn tm-btn-accent mt-3" disabled={!canAddRoom} onClick={() => void onAddRoom()} type="button">
         Add Room
       </button>
       {roomFormMessage ? <p className="mt-2 text-sm text-rose-700">{roomFormMessage}</p> : null}
@@ -170,6 +186,7 @@ export function StayRoomsSection({
                 </div>
                 <button
                   className="tm-btn tm-btn-outline"
+                  disabled={disabled}
                   onClick={() => void onRemoveRoom(room.id)}
                   type="button"
                 >
@@ -211,6 +228,7 @@ export function StayRoomsSection({
                         <div className="tm-inline-actions">
                           <button
                             className="tm-btn tm-btn-outline"
+                            disabled={disabled}
                             onClick={() => void onMoveImageToProperty(img.id)}
                             type="button"
                           >
@@ -218,6 +236,7 @@ export function StayRoomsSection({
                           </button>
                           <button
                             className="tm-btn tm-btn-outline"
+                            disabled={disabled}
                             onClick={() => void onRemoveImage(img.id)}
                             type="button"
                           >

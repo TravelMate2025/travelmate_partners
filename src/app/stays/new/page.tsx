@@ -11,10 +11,27 @@ import { TypeaheadInput } from "@/components/common/typeahead-input";
 import type { PartnerUser } from "@/modules/auth/contracts";
 import { HttpError } from "@/lib/http-client";
 import { profileClient } from "@/modules/profile/profile-client";
-import { operatingCityOptionsByCountryRegion, operatingCountryOptions, operatingRegionOptionsByCountry } from "@/modules/profile/location-options";
+import { mergeUniqueOptions, operatingCityOptionsByCountryRegion, operatingCountryOptions, operatingRegionOptionsByCountry } from "@/modules/profile/location-options";
 import { getSaleModeContent, stayPropertyTypeOptions } from "@/modules/stays/property-type-options";
 import { staysClient } from "@/modules/stays/stays-client";
 import { verificationClient } from "@/modules/verification/verification-client";
+import { submitLocalitySuggestion } from "@/modules/transfers/geography-client";
+
+export function canSuggestNewStayCity(input: {
+  city: string;
+  cityOptionsLoaded: boolean;
+  cityOptions: string[];
+  citySuggestionPending: boolean;
+}): boolean {
+  const selectedCity = input.city.trim();
+  if (!selectedCity || input.citySuggestionPending) {
+    return false;
+  }
+  if (!input.cityOptionsLoaded) {
+    return false;
+  }
+  return !input.cityOptions.some((option) => option.toLowerCase() === selectedCity.toLowerCase());
+}
 
 export default function NewStayPage() {
   const router = useRouter();
@@ -30,6 +47,8 @@ export default function NewStayPage() {
   const [countrySuggestions, setCountrySuggestions] = useState<string[]>([]);
   const [adminLevel1Suggestions, setAdminLevel1Suggestions] = useState<string[]>([]);
   const [liveCities, setLiveCities] = useState<string[]>([]);
+  const [cityOptionsLoaded, setCityOptionsLoaded] = useState(false);
+  const [citySuggestionPending, setCitySuggestionPending] = useState(false);
   const [selectedPropertyType, setSelectedPropertyType] = useState("");
   const [propertyTypeOptions, setPropertyTypeOptions] = useState<Array<{ value: string; label: string }>>(
     [...stayPropertyTypeOptions],
@@ -38,7 +57,7 @@ export default function NewStayPage() {
   const availableCities = selectedCountry && selectedAdminLevel1
     ? (operatingCityOptionsByCountryRegion[selectedCountry]?.[selectedAdminLevel1] ?? [])
     : [];
-  const cityOptions = liveCities.length > 0 ? liveCities : availableCities;
+  const cityOptions = mergeUniqueOptions(availableCities, liveCities);
   const saleModeContent = getSaleModeContent(selectedPropertyType);
 
   useEffect(() => {
@@ -99,6 +118,8 @@ export default function NewStayPage() {
     let active = true;
       if (!user || !selectedCountry || !selectedAdminLevel1) {
         setLiveCities([]);
+        setCityOptionsLoaded(false);
+        setCitySuggestionPending(false);
         return () => {
           active = false;
         };
@@ -108,15 +129,36 @@ export default function NewStayPage() {
       .then((rows) => {
         if (!active) return;
         setLiveCities(rows);
+        setCityOptionsLoaded(true);
       })
       .catch(() => {
         if (!active) return;
         setLiveCities([]);
+        setCityOptionsLoaded(false);
       });
     return () => {
       active = false;
     };
   }, [user, selectedCountry, selectedAdminLevel1]);
+
+  const showCitySuggestButton = canSuggestNewStayCity({
+    city: selectedCity,
+    cityOptionsLoaded,
+    cityOptions: cityOptions,
+    citySuggestionPending,
+  });
+
+  async function suggestCity() {
+    if (!user || !selectedCountry || !selectedAdminLevel1 || !selectedCity) return;
+    await submitLocalitySuggestion(user.id, {
+      country: selectedCountry,
+      adminLevel1: selectedAdminLevel1,
+      city: selectedCity,
+      area: selectedCity,
+    });
+    setCitySuggestionPending(true);
+    setMessage(`Submitted "${selectedCity}" for city review.`);
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -141,6 +183,9 @@ export default function NewStayPage() {
         area,
       });
 
+      if (stay.cityReviewStatus === "pending") {
+        setMessage(`"${stay.city}" was submitted for city review. The stay can stay in draft, but admin cannot approve it until the city is reviewed.`);
+      }
       router.push(`/stays/${stay.id}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to create stay.");
@@ -229,6 +274,8 @@ export default function NewStayPage() {
       setArea("");
       setAdminLevel1Suggestions([]);
       setLiveCities([]);
+      setCityOptionsLoaded(false);
+      setCitySuggestionPending(false);
     }}
               />
               <TypeaheadInput
@@ -247,21 +294,45 @@ export default function NewStayPage() {
                 setSelectedCity("");
                 setArea("");
                 setLiveCities([]);
+                setCityOptionsLoaded(false);
+                setCitySuggestionPending(false);
               }}
             />
           </div>
           <div className="grid gap-3 md:grid-cols-2">
-            <TypeaheadInput
-              label="City"
-              placeholder="Type city"
-              value={selectedCity}
-              options={cityOptions}
-              disabled={!selectedAdminLevel1}
+              <TypeaheadInput
+                label="City"
+                placeholder={
+                  !selectedAdminLevel1
+                    ? "Select state first"
+                    : cityOptionsLoaded
+                      ? "Type or select city"
+                      : "Loading cities…"
+                }
+                value={selectedCity}
+                options={cityOptions}
+                disabled={!selectedAdminLevel1}
+                allowCustomValue
               onSelect={(value) => {
                 setSelectedCity(value);
                 setArea(value);
+                setCitySuggestionPending(false);
               }}
               />
+              {showCitySuggestButton ? (
+                <button
+                  type="button"
+                  className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
+                  onClick={() => void suggestCity()}
+                >
+                  Suggest &ldquo;{selectedCity}&rdquo; as a new city
+                </button>
+              ) : null}
+              {citySuggestionPending ? (
+                <p className="mt-1 text-xs text-amber-700">
+                  This city is awaiting review. You can continue drafting the stay, but it cannot be approved until the city is reviewed.
+                </p>
+              ) : null}
               <label className="tm-field">
                 <span className="tm-field-label">Area</span>
                 <input className="tm-input" name="area" value={area} onChange={(event) => setArea(event.target.value)} required />

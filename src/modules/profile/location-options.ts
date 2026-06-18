@@ -142,6 +142,11 @@ export const operatingCityOptionsByCountryRegion: Record<string, Record<string, 
 
 const uniqueSorted = (values: string[]) => [...new Set(values)].sort((a, b) => a.localeCompare(b));
 
+export const mergeUniqueOptions = (...groups: string[][]) => {
+  const merged = groups.flatMap((group) => group.filter((entry) => entry.trim().length > 0));
+  return [...new Set(merged)];
+};
+
 export const localityOptionsByCountry = Object.fromEntries(
   operatingCountryOptions.map((country) => {
     const regions = [...(operatingRegionOptionsByCountry[country] ?? [])];

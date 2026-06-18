@@ -8,7 +8,7 @@ import { useToastMessage } from "@/components/common/use-toast-message";
 import { TypeaheadInput } from "@/components/common/typeahead-input";
 import { fetchCatalogOptions } from "@/modules/catalog/catalog-options-client";
 import { profileClient } from "@/modules/profile/profile-client";
-import { operatingCityOptionsByCountryRegion, operatingCountryOptions, operatingRegionOptionsByCountry } from "@/modules/profile/location-options";
+import { mergeUniqueOptions, operatingCityOptionsByCountryRegion, operatingCountryOptions, operatingRegionOptionsByCountry } from "@/modules/profile/location-options";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
 import type { TransferType } from "@/modules/transfers/contracts";
 import { fetchCatalogAreas, submitLocalitySuggestion } from "@/modules/transfers/geography-client";
@@ -39,7 +39,7 @@ export default function NewTransferPage() {
   const availableCities = selectedCountry && selectedAdminLevel1
     ? (operatingCityOptionsByCountryRegion[selectedCountry]?.[selectedAdminLevel1] ?? [])
     : [];
-  const cityOptions = liveCities.length > 0 ? liveCities : availableCities;
+  const cityOptions = mergeUniqueOptions(availableCities, liveCities);
 
   useEffect(() => {
     let active = true;
