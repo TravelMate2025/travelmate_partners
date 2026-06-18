@@ -30,6 +30,41 @@ const COUNTRY_ALIASES: Record<string, string> = {
 
 export const knownTimeValues = new Set(stayTimeOptions.map((item) => item.value));
 
+export function resolveRoomBookableForSaleMode(
+  saleMode: StayListing["saleMode"] | undefined,
+  roomIsBookable: boolean,
+) {
+  return saleMode === "room_level" ? roomIsBookable : false;
+}
+
+export function buildRoomUpsertPayload(input: {
+  saleMode: StayListing["saleMode"] | undefined;
+  roomName: string;
+  roomOccupancy: string;
+  roomBed: string;
+  roomRate: string;
+  roomIsBookable: boolean;
+  roomTotalInventory: string;
+  roomMaxPerBooking: string;
+}) {
+  const isRoomLevel = input.saleMode === "room_level";
+  const effectiveRoomIsBookable = resolveRoomBookableForSaleMode(input.saleMode, input.roomIsBookable);
+
+  return {
+    name: input.roomName,
+    occupancy: Number(input.roomOccupancy),
+    bedConfiguration: input.roomBed,
+    baseRate: Number(input.roomRate),
+    isBookable: effectiveRoomIsBookable,
+    ...(isRoomLevel
+      ? {
+          totalInventory: Number(input.roomTotalInventory),
+          maxPerBooking: Number(input.roomMaxPerBooking),
+        }
+      : {}),
+  };
+}
+
 function normalizeCountry(value: string): string {
   const raw = value.trim();
   if (!raw) return "";
@@ -372,25 +407,21 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     setRoomFormMessage("");
     try {
       const isRoomLevel = stay.saleMode === "room_level";
+      const roomPayload = buildRoomUpsertPayload({
+        saleMode: stay.saleMode,
+        roomName,
+        roomOccupancy,
+        roomBed,
+        roomRate,
+        roomIsBookable,
+        roomTotalInventory,
+        roomMaxPerBooking,
+      });
       const roomRateValue = Number(roomRate);
-      const totalInventory = Number(roomTotalInventory);
-      const maxPerBooking = Number(roomMaxPerBooking);
-      if (isRoomLevel && roomIsBookable && roomRateValue <= 0) {
+      if (isRoomLevel && roomPayload.isBookable && roomRateValue <= 0) {
         throw new Error("Bookable rooms must have baseRate greater than 0.");
       }
-      const updated = await staysClient.upsertRoom(userId, stay.id, {
-        name: roomName,
-        occupancy: Number(roomOccupancy),
-        bedConfiguration: roomBed,
-        baseRate: roomRateValue,
-        ...(isRoomLevel
-          ? {
-              isBookable: roomIsBookable,
-              totalInventory,
-              maxPerBooking,
-            }
-          : {}),
-      });
+      const updated = await staysClient.upsertRoom(userId, stay.id, roomPayload);
       syncStay(updated);
       setRoomName("");
       setRoomBed("");

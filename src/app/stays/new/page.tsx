@@ -300,6 +300,7 @@ export default function NewStayPage() {
             />
           </div>
           <div className="grid gap-3 md:grid-cols-2">
+            <div className="tm-field">
               <TypeaheadInput
                 label="City"
                 placeholder={
@@ -313,11 +314,11 @@ export default function NewStayPage() {
                 options={cityOptions}
                 disabled={!selectedAdminLevel1}
                 allowCustomValue
-              onSelect={(value) => {
-                setSelectedCity(value);
-                setArea(value);
-                setCitySuggestionPending(false);
-              }}
+                onSelect={(value) => {
+                  setSelectedCity(value);
+                  setArea(value);
+                  setCitySuggestionPending(false);
+                }}
               />
               {showCitySuggestButton ? (
                 <button
@@ -325,7 +326,7 @@ export default function NewStayPage() {
                   className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
                   onClick={() => void suggestCity()}
                 >
-                  Suggest &ldquo;{selectedCity}&rdquo; as a new city
+                  Suggest this city for review
                 </button>
               ) : null}
               {citySuggestionPending ? (
@@ -333,11 +334,12 @@ export default function NewStayPage() {
                   This city is awaiting review. You can continue drafting the stay, but it cannot be approved until the city is reviewed.
                 </p>
               ) : null}
-              <label className="tm-field">
-                <span className="tm-field-label">Area</span>
-                <input className="tm-input" name="area" value={area} onChange={(event) => setArea(event.target.value)} required />
-              </label>
             </div>
+            <label className="tm-field">
+              <span className="tm-field-label">Area</span>
+              <input className="tm-input" name="area" value={area} onChange={(event) => setArea(event.target.value)} required />
+            </label>
+          </div>
 
             <div className="tm-inline-actions">
               <button className="tm-btn tm-btn-primary" disabled={saving} type="submit">
