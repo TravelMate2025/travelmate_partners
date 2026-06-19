@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   canSubmitTransferDetails,
+  buildTransferCityOptions,
   derivedDestinationCityOptions,
   findRegionForCity,
   parseOperatingHours,
@@ -69,6 +70,16 @@ describe("derivedDestinationCityOptions", () => {
     const unique = new Set(cities);
     // Allow duplicates from different regions (flatMap) — just verify no crash
     expect(cities.length).toBeGreaterThanOrEqual(unique.size);
+  });
+});
+
+describe("buildTransferCityOptions", () => {
+  it("merges approved live cities into the transfer city options", () => {
+    expect(buildTransferCityOptions(["Ikeja", "Lekki"], ["Ajah", "Lekki"], "Ajah")).toEqual([
+      "Ikeja",
+      "Lekki",
+      "Ajah",
+    ]);
   });
 });
 

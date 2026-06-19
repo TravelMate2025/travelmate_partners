@@ -28,6 +28,12 @@ vi.mock("@/components/common/use-partner-access", () => ({
   }),
 }));
 
+vi.mock("@/modules/profile/profile-client", () => ({
+  profileClient: {
+    listGeographyCities: vi.fn().mockResolvedValue([]),
+  },
+}));
+
 const listTransfersMock = vi.fn();
 const getTransferMock = vi.fn();
 const getAppealMock = vi.fn();

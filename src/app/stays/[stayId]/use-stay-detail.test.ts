@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildRoomUpsertPayload, resolveRoomBookableForSaleMode } from "./use-stay-detail";
+import { buildRoomUpsertPayload, buildStayCityOptions, resolveRoomBookableForSaleMode } from "./use-stay-detail";
 
 describe("resolveRoomBookableForSaleMode", () => {
   it("forces unit-level rooms to non-bookable", () => {
@@ -32,5 +32,13 @@ describe("resolveRoomBookableForSaleMode", () => {
       baseRate: 0,
       isBookable: false,
     });
+  });
+
+  it("merges approved live cities into the edit city options", () => {
+    expect(buildStayCityOptions(["Ikeja", "Lekki"], ["Ajah", "Lekki"], "Ajah")).toEqual([
+      "Ikeja",
+      "Lekki",
+      "Ajah",
+    ]);
   });
 });

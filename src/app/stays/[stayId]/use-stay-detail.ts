@@ -1,12 +1,14 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { FALLBACK_SPACE_TYPES, fetchCatalogOptions } from "@/modules/catalog/catalog-options-client";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { buildStayQualityReport } from "@/modules/data-quality/listing-quality";
+import { profileClient } from "@/modules/profile/profile-client";
 import {
+  mergeUniqueOptions,
   operatingCityOptionsByCountryRegion,
   operatingCountryOptions,
   operatingRegionOptionsByCountry,
@@ -65,6 +67,10 @@ export function buildRoomUpsertPayload(input: {
   };
 }
 
+export function buildStayCityOptions(availableCities: string[], liveCities: string[], selectedCity: string) {
+  return mergeUniqueOptions(availableCities, liveCities, selectedCity ? [selectedCity] : []);
+}
+
 function normalizeCountry(value: string): string {
   const raw = value.trim();
   if (!raw) return "";
@@ -75,6 +81,7 @@ function normalizeCountry(value: string): string {
 
 export function useStayDetail(userId: string | undefined, stayId: string) {
   const router = useRouter();
+  const detailsFormRef = useRef<HTMLFormElement | null>(null);
 
   const [stay, setStay] = useState<StayListing | null>(null);
   const [allStays, setAllStays] = useState<StayListing[]>([]);
@@ -101,6 +108,7 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
   const [selectedAdminLevel1, setSelectedAdminLevel1] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedArea, setSelectedArea] = useState("");
+  const [liveCities, setLiveCities] = useState<string[]>([]);
   const [selectedPropertyType, setSelectedPropertyType] = useState("");
   const [propertyTypeOptions, setPropertyTypeOptions] = useState<Array<{ value: string; label: string }>>(
     [...stayPropertyTypeOptions],
@@ -119,10 +127,7 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
       : [];
   const knownPropertyTypeValues = new Set(propertyTypeOptions.map((item) => item.value));
   const knownAmenityValues = new Set(amenityOptions.map((item) => item.value));
-  const cityOptions =
-    selectedCity && !availableCities.some((city) => city.toLowerCase() === selectedCity.toLowerCase())
-      ? [selectedCity, ...availableCities]
-      : availableCities;
+  const cityOptions = buildStayCityOptions(availableCities, liveCities, selectedCity);
 
   function applyStayToState(item: StayListing) {
     setSelectedAmenities(item.amenities);
@@ -149,13 +154,38 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     setSelectedAdminLevel1("");
     setSelectedCity("");
     setSelectedArea("");
+    setLiveCities([]);
   }
 
   function setAdminLevel1Selection(value: string) {
     setSelectedAdminLevel1(value);
     setSelectedCity("");
     setSelectedArea("");
+    setLiveCities([]);
   }
+
+  useEffect(() => {
+    if (!userId || !selectedCountry || !selectedAdminLevel1) {
+      setLiveCities([]);
+      return;
+    }
+
+    let active = true;
+    profileClient
+      .listGeographyCities(userId, selectedCountry, selectedAdminLevel1)
+      .then((rows) => {
+        if (!active) return;
+        setLiveCities(rows);
+      })
+      .catch(() => {
+        if (!active) return;
+        setLiveCities([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedAdminLevel1, selectedCountry, userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -237,6 +267,35 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     });
   }
 
+  function buildCurrentDetailsPayload() {
+    const form = detailsFormRef.current;
+    const formData = form ? new FormData(form) : null;
+    return {
+      propertyType: selectedPropertyType,
+      name: String(formData?.get("name") ?? ""),
+      description: String(formData?.get("description") ?? ""),
+      address: String(formData?.get("address") ?? ""),
+      city: selectedCity,
+      country: selectedCountry,
+      adminLevel1: selectedAdminLevel1,
+      area: selectedArea,
+      latitude: String(formData?.get("latitude") ?? ""),
+      longitude: String(formData?.get("longitude") ?? ""),
+      amenities: selectedAmenities,
+      houseRules: String(formData?.get("houseRules") ?? ""),
+      checkInTime: String(formData?.get("checkInTime") ?? ""),
+      checkOutTime: String(formData?.get("checkOutTime") ?? ""),
+      cancellationPolicy: stay?.cancellationPolicy ?? "",
+    };
+  }
+
+  async function persistCurrentDetails() {
+    if (!userId || !stay) return null;
+    const updated = await staysClient.updateStay(userId, stay.id, buildCurrentDetailsPayload());
+    syncStay(updated);
+    return updated;
+  }
+
   async function refresh() {
     if (!userId || !stay) return;
     const [item, listings] = await Promise.all([
@@ -260,29 +319,11 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     setSaving(true);
     setUploadState("uploading");
     setMessage("");
-    const form = new FormData(event.currentTarget);
     try {
       if (!canEditDetails) {
         throw new Error("Only draft or rejected stays can be edited. Move listing to draft and try again.");
       }
-      const updated = await staysClient.updateStay(userId, stay.id, {
-        propertyType: selectedPropertyType,
-        name: String(form.get("name") ?? ""),
-        description: String(form.get("description") ?? ""),
-        address: String(form.get("address") ?? ""),
-        city: selectedCity,
-        country: selectedCountry,
-        adminLevel1: selectedAdminLevel1,
-        area: selectedArea,
-        latitude: String(form.get("latitude") ?? ""),
-        longitude: String(form.get("longitude") ?? ""),
-        amenities: selectedAmenities,
-        houseRules: String(form.get("houseRules") ?? ""),
-        checkInTime: String(form.get("checkInTime") ?? ""),
-        checkOutTime: String(form.get("checkOutTime") ?? ""),
-        cancellationPolicy: stay.cancellationPolicy ?? "",
-      });
-      syncStay(updated);
+      await persistCurrentDetails();
       setMessage("Stay details saved.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to save details.");
@@ -466,6 +507,9 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     setSaving(true);
     setMessage("");
     try {
+      if (next === "pending" && canEditDetails) {
+        await persistCurrentDetails();
+      }
       const updated = await staysClient.updateStatus(userId, stay.id, next);
       syncStay(updated);
       setMessage(`Status updated to ${updated.status}.`);
@@ -536,6 +580,7 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     selectedAdminLevel1,
     selectedCity,
     selectedArea,
+    liveCities,
     availableRegions,
     selectedPropertyType,
     propertyTypeOptions,
@@ -548,6 +593,7 @@ export function useStayDetail(userId: string | undefined, stayId: string) {
     canSubmit,
     canEditDetails,
     qualityReport,
+    detailsFormRef,
     setShowAppealForm,
     setAppealMessage,
     setAppealMessageTouched,

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent } from "react";
+import type { RefObject } from "react";
 
 import { TypeaheadInput } from "@/components/common/typeahead-input";
 import { operatingCountryOptions } from "@/modules/profile/location-options";
@@ -19,6 +20,7 @@ type Props = {
   selectedAdminLevel1: string;
   selectedCity: string;
   selectedArea: string;
+  formRef: RefObject<HTMLFormElement | null>;
   availableRegions: string[];
   propertyTypeOptions: Array<{ value: string; label: string }>;
   amenityOptions: Array<{ value: string; label: string }>;
@@ -45,6 +47,7 @@ export function StayDetailsForm({
   selectedAdminLevel1,
   selectedCity,
   selectedArea,
+  formRef,
   availableRegions,
   propertyTypeOptions,
   amenityOptions,
@@ -64,7 +67,7 @@ export function StayDetailsForm({
   const saleModeContent = getSaleModeContent(selectedPropertyType || stay.propertyType);
 
   return (
-    <form className="tm-panel p-6" onSubmit={onSaveDetails}>
+    <form ref={formRef} className="tm-panel p-6" onSubmit={onSaveDetails}>
       <h2 className="tm-section-title">Property Details</h2>
       <div className="tm-field-grid mt-4">
         <label className="tm-field">

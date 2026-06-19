@@ -120,6 +120,7 @@ export default function StayDetailPage() {
             selectedAdminLevel1={detail.selectedAdminLevel1}
             selectedCity={detail.selectedCity}
             selectedArea={detail.selectedArea}
+            formRef={detail.detailsFormRef}
             availableRegions={detail.availableRegions}
             propertyTypeOptions={detail.propertyTypeOptions}
             amenityOptions={detail.amenityOptions}

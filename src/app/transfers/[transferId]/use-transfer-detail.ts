@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { fetchCatalogOptions } from "@/modules/catalog/catalog-options-client";
 import { buildTransferQualityReport } from "@/modules/data-quality/listing-quality";
 import { useToastMessage } from "@/components/common/use-toast-message";
+import { profileClient } from "@/modules/profile/profile-client";
 import {
+  mergeUniqueOptions,
   operatingCityOptionsByCountryRegion,
   operatingCountryOptions,
   operatingRegionOptionsByCountry,
@@ -97,6 +99,10 @@ export function findRegionForCity(country: string, city: string): string {
 export function derivedDestinationCityOptions(country: string, adminLevel1 = ""): string[] {
   const regions = adminLevel1 ? [adminLevel1] : operatingRegionOptionsByCountry[country] ?? [];
   return regions.flatMap((r) => operatingCityOptionsByCountryRegion[country]?.[r] ?? []);
+}
+
+export function buildTransferCityOptions(availableCities: string[], liveCities: string[], selectedCity: string) {
+  return mergeUniqueOptions(availableCities, liveCities, selectedCity ? [selectedCity] : []);
 }
 
 export type DestinationRouteDraft = {
@@ -190,6 +196,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
   const [selectedAdminLevel1, setSelectedAdminLevel1] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedArea, setSelectedArea] = useState("");
+  const [liveCities, setLiveCities] = useState<string[]>([]);
   const [selectedVehicleClass, setSelectedVehicleClass] = useState("");
   const [selectedTransferType, setSelectedTransferType] = useState("");
   const [vehicleClassOptions, setVehicleClassOptions] = useState<Array<{ value: string; label: string }>>(
@@ -216,10 +223,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
       : [];
   const knownVehicleClassValues = new Set(vehicleClassOptions.map((opt) => opt.value));
   const knownFeatureValues = new Set(TRANSFER_FEATURE_OPTIONS.map((opt) => opt.value));
-  const cityOptions =
-    selectedCity && !availableCities.some((city) => city.toLowerCase() === selectedCity.toLowerCase())
-      ? [selectedCity, ...availableCities]
-      : availableCities;
+  const cityOptions = buildTransferCityOptions(availableCities, liveCities, selectedCity);
 
   const destinationCityOptions = useMemo(
     () => derivedDestinationCityOptions(selectedCountry, selectedAdminLevel1),
@@ -231,6 +235,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setSelectedAdminLevel1("");
     setSelectedCity("");
     setSelectedArea("");
+    setLiveCities([]);
     setDestinationRoutes([makeDestinationRouteDraft()]);
     setDestinationRoutePendingById({});
     setOriginAreaOptions([]);
@@ -243,6 +248,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setSelectedAdminLevel1(value);
     setSelectedCity("");
     setSelectedArea("");
+    setLiveCities([]);
     setOriginAreaOptions([]);
     setOriginAreaOptionsLoaded(false);
     setOriginAreaOptionsLoadFailed(false);
@@ -291,6 +297,29 @@ export function useTransferDetail(userId: string | undefined, transferId: string
       [routeId]: { area, subArea },
     }));
   }
+
+  useEffect(() => {
+    if (!userId || !selectedCountry || !selectedAdminLevel1) {
+      setLiveCities([]);
+      return;
+    }
+
+    let active = true;
+    profileClient
+      .listGeographyCities(userId, selectedCountry, selectedAdminLevel1)
+      .then((rows) => {
+        if (!active) return;
+        setLiveCities(rows);
+      })
+      .catch(() => {
+        if (!active) return;
+        setLiveCities([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedAdminLevel1, selectedCountry, userId]);
 
   // Load origin area options
   useEffect(() => {
@@ -655,6 +684,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     selectedVehicleClass,
     vehicleClassOptions,
     cityOptions,
+    liveCities,
     knownVehicleClassValues,
     knownFeatureValues,
     selectedTransferType,
