@@ -21,6 +21,7 @@ import {
   fetchCatalogAreas,
   submitLocalitySuggestion,
 } from "@/modules/transfers/geography-client";
+import { resetOriginAreaOnCityChange } from "../selection-utils";
 
 export const DEFAULT_OPEN = "06:00";
 export const DEFAULT_CLOSE = "23:00";
@@ -268,6 +269,16 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setOriginAreaSuggestionPending(false);
   }
 
+  function setCitySelection(value: string) {
+    const selection = resetOriginAreaOnCityChange(value);
+    setSelectedCity(selection.city);
+    setSelectedArea(selection.area);
+    setOriginAreaOptions([]);
+    setOriginAreaOptionsLoaded(false);
+    setOriginAreaOptionsLoadFailed(false);
+    setOriginAreaSuggestionPending(false);
+  }
+
   function setDestinationRoute(routeId: string, patch: Partial<DestinationRouteDraft>) {
     setDestinationRoutes((previous) =>
       previous.map((route) => (route.id === routeId ? { ...route, ...patch } : route)),
@@ -418,7 +429,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         setSelectedCountry(parsedCoverage?.country ?? normalizeCountry(normalizedResult.country ?? "") ?? "");
         setSelectedCity(parsedCoverage?.city ?? (normalizedResult.city ?? ""));
         setSelectedAdminLevel1(normalizedResult.adminLevel1 ?? "");
-        setSelectedArea(normalizedResult.area ?? normalizedResult.city ?? "");
+        setSelectedArea(normalizedResult.area ?? "");
         setSelectedVehicleClass(normalizeTransferVehicleClass(normalizedResult.vehicleClass));
         setSelectedTransferType(normalizedResult.transferType ?? "");
     setDestinationRoutes(normalizeDestinationRouteDrafts(normalizedResult));
@@ -729,7 +740,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setCloseTime,
     setSelectedCountry: setCountrySelection,
     setSelectedAdminLevel1: setAdminLevel1Selection,
-    setSelectedCity,
+    setSelectedCity: setCitySelection,
     setSelectedArea,
     setSelectedVehicleClass,
     setSelectedTransferType,

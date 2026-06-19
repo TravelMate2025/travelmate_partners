@@ -14,6 +14,7 @@ import type { TransferType } from "@/modules/transfers/contracts";
 import { fetchCatalogAreas, submitLocalitySuggestion } from "@/modules/transfers/geography-client";
 import { transfersClient } from "@/modules/transfers/transfers-client";
 import { transferVehicleClassOptions } from "@/modules/transfers/vehicle-options";
+import { resetOriginAreaOnCityChange } from "../selection-utils";
 
 export function canSuggestNewTransferCity(input: {
   city: string;
@@ -338,8 +339,9 @@ export default function NewTransferPage() {
               allowCustomValue
               autoSelectSingleMatchOnBlur={false}
               onSelect={(value) => {
-                setSelectedCity(value);
-                setArea(value);
+                const selection = resetOriginAreaOnCityChange(value);
+                setSelectedCity(selection.city);
+                setArea(selection.area);
                 setCitySuggestionPending(false);
                 setOriginAreaOptions([]);
                 setOriginAreaOptionsLoaded(false);
