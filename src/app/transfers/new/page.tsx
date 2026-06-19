@@ -15,6 +15,22 @@ import { fetchCatalogAreas, submitLocalitySuggestion } from "@/modules/transfers
 import { transfersClient } from "@/modules/transfers/transfers-client";
 import { transferVehicleClassOptions } from "@/modules/transfers/vehicle-options";
 
+export function canSuggestNewTransferCity(input: {
+  city: string;
+  cityOptionsLoaded: boolean;
+  cityOptions: string[];
+  citySuggestionPending: boolean;
+}): boolean {
+  const selectedCity = input.city.trim();
+  if (!selectedCity || input.citySuggestionPending) {
+    return false;
+  }
+  if (!input.cityOptionsLoaded) {
+    return false;
+  }
+  return !input.cityOptions.some((option) => option.toLowerCase() === selectedCity.toLowerCase());
+}
+
 export default function NewTransferPage() {
   const { user, loading } = usePartnerAccess();
   const router = useRouter();
@@ -28,6 +44,8 @@ export default function NewTransferPage() {
   const [countrySuggestions, setCountrySuggestions] = useState<string[]>([]);
   const [adminLevel1Suggestions, setAdminLevel1Suggestions] = useState<string[]>([]);
   const [liveCities, setLiveCities] = useState<string[]>([]);
+  const [cityOptionsLoaded, setCityOptionsLoaded] = useState(false);
+  const [citySuggestionPending, setCitySuggestionPending] = useState(false);
   const [originAreaOptions, setOriginAreaOptions] = useState<string[]>([]);
   const [originAreaOptionsLoaded, setOriginAreaOptionsLoaded] = useState(false);
   const [originAreaOptionsLoadFailed, setOriginAreaOptionsLoadFailed] = useState(false);
@@ -65,6 +83,8 @@ export default function NewTransferPage() {
     let active = true;
     if (!user || !selectedCountry || !selectedAdminLevel1) {
       setLiveCities([]);
+      setCityOptionsLoaded(false);
+      setCitySuggestionPending(false);
       return () => {
         active = false;
       };
@@ -74,15 +94,36 @@ export default function NewTransferPage() {
       .then((rows) => {
         if (!active) return;
         setLiveCities(rows);
+        setCityOptionsLoaded(true);
       })
       .catch(() => {
         if (!active) return;
         setLiveCities([]);
+        setCityOptionsLoaded(false);
       });
     return () => {
       active = false;
     };
   }, [user, selectedCountry, selectedAdminLevel1]);
+
+  const showCitySuggestButton = canSuggestNewTransferCity({
+    city: selectedCity,
+    cityOptionsLoaded,
+    cityOptions,
+    citySuggestionPending,
+  });
+
+  async function suggestCity() {
+    if (!user || !selectedCountry || !selectedAdminLevel1 || !selectedCity) return;
+    await submitLocalitySuggestion(user.id, {
+      country: selectedCountry,
+      adminLevel1: selectedAdminLevel1,
+      city: selectedCity,
+      area: selectedCity,
+    });
+    setCitySuggestionPending(true);
+    setMessage(`Submitted "${selectedCity}" for city review.`);
+  }
 
   useEffect(() => {
     if (!user || !selectedCountry || !selectedAdminLevel1 || !selectedCity) {
@@ -169,6 +210,9 @@ export default function NewTransferPage() {
         area,
       });
 
+      if (item.cityReviewStatus === "pending") {
+        setMessage(`"${item.city}" was submitted for city review. The transfer can stay in draft, but admin cannot approve it until the city is reviewed.`);
+      }
       router.push(`/transfers/${item.id}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to create transfer.");
@@ -249,6 +293,8 @@ export default function NewTransferPage() {
                 setArea("");
                 setAdminLevel1Suggestions([]);
                 setLiveCities([]);
+                setCityOptionsLoaded(false);
+                setCitySuggestionPending(false);
               }}
             />
             <TypeaheadInput
@@ -271,25 +317,48 @@ export default function NewTransferPage() {
                 setSelectedCity("");
                 setArea("");
                 setLiveCities([]);
+                setCityOptionsLoaded(false);
+                setCitySuggestionPending(false);
               }}
             />
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <TypeaheadInput
               label="City"
-              placeholder="Type city"
+              placeholder={
+                !selectedAdminLevel1
+                  ? "Select state first"
+                  : cityOptionsLoaded
+                    ? "Type or select city"
+                    : "Loading cities…"
+              }
               value={selectedCity}
               options={cityOptions}
               disabled={!selectedAdminLevel1}
+              allowCustomValue
               onSelect={(value) => {
                 setSelectedCity(value);
                 setArea(value);
+                setCitySuggestionPending(false);
                 setOriginAreaOptions([]);
                 setOriginAreaOptionsLoaded(false);
                 setOriginAreaOptionsLoadFailed(false);
-                setOriginAreaSuggestionPending(false);
               }}
             />
+            {showCitySuggestButton ? (
+              <button
+                type="button"
+                className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
+                onClick={() => void suggestCity()}
+              >
+                Suggest this city for review
+              </button>
+            ) : null}
+              {citySuggestionPending ? (
+                <p className="mt-1 text-xs text-amber-700">
+                  This city is awaiting review. You can continue drafting the transfer, but admin cannot approve it until the city is reviewed.
+                </p>
+              ) : null}
             <div className="tm-field">
               <TypeaheadInput
                 label="Area"
@@ -325,7 +394,7 @@ export default function NewTransferPage() {
               ) : null}
               {originAreaSuggestionPending ? (
                 <p className="mt-1 text-xs text-amber-700">
-                  This area is awaiting catalog approval. You can save a draft but cannot submit until it is reviewed.
+                  This area is awaiting review. You can submit the transfer, but admin cannot approve it until the area is reviewed.
                 </p>
               ) : null}
             </div>

@@ -110,6 +110,7 @@ export default function TransferDetailPage() {
         knownFeatureValues={detail.knownFeatureValues}
         selectedTransferType={detail.selectedTransferType}
         destinationRoutes={detail.destinationRoutes}
+        destinationRouteNeedsReviewById={detail.destinationRouteNeedsReviewById}
         destinationRoutePendingById={detail.destinationRoutePendingById}
         destinationCityOptions={detail.destinationCityOptions}
         originAreaOptions={detail.originAreaOptions}
@@ -132,6 +133,7 @@ export default function TransferDetailPage() {
         onRemoveDestinationRoute={detail.removeDestinationRoute}
         onMoveDestinationRoute={detail.moveDestinationRoute}
         onSetDestinationRoute={detail.setDestinationRoute}
+        onSetDestinationRouteNeedsReview={detail.setDestinationRouteNeedsReview}
         onSetDestinationRoutePending={detail.setDestinationRoutePending}
       />
 

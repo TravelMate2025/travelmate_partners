@@ -36,11 +36,6 @@ export function TypeaheadInput({
   }, [value]);
 
   useEffect(() => {
-    const handle = window.setTimeout(() => onQueryChange?.(query), 150);
-    return () => window.clearTimeout(handle);
-  }, [query, onQueryChange]);
-
-  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (!rootRef.current) return;
       if (!rootRef.current.contains(event.target as Node)) {
@@ -95,7 +90,9 @@ export function TypeaheadInput({
         placeholder={placeholder}
         value={query}
         onChange={(event) => {
-          setQuery(event.target.value);
+          const nextValue = event.target.value;
+          setQuery(nextValue);
+          onQueryChange?.(nextValue);
           setOpen(true);
           setActiveIndex(0);
         }}

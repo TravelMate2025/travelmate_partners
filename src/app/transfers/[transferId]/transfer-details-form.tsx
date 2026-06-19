@@ -9,7 +9,6 @@ import type { TransferListing } from "@/modules/transfers/contracts";
 import { fetchCatalogAreas, fetchCatalogSubAreas, submitLocalitySuggestion } from "@/modules/transfers/geography-client";
 import {
   CURRENCY_OPTIONS,
-  derivedDestinationCityOptions,
   DestinationRouteDraft,
   knownTimeValues,
   TRANSFER_FEATURE_OPTIONS,
@@ -35,6 +34,7 @@ type Props = {
   knownFeatureValues: Set<string>;
   selectedTransferType: string;
   destinationRoutes: DestinationRouteDraft[];
+  destinationRouteNeedsReviewById: Record<string, { area: boolean; subArea: boolean }>;
   destinationRoutePendingById: Record<string, { area: boolean; subArea: boolean }>;
   destinationCityOptions: string[];
   originAreaOptions: string[];
@@ -56,6 +56,7 @@ type Props = {
   onRemoveDestinationRoute: (routeId: string) => void;
   onMoveDestinationRoute: (routeId: string, direction: "up" | "down") => void;
   onSetDestinationRoute: (routeId: string, patch: Partial<DestinationRouteDraft>) => void;
+  onSetDestinationRouteNeedsReview: (routeId: string, area: boolean, subArea: boolean) => void;
   onSetDestinationRoutePending: (routeId: string, area: boolean, subArea: boolean) => void;
   onSuggestOriginArea: () => void;
 };
@@ -69,12 +70,45 @@ type DestinationRouteEditorProps = {
   selectedCountry: string;
   selectedAdminLevel1: string;
   cityOptions: string[];
+  needsReview?: { area: boolean; subArea: boolean };
   pending?: { area: boolean; subArea: boolean };
   onRemove: (routeId: string) => void;
   onMove: (routeId: string, direction: "up" | "down") => void;
   onSetRoute: (routeId: string, patch: Partial<DestinationRouteDraft>) => void;
+  onSetNeedsReview: (routeId: string, area: boolean, subArea: boolean) => void;
   onSetPending: (routeId: string, area: boolean, subArea: boolean) => void;
 };
+
+export function canSuggestDestinationCity(input: {
+  city: string;
+  cityOptions: string[];
+  citySuggestionPending: boolean;
+  disabled: boolean;
+}): boolean {
+  const selectedCity = input.city.trim();
+  if (input.disabled || !selectedCity || input.citySuggestionPending) {
+    return false;
+  }
+  return !input.cityOptions.some((option) => option.toLowerCase() === selectedCity.toLowerCase());
+}
+
+export function canSuggestDestinationArea(input: {
+  area: string;
+  areaOptionsLoaded: boolean;
+  areaOptions: string[];
+  areaNeedsReview: boolean;
+  areaSuggestionPending: boolean;
+  disabled: boolean;
+}): boolean {
+  const selectedArea = input.area.trim();
+  if (input.disabled || !selectedArea || input.areaSuggestionPending) {
+    return false;
+  }
+  if (!input.areaOptionsLoaded) {
+    return true;
+  }
+  return input.areaNeedsReview && !input.areaOptions.some((option) => option.toLowerCase() === selectedArea.toLowerCase());
+}
 
 function DestinationRouteEditor({
   userId,
@@ -89,6 +123,7 @@ function DestinationRouteEditor({
   onRemove,
   onMove,
   onSetRoute,
+  onSetNeedsReview,
   onSetPending,
 }: DestinationRouteEditorProps) {
   const [destinationAreaOptions, setDestinationAreaOptions] = useState<string[]>([]);
@@ -97,8 +132,14 @@ function DestinationRouteEditor({
   const [destinationSubAreaOptions, setDestinationSubAreaOptions] = useState<string[]>([]);
   const [destinationSubAreaOptionsLoaded, setDestinationSubAreaOptionsLoaded] = useState(false);
   const [destinationSubAreaOptionsLoadFailed, setDestinationSubAreaOptionsLoadFailed] = useState(false);
+  const [destinationAreaNeedsReview, setDestinationAreaNeedsReview] = useState(false);
+  const [destinationSubAreaNeedsReview, setDestinationSubAreaNeedsReview] = useState(false);
   const [destinationAreaSuggestionPending, setDestinationAreaSuggestionPending] = useState(false);
   const [destinationSubAreaSuggestionPending, setDestinationSubAreaSuggestionPending] = useState(false);
+  const [destinationCitySuggestionPending, setDestinationCitySuggestionPending] = useState(false);
+  const [destinationCityDraft, setDestinationCityDraft] = useState(route.destinationCity);
+  const [destinationAreaDraft, setDestinationAreaDraft] = useState(route.destinationArea);
+  const [destinationSubAreaDraft, setDestinationSubAreaDraft] = useState(route.destinationSubArea);
 
   const destinationCityOptions = useMemo(() => {
     const options = cityOptions.slice();
@@ -109,17 +150,56 @@ function DestinationRouteEditor({
   }, [cityOptions, route.destinationCity]);
 
   useEffect(() => {
-    if (!userId || !selectedCountry || !selectedAdminLevel1 || !route.destinationCity) {
+    setDestinationCitySuggestionPending(false);
+  }, [route.destinationCity]);
+
+  useEffect(() => {
+    setDestinationCityDraft(route.destinationCity);
+  }, [route.destinationCity]);
+
+  useEffect(() => {
+    setDestinationCitySuggestionPending(false);
+  }, [destinationCityDraft]);
+
+  useEffect(() => {
+    setDestinationAreaDraft(route.destinationArea);
+    setDestinationAreaSuggestionPending(false);
+  }, [route.destinationArea]);
+
+  useEffect(() => {
+    setDestinationAreaSuggestionPending(false);
+  }, [destinationAreaDraft]);
+
+  useEffect(() => {
+    setDestinationSubAreaDraft(route.destinationSubArea);
+    setDestinationSubAreaSuggestionPending(false);
+  }, [route.destinationSubArea]);
+
+  useEffect(() => {
+    setDestinationSubAreaSuggestionPending(false);
+  }, [destinationSubAreaDraft]);
+
+  const showDestinationCitySuggestButton = canSuggestDestinationCity({
+    city: route.destinationCity,
+    cityOptions: destinationCityOptions,
+    citySuggestionPending: destinationCitySuggestionPending,
+    disabled,
+  });
+
+  useEffect(() => {
+    const activeDestinationCity = route.destinationCity || destinationCityDraft;
+    if (!userId || !selectedCountry || !selectedAdminLevel1 || !activeDestinationCity) {
       setDestinationAreaOptions([]);
       setDestinationAreaOptionsLoaded(false);
       setDestinationAreaOptionsLoadFailed(false);
-      onSetPending(route.id, false, false);
+      setDestinationAreaNeedsReview(false);
+      onSetNeedsReview(route.id, false, false);
       return;
     }
 
     let active = true;
     setDestinationAreaOptionsLoadFailed(false);
-    fetchCatalogAreas(userId, selectedCountry, selectedAdminLevel1, route.destinationCity)
+    fetchCatalogAreas(userId, selectedCountry, selectedAdminLevel1, activeDestinationCity)
       .then((areas) => {
         if (!active) return;
         setDestinationAreaOptions(areas);
@@ -135,40 +215,51 @@ function DestinationRouteEditor({
     return () => {
       active = false;
     };
-  }, [route.destinationCity, route.id, selectedAdminLevel1, selectedCountry, userId]);
+  }, [destinationCityDraft, route.destinationCity, route.id, selectedAdminLevel1, selectedCountry, userId]);
 
   useEffect(() => {
-    if (!destinationAreaOptionsLoaded || !route.destinationArea) {
-      setDestinationAreaSuggestionPending(false);
-      onSetPending(route.id, false, false);
+    const activeDestinationArea = route.destinationArea || destinationAreaDraft;
+    if (!activeDestinationArea) {
+      setDestinationAreaNeedsReview(false);
+      onSetNeedsReview(route.id, false, destinationSubAreaNeedsReview);
       return;
     }
 
-    const pendingArea = !destinationAreaOptions.some(
-      (option) => option.toLowerCase() === route.destinationArea.trim().toLowerCase(),
+    if (!destinationAreaOptionsLoaded) {
+      setDestinationAreaNeedsReview(true);
+      onSetNeedsReview(route.id, true, destinationSubAreaNeedsReview);
+      return;
+    }
+
+    const needsReview = !destinationAreaOptions.some(
+      (option) => option.toLowerCase() === activeDestinationArea.trim().toLowerCase(),
     );
-    setDestinationAreaSuggestionPending(pendingArea);
-    onSetPending(route.id, pendingArea, destinationSubAreaSuggestionPending);
+    setDestinationAreaNeedsReview(needsReview);
+    onSetNeedsReview(route.id, needsReview, destinationSubAreaNeedsReview);
   }, [
     destinationAreaOptions,
     destinationAreaOptionsLoaded,
-    destinationSubAreaSuggestionPending,
+    destinationAreaDraft,
     route.destinationArea,
     route.id,
+    destinationSubAreaNeedsReview,
   ]);
 
   useEffect(() => {
-    if (!userId || !selectedCountry || !selectedAdminLevel1 || !route.destinationCity || !route.destinationArea) {
+    const activeDestinationCity = route.destinationCity || destinationCityDraft;
+    const activeDestinationArea = route.destinationArea || destinationAreaDraft;
+    if (!userId || !selectedCountry || !selectedAdminLevel1 || !activeDestinationCity || !activeDestinationArea) {
       setDestinationSubAreaOptions([]);
       setDestinationSubAreaOptionsLoaded(false);
       setDestinationSubAreaOptionsLoadFailed(false);
-      onSetPending(route.id, destinationAreaSuggestionPending, false);
+      setDestinationSubAreaNeedsReview(false);
+      onSetNeedsReview(route.id, destinationAreaNeedsReview, false);
       return;
     }
 
     let active = true;
     setDestinationSubAreaOptionsLoadFailed(false);
-    fetchCatalogSubAreas(userId, selectedCountry, selectedAdminLevel1, route.destinationCity, route.destinationArea)
+    fetchCatalogSubAreas(userId, selectedCountry, selectedAdminLevel1, activeDestinationCity, activeDestinationArea)
       .then((subAreas) => {
         if (!active) return;
         setDestinationSubAreaOptions(subAreas);
@@ -185,7 +276,9 @@ function DestinationRouteEditor({
       active = false;
     };
   }, [
-    destinationAreaSuggestionPending,
+    destinationAreaDraft,
+    destinationAreaNeedsReview,
+    destinationCityDraft,
     route.destinationArea,
     route.destinationCity,
     route.id,
@@ -195,51 +288,75 @@ function DestinationRouteEditor({
   ]);
 
   useEffect(() => {
-    if (!destinationSubAreaOptionsLoaded || !route.destinationSubArea) {
-      setDestinationSubAreaSuggestionPending(false);
-      onSetPending(route.id, destinationAreaSuggestionPending, false);
+    const activeDestinationSubArea = route.destinationSubArea || destinationSubAreaDraft;
+    if (!activeDestinationSubArea) {
+      setDestinationSubAreaNeedsReview(false);
+      onSetNeedsReview(route.id, destinationAreaNeedsReview, false);
       return;
     }
 
-    const pendingSubArea = !destinationSubAreaOptions.some(
-      (option) => option.toLowerCase() === route.destinationSubArea.trim().toLowerCase(),
+    if (!destinationSubAreaOptionsLoaded) {
+      setDestinationSubAreaNeedsReview(true);
+      onSetNeedsReview(route.id, destinationAreaNeedsReview, true);
+      return;
+    }
+
+    const needsReview = !destinationSubAreaOptions.some(
+      (option) => option.toLowerCase() === activeDestinationSubArea.trim().toLowerCase(),
     );
-    setDestinationSubAreaSuggestionPending(pendingSubArea);
-    onSetPending(route.id, destinationAreaSuggestionPending, pendingSubArea);
+    setDestinationSubAreaNeedsReview(needsReview);
+    onSetNeedsReview(route.id, destinationAreaNeedsReview, needsReview);
   }, [
-    destinationAreaSuggestionPending,
     destinationSubAreaOptions,
     destinationSubAreaOptionsLoaded,
+    destinationSubAreaDraft,
     route.destinationSubArea,
     route.id,
+    destinationAreaNeedsReview,
   ]);
 
+  const activeDestinationCity = route.destinationCity || destinationCityDraft;
+  const activeDestinationArea = route.destinationArea || destinationAreaDraft;
+  const activeDestinationSubArea = route.destinationSubArea || destinationSubAreaDraft;
+
   const showDestinationAreaSuggestButton =
-    !disabled &&
-    destinationAreaOptionsLoaded &&
-    route.destinationArea &&
-    !destinationAreaOptions.some((option) => option.toLowerCase() === route.destinationArea.trim().toLowerCase()) &&
-    !destinationAreaSuggestionPending;
+    canSuggestDestinationArea({
+      area: activeDestinationArea,
+      areaOptionsLoaded: destinationAreaOptionsLoaded,
+      areaOptions: destinationAreaOptions,
+      areaNeedsReview: destinationAreaNeedsReview,
+      areaSuggestionPending: destinationAreaSuggestionPending,
+      disabled,
+    });
 
   const showDestinationSubAreaSuggestButton =
     !disabled &&
     destinationSubAreaOptionsLoaded &&
-    route.destinationSubArea &&
-    !destinationSubAreaOptions.some(
-      (option) => option.toLowerCase() === route.destinationSubArea.trim().toLowerCase(),
-    ) &&
+    activeDestinationSubArea &&
+    destinationSubAreaNeedsReview &&
     !destinationSubAreaSuggestionPending;
 
   async function suggestDestinationArea() {
-    if (!userId || !selectedCountry || !selectedAdminLevel1 || !route.destinationCity || !route.destinationArea) return;
+    if (!userId || !selectedCountry || !selectedAdminLevel1 || !activeDestinationCity || !activeDestinationArea) return;
     await submitLocalitySuggestion(userId, {
       country: selectedCountry,
       adminLevel1: selectedAdminLevel1,
-      city: route.destinationCity,
-      area: route.destinationArea,
+      city: activeDestinationCity,
+      area: activeDestinationArea,
     });
     setDestinationAreaSuggestionPending(true);
     onSetPending(route.id, true, destinationSubAreaSuggestionPending);
+  }
+
+  async function suggestDestinationCity() {
+    if (!userId || !selectedCountry || !selectedAdminLevel1 || !activeDestinationCity) return;
+    await submitLocalitySuggestion(userId, {
+      country: selectedCountry,
+      adminLevel1: selectedAdminLevel1,
+      city: activeDestinationCity,
+      area: activeDestinationCity,
+    });
+    setDestinationCitySuggestionPending(true);
   }
 
   async function suggestDestinationSubArea() {
@@ -264,7 +381,7 @@ function DestinationRouteEditor({
     onSetPending(route.id, destinationAreaSuggestionPending, true);
   }
 
-  const routeLocationLabel = [route.destinationCity, route.destinationArea].filter(Boolean).join(" / ") || "Unspecified";
+  const routeLocationLabel = [activeDestinationCity, activeDestinationArea].filter(Boolean).join(" / ") || "Unspecified";
   const pendingArea = pending?.area ?? destinationAreaSuggestionPending;
   const pendingSubArea = pending?.subArea ?? destinationSubAreaSuggestionPending;
 
@@ -310,6 +427,8 @@ function DestinationRouteEditor({
           value={route.destinationCity}
           disabled={disabled || !selectedCountry || !selectedAdminLevel1}
           options={destinationCityOptions}
+          allowCustomValue
+          onQueryChange={setDestinationCityDraft}
           onSelect={(value) =>
             onSetRoute(route.id, {
               destinationCity: value,
@@ -318,6 +437,20 @@ function DestinationRouteEditor({
             })
           }
         />
+          {showDestinationCitySuggestButton ? (
+            <button
+              type="button"
+              className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
+              onClick={suggestDestinationCity}
+            >
+            Suggest this city for review
+            </button>
+          ) : null}
+        {destinationCitySuggestionPending ? (
+          <p className="mt-1 text-xs text-amber-700">
+            This destination city is awaiting review. You can submit the transfer, but admin cannot approve it until the city is reviewed.
+          </p>
+        ) : null}
         <div className="tm-field">
           <TypeaheadInput
             label="Destination Area"
@@ -334,6 +467,7 @@ function DestinationRouteEditor({
             disabled={disabled || !route.destinationCity}
             options={destinationAreaOptions}
             allowCustomValue
+            onQueryChange={setDestinationAreaDraft}
             onSelect={(value) =>
               onSetRoute(route.id, {
                 destinationArea: value,
@@ -346,18 +480,18 @@ function DestinationRouteEditor({
               We could not load destination areas right now. Validation will be retried when you save.
             </p>
           ) : null}
-          {showDestinationAreaSuggestButton ? (
-            <button
-              type="button"
-              className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
-              onClick={suggestDestinationArea}
-            >
-              Suggest &ldquo;{route.destinationArea}&rdquo; as a new area
-            </button>
-          ) : null}
+        {showDestinationAreaSuggestButton ? (
+          <button
+            type="button"
+            className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
+            onClick={suggestDestinationArea}
+          >
+            Suggest &ldquo;{activeDestinationArea}&rdquo; as a new area
+          </button>
+        ) : null}
           {pendingArea ? (
             <p className="mt-1 text-xs text-amber-700">
-              This destination area is awaiting catalog approval.
+              This destination area is awaiting review. You can submit the transfer, but admin cannot approve it until the area is reviewed.
             </p>
           ) : null}
         </div>
@@ -377,6 +511,7 @@ function DestinationRouteEditor({
             disabled={disabled || !route.destinationArea}
             options={destinationSubAreaOptions}
             allowCustomValue
+            onQueryChange={setDestinationSubAreaDraft}
             onSelect={(value) => onSetRoute(route.id, { destinationSubArea: value })}
           />
           {destinationSubAreaOptionsLoadFailed ? (
@@ -390,11 +525,11 @@ function DestinationRouteEditor({
               className="mt-1 text-xs font-medium text-[#033D89] hover:underline"
               onClick={suggestDestinationSubArea}
             >
-              Suggest &ldquo;{route.destinationSubArea}&rdquo; as a new sub-area
+              Suggest &ldquo;{activeDestinationSubArea}&rdquo; as a new sub-area
             </button>
           ) : null}
           {pendingSubArea ? (
-            <p className="mt-1 text-xs text-amber-700">This sub-area is awaiting catalog approval.</p>
+            <p className="mt-1 text-xs text-amber-700">This destination sub-area is awaiting review.</p>
           ) : null}
         </div>
         <div className="tm-field">
@@ -430,6 +565,7 @@ export function TransferDetailsForm({
   knownFeatureValues,
   selectedTransferType,
   destinationRoutes,
+  destinationRouteNeedsReviewById,
   destinationRoutePendingById,
   destinationCityOptions,
   originAreaOptions,
@@ -451,6 +587,7 @@ export function TransferDetailsForm({
   onRemoveDestinationRoute,
   onMoveDestinationRoute,
   onSetDestinationRoute,
+  onSetDestinationRouteNeedsReview,
   onSetDestinationRoutePending,
   onSuggestOriginArea,
 }: Props) {
@@ -711,9 +848,11 @@ export function TransferDetailsForm({
               selectedAdminLevel1={selectedAdminLevel1}
               cityOptions={destinationCityOptions}
               pending={destinationRoutePendingById[route.id]}
+              needsReview={destinationRouteNeedsReviewById[route.id]}
               onRemove={onRemoveDestinationRoute}
               onMove={onMoveDestinationRoute}
               onSetRoute={onSetDestinationRoute}
+              onSetNeedsReview={onSetDestinationRouteNeedsReview}
               onSetPending={onSetDestinationRoutePending}
             />
           ))}

@@ -105,6 +105,10 @@ export function buildTransferCityOptions(availableCities: string[], liveCities: 
   return mergeUniqueOptions(availableCities, liveCities, selectedCity ? [selectedCity] : []);
 }
 
+export function buildTransferDestinationCityOptions(country: string, adminLevel1: string, liveCities: string[]) {
+  return buildTransferCityOptions(derivedDestinationCityOptions(country, adminLevel1), liveCities, "");
+}
+
 export type DestinationRouteDraft = {
   id: string;
   destinationCity: string;
@@ -152,6 +156,7 @@ export function canSubmitTransferDetails(input: {
   originAreaOptionsLoaded: boolean;
   originAreaSuggestionPending: boolean;
   destinationRoutes: DestinationRouteDraft[];
+  destinationRouteNeedsReviewById: Record<string, { area: boolean; subArea: boolean }>;
   destinationRoutePendingById: Record<string, { area: boolean; subArea: boolean }>;
 }): boolean {
   if (input.status !== "draft" && input.status !== "rejected") return false;
@@ -160,8 +165,10 @@ export function canSubmitTransferDetails(input: {
   if (input.destinationRoutes.length < 1) return false;
   for (const route of input.destinationRoutes) {
     if (!route.destinationCity || !route.destinationArea) return false;
+    const needsReview = input.destinationRouteNeedsReviewById[route.id];
     const pending = input.destinationRoutePendingById[route.id];
-    if (pending?.area || pending?.subArea) return false;
+    if (needsReview?.area && !pending?.area) return false;
+    if (needsReview?.subArea && !pending?.subArea) return false;
   }
   return true;
 }
@@ -212,6 +219,9 @@ export function useTransferDetail(userId: string | undefined, transferId: string
   const [destinationRoutes, setDestinationRoutes] = useState<DestinationRouteDraft[]>([
     makeDestinationRouteDraft(),
   ]);
+  const [destinationRouteNeedsReviewById, setDestinationRouteNeedsReviewById] = useState<
+    Record<string, { area: boolean; subArea: boolean }>
+  >({});
   const [destinationRoutePendingById, setDestinationRoutePendingById] = useState<
     Record<string, { area: boolean; subArea: boolean }>
   >({});
@@ -226,8 +236,8 @@ export function useTransferDetail(userId: string | undefined, transferId: string
   const cityOptions = buildTransferCityOptions(availableCities, liveCities, selectedCity);
 
   const destinationCityOptions = useMemo(
-    () => derivedDestinationCityOptions(selectedCountry, selectedAdminLevel1),
-    [selectedAdminLevel1, selectedCountry],
+    () => buildTransferDestinationCityOptions(selectedCountry, selectedAdminLevel1, liveCities),
+    [liveCities, selectedAdminLevel1, selectedCountry],
   );
 
   function setCountrySelection(value: string) {
@@ -237,6 +247,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setSelectedArea("");
     setLiveCities([]);
     setDestinationRoutes([makeDestinationRouteDraft()]);
+    setDestinationRouteNeedsReviewById({});
     setDestinationRoutePendingById({});
     setOriginAreaOptions([]);
     setOriginAreaOptionsLoaded(false);
@@ -249,6 +260,8 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setSelectedCity("");
     setSelectedArea("");
     setLiveCities([]);
+    setDestinationRouteNeedsReviewById({});
+    setDestinationRoutePendingById({});
     setOriginAreaOptions([]);
     setOriginAreaOptionsLoaded(false);
     setOriginAreaOptionsLoadFailed(false);
@@ -271,6 +284,11 @@ export function useTransferDetail(userId: string | undefined, transferId: string
       return next.length > 0 ? next : [makeDestinationRouteDraft()];
     });
     setDestinationRoutePendingById((previous) => {
+      const next = { ...previous };
+      delete next[routeId];
+      return next;
+    });
+    setDestinationRouteNeedsReviewById((previous) => {
       const next = { ...previous };
       delete next[routeId];
       return next;
@@ -403,7 +421,8 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         setSelectedArea(normalizedResult.area ?? normalizedResult.city ?? "");
         setSelectedVehicleClass(normalizeTransferVehicleClass(normalizedResult.vehicleClass));
         setSelectedTransferType(normalizedResult.transferType ?? "");
-        setDestinationRoutes(normalizeDestinationRouteDrafts(normalizedResult));
+    setDestinationRoutes(normalizeDestinationRouteDrafts(normalizedResult));
+        setDestinationRouteNeedsReviewById({});
         setDestinationRoutePendingById({});
 
         if (normalizedResult.status === "paused_by_admin") {
@@ -439,6 +458,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
       originAreaOptionsLoaded,
       originAreaSuggestionPending,
       destinationRoutes,
+      destinationRouteNeedsReviewById,
       destinationRoutePendingById,
     });
   }, [
@@ -447,6 +467,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     originAreaOptionsLoaded,
     originAreaSuggestionPending,
     destinationRoutes,
+    destinationRouteNeedsReviewById,
     destinationRoutePendingById,
   ]);
 
@@ -464,6 +485,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setSelectedVehicleClass(normalizeTransferVehicleClass(normalized.vehicleClass));
     setSelectedTransferType(normalized.transferType ?? "");
     setDestinationRoutes(normalizeDestinationRouteDrafts(normalized));
+    setDestinationRouteNeedsReviewById({});
     setDestinationRoutePendingById({});
     setItem(normalized);
     setAllTransfers((prev) => {
@@ -694,6 +716,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     originAreaOptionsLoaded,
     originAreaOptionsLoadFailed,
     originAreaSuggestionPending,
+    destinationRouteNeedsReviewById,
     destinationRoutePendingById,
     canSubmit,
     canEditDetails,
@@ -715,6 +738,12 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     moveDestinationRoute,
     setDestinationRoute,
     setDestinationRoutePending,
+    setDestinationRouteNeedsReview: (routeId: string, area: boolean, subArea: boolean) => {
+      setDestinationRouteNeedsReviewById((previous) => ({
+        ...previous,
+        [routeId]: { area, subArea },
+      }));
+    },
     suggestOriginArea,
     saveDetails,
     changeStatus,

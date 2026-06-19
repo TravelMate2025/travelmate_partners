@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canSubmitTransferDetails,
   buildTransferCityOptions,
+  buildTransferDestinationCityOptions,
   derivedDestinationCityOptions,
   findRegionForCity,
   parseOperatingHours,
@@ -83,6 +84,14 @@ describe("buildTransferCityOptions", () => {
   });
 });
 
+describe("buildTransferDestinationCityOptions", () => {
+  it("includes approved live cities for the selected state or region", () => {
+    const cities = buildTransferDestinationCityOptions("Nigeria", "Lagos", ["Ajah"]);
+    expect(cities).toContain("Ajah");
+    expect(cities).toContain("Lekki");
+  });
+});
+
 describe("parseOperatingHours", () => {
   it("parses a valid range string", () => {
     expect(parseOperatingHours("08:00-20:00")).toEqual({ open: "08:00", close: "20:00" });
@@ -106,18 +115,36 @@ describe("parseOperatingHours", () => {
 });
 
 describe("canSubmitTransferDetails", () => {
-  it("blocks submission when destination sub-area is pending review", () => {
+  it("blocks submission when destination sub-area review has not been submitted", () => {
     expect(
       canSubmitTransferDetails({
         status: "draft",
         selectedArea: "Lekki Phase 1",
         originAreaSuggestionPending: false,
+        originAreaOptionsLoaded: true,
         destinationRoutes: [
           { id: "route-1", destinationCity: "Abuja", destinationArea: "Garki", destinationSubArea: "Central" },
         ],
-        destinationRoutePendingById: { "route-1": { area: false, subArea: true } },
+        destinationRouteNeedsReviewById: { "route-1": { area: false, subArea: true } },
+        destinationRoutePendingById: { "route-1": { area: false, subArea: false } },
       }),
     ).toBe(false);
+  });
+
+  it("allows submission when a destination area review has been submitted", () => {
+    expect(
+      canSubmitTransferDetails({
+        status: "draft",
+        selectedArea: "Lekki Phase 1",
+        originAreaSuggestionPending: false,
+        originAreaOptionsLoaded: true,
+        destinationRoutes: [
+          { id: "route-1", destinationCity: "Abuja", destinationArea: "Oregun", destinationSubArea: "" },
+        ],
+        destinationRouteNeedsReviewById: { "route-1": { area: true, subArea: false } },
+        destinationRoutePendingById: { "route-1": { area: true, subArea: false } },
+      }),
+    ).toBe(true);
   });
 
   it("allows submission when the route is complete and approved", () => {
@@ -131,6 +158,7 @@ describe("canSubmitTransferDetails", () => {
           { id: "route-1", destinationCity: "Abuja", destinationArea: "Garki", destinationSubArea: "Central" },
           { id: "route-2", destinationCity: "Lagos", destinationArea: "Ikeja", destinationSubArea: "" },
         ],
+        destinationRouteNeedsReviewById: {},
         destinationRoutePendingById: {},
       }),
     ).toBe(true);
@@ -146,6 +174,7 @@ describe("canSubmitTransferDetails", () => {
         destinationRoutes: [
           { id: "route-1", destinationCity: "Abuja", destinationArea: "Garki", destinationSubArea: "" },
         ],
+        destinationRouteNeedsReviewById: {},
         destinationRoutePendingById: {},
       }),
     ).toBe(false);
@@ -161,6 +190,7 @@ describe("canSubmitTransferDetails", () => {
         destinationRoutes: [
           { id: "route-1", destinationCity: "Lagos", destinationArea: "Victoria Island", destinationSubArea: "" },
         ],
+        destinationRouteNeedsReviewById: {},
         destinationRoutePendingById: {},
       }),
     ).toBe(false);
