@@ -336,6 +336,7 @@ export default function NewTransferPage() {
               options={cityOptions}
               disabled={!selectedAdminLevel1}
               allowCustomValue
+              autoSelectSingleMatchOnBlur={false}
               onSelect={(value) => {
                 setSelectedCity(value);
                 setArea(value);
@@ -371,10 +372,10 @@ export default function NewTransferPage() {
                       ? "Search or type area name"
                       : "Loading areas…"
                 }
-                value={area}
-                disabled={!selectedCity}
-                options={originAreaOptions}
-                allowCustomValue
+              value={area}
+              disabled={!selectedCity}
+              options={originAreaOptions}
+              allowCustomValue
                 onSelect={setArea}
               />
               <input type="hidden" name="area" value={area} />

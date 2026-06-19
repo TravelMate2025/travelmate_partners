@@ -31,6 +31,8 @@ describe("transfer destination review helpers", () => {
         area: "Oregun",
         areaOptionsLoaded: false,
         areaOptions: [],
+        city: "Ikeja",
+        cityOptions: ["Ikeja", "Lekki"],
         areaNeedsReview: true,
         areaSuggestionPending: false,
         disabled: false,
@@ -44,7 +46,24 @@ describe("transfer destination review helpers", () => {
         area: "Ikeja GRA",
         areaOptionsLoaded: true,
         areaOptions: ["Ikeja GRA", "Allen Avenue"],
+        city: "Ikeja",
+        cityOptions: ["Ikeja", "Lekki"],
         areaNeedsReview: false,
+        areaSuggestionPending: false,
+        disabled: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("hides destination area suggestion until the destination city is approved", () => {
+    expect(
+      canSuggestDestinationArea({
+        area: "Oregun",
+        areaOptionsLoaded: false,
+        areaOptions: [],
+        city: "Nonexistent City",
+        cityOptions: ["Ikeja", "Lekki"],
+        areaNeedsReview: true,
         areaSuggestionPending: false,
         disabled: false,
       }),

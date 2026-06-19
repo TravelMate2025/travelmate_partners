@@ -314,6 +314,7 @@ export default function NewStayPage() {
                 options={cityOptions}
                 disabled={!selectedAdminLevel1}
                 allowCustomValue
+                autoSelectSingleMatchOnBlur={false}
                 onSelect={(value) => {
                   setSelectedCity(value);
                   setArea(value);

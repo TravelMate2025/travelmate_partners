@@ -96,12 +96,16 @@ export function canSuggestDestinationArea(input: {
   area: string;
   areaOptionsLoaded: boolean;
   areaOptions: string[];
+  city: string;
+  cityOptions: string[];
   areaNeedsReview: boolean;
   areaSuggestionPending: boolean;
   disabled: boolean;
 }): boolean {
   const selectedArea = input.area.trim();
-  if (input.disabled || !selectedArea || input.areaSuggestionPending) {
+  const selectedCity = input.city.trim();
+  const cityApproved = input.cityOptions.some((option) => option.toLowerCase() === selectedCity.toLowerCase());
+  if (input.disabled || !selectedArea || input.areaSuggestionPending || !cityApproved) {
     return false;
   }
   if (!input.areaOptionsLoaded) {
@@ -141,14 +145,6 @@ function DestinationRouteEditor({
   const [destinationAreaDraft, setDestinationAreaDraft] = useState(route.destinationArea);
   const [destinationSubAreaDraft, setDestinationSubAreaDraft] = useState(route.destinationSubArea);
 
-  const destinationCityOptions = useMemo(() => {
-    const options = cityOptions.slice();
-    if (route.destinationCity && !options.some((option) => option.toLowerCase() === route.destinationCity.trim().toLowerCase())) {
-      options.unshift(route.destinationCity);
-    }
-    return options;
-  }, [cityOptions, route.destinationCity]);
-
   useEffect(() => {
     setDestinationCitySuggestionPending(false);
   }, [route.destinationCity]);
@@ -178,6 +174,8 @@ function DestinationRouteEditor({
   useEffect(() => {
     setDestinationSubAreaSuggestionPending(false);
   }, [destinationSubAreaDraft]);
+
+  const destinationCityOptions = cityOptions;
 
   const showDestinationCitySuggestButton = canSuggestDestinationCity({
     city: route.destinationCity,
@@ -324,6 +322,8 @@ function DestinationRouteEditor({
       area: activeDestinationArea,
       areaOptionsLoaded: destinationAreaOptionsLoaded,
       areaOptions: destinationAreaOptions,
+      city: activeDestinationCity,
+      cityOptions: destinationCityOptions,
       areaNeedsReview: destinationAreaNeedsReview,
       areaSuggestionPending: destinationAreaSuggestionPending,
       disabled,
@@ -428,6 +428,7 @@ function DestinationRouteEditor({
           disabled={disabled || !selectedCountry || !selectedAdminLevel1}
           options={destinationCityOptions}
           allowCustomValue
+          autoSelectSingleMatchOnBlur={false}
           onQueryChange={setDestinationCityDraft}
           onSelect={(value) =>
             onSetRoute(route.id, {

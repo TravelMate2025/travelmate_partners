@@ -9,6 +9,7 @@ type TypeaheadInputProps = {
   disabled?: boolean;
   options: string[];
   allowCustomValue?: boolean;
+  autoSelectSingleMatchOnBlur?: boolean;
   onQueryChange?: (query: string) => void;
   onSelect: (value: string) => void;
 };
@@ -20,6 +21,7 @@ export function TypeaheadInput({
   disabled = false,
   options,
   allowCustomValue = false,
+  autoSelectSingleMatchOnBlur = true,
   onQueryChange,
   onSelect,
 }: TypeaheadInputProps) {
@@ -63,7 +65,7 @@ export function TypeaheadInput({
       onSelect(exact);
       return;
     }
-    if (filtered.length === 1) {
+    if (autoSelectSingleMatchOnBlur && filtered.length === 1) {
       setQuery(filtered[0]);
       onSelect(filtered[0]);
       return;
