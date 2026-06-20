@@ -140,15 +140,6 @@ function normalizeDestinationRouteDrafts(
       }),
     );
   }
-  if (entry.destinationCity || entry.destinationArea || entry.destinationSubArea) {
-    return [
-      makeDestinationRouteDraft({
-        destinationCity: entry.destinationCity ?? "",
-        destinationArea: entry.destinationArea ?? "",
-        destinationSubArea: entry.destinationSubArea ?? "",
-      }),
-    ];
-  }
   return [makeDestinationRouteDraft()];
 }
 
@@ -582,9 +573,6 @@ export function useTransferDetail(userId: string | undefined, transferId: string
           destinationArea: route.destinationArea,
           destinationSubArea: route.destinationSubArea,
         })),
-        destinationCity: destinationRoutes[0]?.destinationCity ?? "",
-        destinationArea: destinationRoutes[0]?.destinationArea ?? "",
-        destinationSubArea: destinationRoutes[0]?.destinationSubArea ?? "",
         operatingHours: `${openTime}-${closeTime}`,
         currency: selectedCurrency,
         baseFare: Number(form.get("baseFare") ?? 0),

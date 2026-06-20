@@ -120,11 +120,6 @@ function createFromInput(userId: string, input: CreateTransferInput): TransferLi
   const ts = nowIso();
   const coverageArea = input.coverageArea ?? (input.city && input.country ? `${input.city}, ${input.country}` : "");
   const destinationRoutes = Array.isArray(input.destinationRoutes) ? input.destinationRoutes.map((route) => ({ ...route })) : [];
-  const firstRoute = destinationRoutes[0] ?? {
-    destinationCity: input.destinationCity ?? "",
-    destinationArea: input.destinationArea ?? "",
-    destinationSubArea: input.destinationSubArea ?? "",
-  };
   return {
     id: makeId(),
     userId,
@@ -143,9 +138,6 @@ function createFromInput(userId: string, input: CreateTransferInput): TransferLi
     city: input.city ?? "",
     area: input.area ?? "",
     destinationRoutes,
-    destinationCity: firstRoute.destinationCity ?? "",
-    destinationArea: firstRoute.destinationArea ?? "",
-    destinationSubArea: firstRoute.destinationSubArea ?? "",
     operatingHours: "",
     currency: "NGN",
     baseFare: input.baseFare ?? 0,

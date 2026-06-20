@@ -100,10 +100,9 @@ export default function TransfersPage() {
 
   function routeSummary(item: TransferListing) {
     const route = item.destinationRoutes?.[0];
-    if (route) {
-      return [route.destinationCity, route.destinationArea].filter(Boolean).join(" / ") || "Destination route";
-    }
-    return item.destinationCity || "Destination route";
+    return route
+      ? [route.destinationCity, route.destinationArea].filter(Boolean).join(" / ") || "Destination route"
+      : "Destination route";
   }
 
   return (

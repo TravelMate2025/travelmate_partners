@@ -16,15 +16,7 @@ export function canTransitionTransfer(from: TransferStatus, to: TransferStatus) 
 }
 
 export function validateTransferForSubmission(item: TransferListing) {
-  const destinationRoutes = Array.isArray(item.destinationRoutes) && item.destinationRoutes.length > 0
-    ? item.destinationRoutes
-    : item.destinationCity && item.destinationArea
-      ? [{
-          destinationCity: item.destinationCity,
-          destinationArea: item.destinationArea,
-          destinationSubArea: item.destinationSubArea ?? "",
-        }]
-      : [];
+  const destinationRoutes = Array.isArray(item.destinationRoutes) ? item.destinationRoutes : [];
   const required = [
     item.name,
     item.transferType,

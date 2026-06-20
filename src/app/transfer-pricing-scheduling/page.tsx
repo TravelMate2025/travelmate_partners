@@ -285,7 +285,7 @@ export default function TransferPricingSchedulingPage() {
     const route = item.destinationRoutes?.[0];
     const destination = route
       ? [route.destinationCity, route.destinationArea].filter(Boolean).join(" / ")
-      : item.destinationCity || "Destination route";
+      : "Destination route";
     return `${item.name || "Untitled transfer"} (${item.pickupPoint} → ${destination})`;
   }
 

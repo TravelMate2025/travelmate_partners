@@ -37,7 +37,6 @@ export type TransferListing = {
   description: string;
   transferType: TransferType | "";
   pickupPoint: string;
-  dropoffPoint?: string;
   vehicleClass: string;
   passengerCapacity: number;
   luggageCapacity: number;
@@ -48,9 +47,6 @@ export type TransferListing = {
   city?: string;
   area?: string;
   destinationRoutes?: TransferDestinationRoute[];
-  destinationCity?: string;
-  destinationArea?: string;
-  destinationSubArea?: string;
   cityReviewStatus?: "pending" | "approved" | "rejected" | null;
   operatingHours: string;
   currency: string;
@@ -69,7 +65,6 @@ export type CreateTransferInput = {
   baseFare?: number;
   transferType: TransferType;
   pickupPoint: string;
-  dropoffPoint?: string;
   vehicleClass: string;
   passengerCapacity: number;
   luggageCapacity: number;
@@ -79,9 +74,6 @@ export type CreateTransferInput = {
   city?: string;
   area?: string;
   destinationRoutes?: TransferDestinationRoute[];
-  destinationCity?: string;
-  destinationArea?: string;
-  destinationSubArea?: string;
 };
 
 export type UpdateTransferInput = Partial<
@@ -91,7 +83,6 @@ export type UpdateTransferInput = Partial<
     | "description"
     | "transferType"
     | "pickupPoint"
-    | "dropoffPoint"
     | "vehicleClass"
     | "passengerCapacity"
     | "luggageCapacity"
@@ -102,9 +93,6 @@ export type UpdateTransferInput = Partial<
     | "city"
     | "area"
     | "destinationRoutes"
-    | "destinationCity"
-    | "destinationArea"
-    | "destinationSubArea"
     | "operatingHours"
     | "currency"
     | "baseFare"
