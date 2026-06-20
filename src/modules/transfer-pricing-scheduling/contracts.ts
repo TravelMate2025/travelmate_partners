@@ -26,6 +26,7 @@ export type TransferPricingScheduling = {
   blackoutDates: string[];
   scheduleWindows: ScheduleWindow[];
   cancellationOptions?: CancellationOption[];
+  isConfigured: boolean;
   updatedAt: string;
 };
 

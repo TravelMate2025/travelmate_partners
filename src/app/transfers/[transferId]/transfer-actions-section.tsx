@@ -7,6 +7,8 @@ type Props = {
   item: TransferListing;
   saving: boolean;
   canSubmit: boolean;
+  pricingSchedulingLoaded: boolean;
+  pricingSchedulingConfigured: boolean;
   appeal: ListingAppeal | null;
   showAppealForm: boolean;
   appealMessage: string;
@@ -26,6 +28,8 @@ export function TransferActionsSection({
   item,
   saving,
   canSubmit,
+  pricingSchedulingLoaded,
+  pricingSchedulingConfigured,
   appeal,
   showAppealForm,
   appealMessage,
@@ -45,6 +49,11 @@ export function TransferActionsSection({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="tm-section-title">Listing Actions</h2>
+          {pricingSchedulingLoaded && !pricingSchedulingConfigured ? (
+            <p className="mt-2 text-sm text-amber-700">
+              Configure transfer pricing and schedule before submitting for review or going live.
+            </p>
+          ) : null}
           {item.status === "paused_by_admin" ? (
             <div className="mt-2 space-y-3">
               <p className="text-sm text-amber-700">
@@ -135,35 +144,41 @@ export function TransferActionsSection({
             </button>
           ) : null}
           {item.status === "approved" ? (
-            <button
-              className="tm-btn tm-btn-primary"
-              disabled={saving}
-              onClick={() => void onChangeStatus("live")}
-              type="button"
-            >
-              Go Live
-            </button>
-          ) : null}
-          {item.status === "live" ? (
-            <button
-              className="tm-btn tm-btn-outline"
-              disabled={saving}
-              onClick={() => void onChangeStatus("paused")}
-              type="button"
-            >
-              Pause
-            </button>
-          ) : null}
-          {item.status === "paused" ? (
-            <>
+            pricingSchedulingConfigured ? (
               <button
                 className="tm-btn tm-btn-primary"
                 disabled={saving}
                 onClick={() => void onChangeStatus("live")}
                 type="button"
               >
-                Resume
+                Go Live
               </button>
+            ) : null
+          ) : null}
+          {item.status === "live" ? (
+            pricingSchedulingConfigured ? (
+              <button
+                className="tm-btn tm-btn-outline"
+                disabled={saving}
+                onClick={() => void onChangeStatus("paused")}
+                type="button"
+              >
+                Pause
+              </button>
+            ) : null
+          ) : null}
+          {item.status === "paused" ? (
+            <>
+              {pricingSchedulingConfigured ? (
+                <button
+                  className="tm-btn tm-btn-primary"
+                  disabled={saving}
+                  onClick={() => void onChangeStatus("live")}
+                  type="button"
+                >
+                  Resume
+                </button>
+              ) : null}
               <button
                 className="tm-btn tm-btn-outline"
                 disabled={saving}

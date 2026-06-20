@@ -7,6 +7,7 @@ import { fetchCatalogOptions } from "@/modules/catalog/catalog-options-client";
 import { buildTransferQualityReport } from "@/modules/data-quality/listing-quality";
 import { useToastMessage } from "@/components/common/use-toast-message";
 import { profileClient } from "@/modules/profile/profile-client";
+import { transferPricingSchedulingClient } from "@/modules/transfer-pricing-scheduling/transfer-pricing-scheduling-client";
 import {
   mergeUniqueOptions,
   operatingCityOptionsByCountryRegion,
@@ -159,11 +160,14 @@ export function canSubmitTransferDetails(input: {
   destinationRoutes: DestinationRouteDraft[];
   destinationRouteNeedsReviewById: Record<string, { area: boolean; subArea: boolean }>;
   destinationRoutePendingById: Record<string, { area: boolean; subArea: boolean }>;
+  transferPricingSchedulingLoaded: boolean;
+  transferPricingSchedulingConfigured: boolean;
 }): boolean {
   if (input.status !== "draft" && input.status !== "rejected") return false;
   if (!input.selectedArea || input.originAreaSuggestionPending) return false;
   if (!input.originAreaOptionsLoaded) return false;
   if (input.destinationRoutes.length < 1) return false;
+  if (!input.transferPricingSchedulingLoaded || !input.transferPricingSchedulingConfigured) return false;
   for (const route of input.destinationRoutes) {
     if (!route.destinationCity || !route.destinationArea) return false;
     const needsReview = input.destinationRouteNeedsReviewById[route.id];
@@ -214,6 +218,8 @@ export function useTransferDetail(userId: string | undefined, transferId: string
   const [originAreaOptions, setOriginAreaOptions] = useState<string[]>([]);
   const [originAreaOptionsLoaded, setOriginAreaOptionsLoaded] = useState(false);
   const [originAreaOptionsLoadFailed, setOriginAreaOptionsLoadFailed] = useState(false);
+  const [transferPricingSchedulingLoaded, setTransferPricingSchedulingLoaded] = useState(false);
+  const [transferPricingSchedulingConfigured, setTransferPricingSchedulingConfigured] = useState(false);
 
   // Pending suggestion flags
   const [originAreaSuggestionPending, setOriginAreaSuggestionPending] = useState(false);
@@ -254,6 +260,8 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setOriginAreaOptionsLoaded(false);
     setOriginAreaOptionsLoadFailed(false);
     setOriginAreaSuggestionPending(false);
+    setTransferPricingSchedulingLoaded(false);
+    setTransferPricingSchedulingConfigured(false);
   }
 
   function setAdminLevel1Selection(value: string) {
@@ -267,6 +275,8 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setOriginAreaOptionsLoaded(false);
     setOriginAreaOptionsLoadFailed(false);
     setOriginAreaSuggestionPending(false);
+    setTransferPricingSchedulingLoaded(false);
+    setTransferPricingSchedulingConfigured(false);
   }
 
   function setCitySelection(value: string) {
@@ -462,6 +472,34 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     };
   }, [router, transferId, userId]);
 
+  useEffect(() => {
+    if (!userId || !item) {
+      setTransferPricingSchedulingLoaded(false);
+      setTransferPricingSchedulingConfigured(false);
+      return;
+    }
+
+    let active = true;
+    setTransferPricingSchedulingLoaded(false);
+    setTransferPricingSchedulingConfigured(false);
+    transferPricingSchedulingClient
+      .getPricingScheduling(userId, item.id)
+      .then((config) => {
+        if (!active) return;
+        setTransferPricingSchedulingConfigured(Boolean(config.isConfigured));
+        setTransferPricingSchedulingLoaded(true);
+      })
+      .catch(() => {
+        if (!active) return;
+        setTransferPricingSchedulingConfigured(false);
+        setTransferPricingSchedulingLoaded(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [item, userId]);
+
   const canSubmit = useMemo(() => {
     return canSubmitTransferDetails({
       status: item?.status,
@@ -471,6 +509,8 @@ export function useTransferDetail(userId: string | undefined, transferId: string
       destinationRoutes,
       destinationRouteNeedsReviewById,
       destinationRoutePendingById,
+      transferPricingSchedulingLoaded,
+      transferPricingSchedulingConfigured,
     });
   }, [
     item?.status,
@@ -480,6 +520,8 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     destinationRoutes,
     destinationRouteNeedsReviewById,
     destinationRoutePendingById,
+    transferPricingSchedulingLoaded,
+    transferPricingSchedulingConfigured,
   ]);
 
   const canEditDetails = useMemo(
@@ -729,6 +771,8 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     originAreaSuggestionPending,
     destinationRouteNeedsReviewById,
     destinationRoutePendingById,
+    transferPricingSchedulingLoaded,
+    transferPricingSchedulingConfigured,
     canSubmit,
     canEditDetails,
     qualityReport,

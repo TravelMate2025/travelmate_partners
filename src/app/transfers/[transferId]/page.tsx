@@ -43,6 +43,8 @@ export default function TransferDetailPage() {
         item={item}
         saving={detail.saving}
         canSubmit={detail.canSubmit}
+        pricingSchedulingLoaded={detail.transferPricingSchedulingLoaded}
+        pricingSchedulingConfigured={detail.transferPricingSchedulingConfigured}
         appeal={detail.appeal}
         showAppealForm={detail.showAppealForm}
         appealMessage={detail.appealMessage}

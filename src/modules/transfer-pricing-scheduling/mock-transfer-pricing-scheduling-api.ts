@@ -61,6 +61,7 @@ function ensure(state: MockTransferPricingSchedulingState, userId: string, trans
     ? {
         ...createDefaultTransferPricingScheduling(userId, transferId),
         ...existing,
+        isConfigured: existing.isConfigured ?? true,
         currency: existing.currency ?? "NGN",
       }
     : createDefaultTransferPricingScheduling(userId, transferId);
@@ -81,9 +82,11 @@ function mapWindows(input: UpsertTransferPricingSchedulingInput): ScheduleWindow
 export const mockTransferPricingSchedulingApi: TransferPricingSchedulingApi = {
   async getPricingScheduling(userId, transferId) {
     const state = readState();
-    const config = ensure(state, userId, transferId);
-    writeState(state);
-    return config;
+    const existing = state.byUserId[userId]?.[transferId];
+    if (!existing) {
+      return createDefaultTransferPricingScheduling(userId, transferId);
+    }
+    return ensure(state, userId, transferId);
   },
 
   async upsertPricingScheduling(userId, transferId, input) {
@@ -102,6 +105,7 @@ export const mockTransferPricingSchedulingApi: TransferPricingSchedulingApi = {
       cancellationOptions: input.cancellationOptions,
       blackoutDates: [...input.blackoutDates].sort(),
       scheduleWindows: mapWindows(input),
+      isConfigured: true,
       updatedAt: new Date().toISOString(),
     };
 

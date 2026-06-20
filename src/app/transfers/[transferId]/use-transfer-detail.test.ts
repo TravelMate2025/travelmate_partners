@@ -122,6 +122,8 @@ describe("canSubmitTransferDetails", () => {
         selectedArea: "Lekki Phase 1",
         originAreaSuggestionPending: false,
         originAreaOptionsLoaded: true,
+        transferPricingSchedulingLoaded: true,
+        transferPricingSchedulingConfigured: true,
         destinationRoutes: [
           { id: "route-1", destinationCity: "Abuja", destinationArea: "Garki", destinationSubArea: "Central" },
         ],
@@ -138,6 +140,8 @@ describe("canSubmitTransferDetails", () => {
         selectedArea: "Lekki Phase 1",
         originAreaSuggestionPending: false,
         originAreaOptionsLoaded: true,
+        transferPricingSchedulingLoaded: true,
+        transferPricingSchedulingConfigured: true,
         destinationRoutes: [
           { id: "route-1", destinationCity: "Abuja", destinationArea: "Oregun", destinationSubArea: "" },
         ],
@@ -154,6 +158,8 @@ describe("canSubmitTransferDetails", () => {
         selectedArea: "Lekki Phase 1",
         originAreaOptionsLoaded: true,
         originAreaSuggestionPending: false,
+        transferPricingSchedulingLoaded: true,
+        transferPricingSchedulingConfigured: true,
         destinationRoutes: [
           { id: "route-1", destinationCity: "Abuja", destinationArea: "Garki", destinationSubArea: "Central" },
           { id: "route-2", destinationCity: "Lagos", destinationArea: "Ikeja", destinationSubArea: "" },
@@ -171,6 +177,8 @@ describe("canSubmitTransferDetails", () => {
         selectedArea: "Lekki Phase 1",
         originAreaOptionsLoaded: true,
         originAreaSuggestionPending: false,
+        transferPricingSchedulingLoaded: true,
+        transferPricingSchedulingConfigured: true,
         destinationRoutes: [
           { id: "route-1", destinationCity: "Abuja", destinationArea: "Garki", destinationSubArea: "" },
         ],
@@ -187,8 +195,28 @@ describe("canSubmitTransferDetails", () => {
         selectedArea: "Ajah",
         originAreaOptionsLoaded: false,
         originAreaSuggestionPending: false,
+        transferPricingSchedulingLoaded: true,
+        transferPricingSchedulingConfigured: true,
         destinationRoutes: [
           { id: "route-1", destinationCity: "Lagos", destinationArea: "Victoria Island", destinationSubArea: "" },
+        ],
+        destinationRouteNeedsReviewById: {},
+        destinationRoutePendingById: {},
+      }),
+    ).toBe(false);
+  });
+
+  it("blocks submission until transfer pricing and schedule are configured", () => {
+    expect(
+      canSubmitTransferDetails({
+        status: "draft",
+        selectedArea: "Lekki Phase 1",
+        originAreaOptionsLoaded: true,
+        originAreaSuggestionPending: false,
+        transferPricingSchedulingLoaded: true,
+        transferPricingSchedulingConfigured: false,
+        destinationRoutes: [
+          { id: "route-1", destinationCity: "Abuja", destinationArea: "Garki", destinationSubArea: "" },
         ],
         destinationRouteNeedsReviewById: {},
         destinationRoutePendingById: {},

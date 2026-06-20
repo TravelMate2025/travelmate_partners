@@ -20,6 +20,7 @@ describe("mockTransferPricingSchedulingApi", () => {
       transferId,
     );
     expect(defaults.baseFare).toBeGreaterThan(0);
+    expect(defaults.isConfigured).toBe(false);
 
     const updated = await mockTransferPricingSchedulingApi.upsertPricingScheduling(
       userId,
@@ -44,5 +45,6 @@ describe("mockTransferPricingSchedulingApi", () => {
 
     expect(updated.currency).toBe("USD");
     expect(updated.scheduleWindows).toHaveLength(1);
+    expect(updated.isConfigured).toBe(true);
   });
 });

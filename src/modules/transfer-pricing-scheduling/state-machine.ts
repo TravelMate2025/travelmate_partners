@@ -158,6 +158,7 @@ export function createDefaultTransferPricingScheduling(
       { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 9000 },
       { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 10000 },
     ],
+    isConfigured: false,
     updatedAt: new Date().toISOString(),
   };
 }
