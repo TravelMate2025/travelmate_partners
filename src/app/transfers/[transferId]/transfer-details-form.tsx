@@ -59,6 +59,18 @@ type Props = {
   onSetDestinationRouteNeedsReview: (routeId: string, area: boolean, subArea: boolean) => void;
   onSetDestinationRoutePending: (routeId: string, area: boolean, subArea: boolean) => void;
   onSuggestOriginArea: () => void;
+  providerDisplayName: string;
+  providerContactPhone: string;
+  providerContactWhatsApp: string;
+  providerSupportEmail: string;
+  providerWebsiteUrl: string;
+  contactOnArrivalInstructions: string;
+  onSetProviderDisplayName: (v: string) => void;
+  onSetProviderContactPhone: (v: string) => void;
+  onSetProviderContactWhatsApp: (v: string) => void;
+  onSetProviderSupportEmail: (v: string) => void;
+  onSetProviderWebsiteUrl: (v: string) => void;
+  onSetContactOnArrivalInstructions: (v: string) => void;
 };
 
 type DestinationRouteEditorProps = {
@@ -591,6 +603,18 @@ export function TransferDetailsForm({
   onSetDestinationRouteNeedsReview,
   onSetDestinationRoutePending,
   onSuggestOriginArea,
+  providerDisplayName,
+  providerContactPhone,
+  providerContactWhatsApp,
+  providerSupportEmail,
+  providerWebsiteUrl,
+  contactOnArrivalInstructions,
+  onSetProviderDisplayName,
+  onSetProviderContactPhone,
+  onSetProviderContactWhatsApp,
+  onSetProviderSupportEmail,
+  onSetProviderWebsiteUrl,
+  onSetContactOnArrivalInstructions,
 }: Props) {
   const disabled = !canEditDetails || saving;
   const destinationLabel = selectedAdminLevel1 && selectedCountry ? `${selectedAdminLevel1}, ${selectedCountry}` : "the selected state/region";
@@ -922,6 +946,81 @@ export function TransferDetailsForm({
               </label>
             ))}
         </div>
+      </div>
+
+      <div className="tm-field mt-6">
+        <h3 className="tm-field-label text-base font-semibold">Provider Contact</h3>
+        <p className="tm-muted mt-1 text-sm">
+          Contact details shown to travelers browsing and booking this transfer.
+          Display name and phone are required before submitting for review.
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="tm-field block">
+            <span className="tm-field-label">Display Name <span className="text-red-500">*</span></span>
+            <input
+              className="tm-input"
+              disabled={disabled}
+              onChange={(e) => onSetProviderDisplayName(e.target.value)}
+              placeholder="e.g. Lagos Airport Transfers"
+              type="text"
+              value={providerDisplayName}
+            />
+          </label>
+          <label className="tm-field block">
+            <span className="tm-field-label">Contact Phone <span className="text-red-500">*</span></span>
+            <input
+              className="tm-input"
+              disabled={disabled}
+              onChange={(e) => onSetProviderContactPhone(e.target.value)}
+              placeholder="e.g. +234 801 000 0000"
+              type="tel"
+              value={providerContactPhone}
+            />
+          </label>
+          <label className="tm-field block">
+            <span className="tm-field-label">WhatsApp (optional)</span>
+            <input
+              className="tm-input"
+              disabled={disabled}
+              onChange={(e) => onSetProviderContactWhatsApp(e.target.value)}
+              placeholder="e.g. +234 801 000 0000"
+              type="tel"
+              value={providerContactWhatsApp}
+            />
+          </label>
+          <label className="tm-field block">
+            <span className="tm-field-label">Support Email (optional)</span>
+            <input
+              className="tm-input"
+              disabled={disabled}
+              onChange={(e) => onSetProviderSupportEmail(e.target.value)}
+              placeholder="e.g. support@provider.com"
+              type="email"
+              value={providerSupportEmail}
+            />
+          </label>
+          <label className="tm-field block sm:col-span-2">
+            <span className="tm-field-label">Website (optional)</span>
+            <input
+              className="tm-input"
+              disabled={disabled}
+              onChange={(e) => onSetProviderWebsiteUrl(e.target.value)}
+              placeholder="e.g. https://provider.com"
+              type="url"
+              value={providerWebsiteUrl}
+            />
+          </label>
+        </div>
+        <label className="tm-field mt-3 block">
+          <span className="tm-field-label">Arrival Instructions (optional)</span>
+          <textarea
+            className="tm-input min-h-20"
+            disabled={disabled}
+            onChange={(e) => onSetContactOnArrivalInstructions(e.target.value)}
+            placeholder="e.g. Call on arrival, ask for John, white Toyota Camry at Departures exit."
+            value={contactOnArrivalInstructions}
+          />
+        </label>
       </div>
 
       <div className="mt-4">

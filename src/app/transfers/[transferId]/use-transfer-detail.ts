@@ -206,6 +206,13 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     [...transferVehicleClassOptions],
   );
 
+  const [providerDisplayName, setProviderDisplayName] = useState("");
+  const [providerContactPhone, setProviderContactPhone] = useState("");
+  const [providerContactWhatsApp, setProviderContactWhatsApp] = useState("");
+  const [providerSupportEmail, setProviderSupportEmail] = useState("");
+  const [providerWebsiteUrl, setProviderWebsiteUrl] = useState("");
+  const [contactOnArrivalInstructions, setContactOnArrivalInstructions] = useState("");
+
   const [originAreaOptions, setOriginAreaOptions] = useState<string[]>([]);
   const [originAreaOptionsLoaded, setOriginAreaOptionsLoaded] = useState(false);
   const [originAreaOptionsLoadFailed, setOriginAreaOptionsLoadFailed] = useState(false);
@@ -433,6 +440,12 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         setSelectedArea(normalizedResult.area ?? "");
         setSelectedVehicleClass(normalizeTransferVehicleClass(normalizedResult.vehicleClass));
         setSelectedTransferType(normalizedResult.transferType ?? "");
+        setProviderDisplayName(normalizedResult.provider?.displayName ?? "");
+        setProviderContactPhone(normalizedResult.provider?.contactPhone ?? "");
+        setProviderContactWhatsApp(normalizedResult.provider?.contactWhatsApp ?? "");
+        setProviderSupportEmail(normalizedResult.provider?.supportEmail ?? "");
+        setProviderWebsiteUrl(normalizedResult.provider?.websiteUrl ?? "");
+        setContactOnArrivalInstructions(normalizedResult.provider?.arrivalInstructions ?? "");
     setDestinationRoutes(normalizeDestinationRouteDrafts(normalizedResult));
         setDestinationRouteNeedsReviewById({});
         setDestinationRoutePendingById({});
@@ -578,6 +591,12 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         baseFare: Number(form.get("baseFare") ?? 0),
         nightSurcharge: Number(form.get("nightSurcharge") ?? 0),
         cancellationPolicy: item.cancellationPolicy ?? "",
+        providerDisplayName,
+        providerContactPhone,
+        providerContactWhatsApp,
+        providerSupportEmail,
+        providerWebsiteUrl,
+        contactOnArrivalInstructions,
       });
       syncTransfer(updated);
       setMessage("Transfer details saved.");
@@ -787,6 +806,18 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         [routeId]: { area, subArea },
       }));
     },
+    providerDisplayName,
+    providerContactPhone,
+    providerContactWhatsApp,
+    providerSupportEmail,
+    providerWebsiteUrl,
+    contactOnArrivalInstructions,
+    setProviderDisplayName,
+    setProviderContactPhone,
+    setProviderContactWhatsApp,
+    setProviderSupportEmail,
+    setProviderWebsiteUrl,
+    setContactOnArrivalInstructions,
     suggestOriginArea,
     saveDetails,
     changeStatus,

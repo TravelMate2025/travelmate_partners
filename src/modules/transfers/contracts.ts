@@ -29,6 +29,15 @@ export type TransferDestinationRoute = {
   destinationSubArea?: string;
 };
 
+export type TransferProvider = {
+  displayName: string;
+  contactPhone: string;
+  contactWhatsApp?: string;
+  supportEmail?: string;
+  websiteUrl?: string;
+  arrivalInstructions?: string;
+};
+
 export type TransferListing = {
   id: string;
   userId: string;
@@ -55,6 +64,7 @@ export type TransferListing = {
   cancellationPolicy: string;
   images: TransferImage[];
   moderationFeedback?: string;
+  provider?: TransferProvider;
   submissionCount?: number;
   createdAt: string;
   updatedAt: string;
@@ -74,6 +84,12 @@ export type CreateTransferInput = {
   city?: string;
   area?: string;
   destinationRoutes?: TransferDestinationRoute[];
+  providerDisplayName?: string;
+  providerContactPhone?: string;
+  providerContactWhatsApp?: string;
+  providerSupportEmail?: string;
+  providerWebsiteUrl?: string;
+  contactOnArrivalInstructions?: string;
 };
 
 export type UpdateTransferInput = Partial<
@@ -98,7 +114,14 @@ export type UpdateTransferInput = Partial<
     | "baseFare"
     | "nightSurcharge"
     | "cancellationPolicy"
-  >
+  > & {
+    providerDisplayName?: string;
+    providerContactPhone?: string;
+    providerContactWhatsApp?: string;
+    providerSupportEmail?: string;
+    providerWebsiteUrl?: string;
+    contactOnArrivalInstructions?: string;
+  }
 >;
 
 export type AddTransferImageInput = {

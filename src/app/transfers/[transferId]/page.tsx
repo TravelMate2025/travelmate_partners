@@ -137,6 +137,18 @@ export default function TransferDetailPage() {
         onSetDestinationRoute={detail.setDestinationRoute}
         onSetDestinationRouteNeedsReview={detail.setDestinationRouteNeedsReview}
         onSetDestinationRoutePending={detail.setDestinationRoutePending}
+        providerDisplayName={detail.providerDisplayName}
+        providerContactPhone={detail.providerContactPhone}
+        providerContactWhatsApp={detail.providerContactWhatsApp}
+        providerSupportEmail={detail.providerSupportEmail}
+        providerWebsiteUrl={detail.providerWebsiteUrl}
+        contactOnArrivalInstructions={detail.contactOnArrivalInstructions}
+        onSetProviderDisplayName={detail.setProviderDisplayName}
+        onSetProviderContactPhone={detail.setProviderContactPhone}
+        onSetProviderContactWhatsApp={detail.setProviderContactWhatsApp}
+        onSetProviderSupportEmail={detail.setProviderSupportEmail}
+        onSetProviderWebsiteUrl={detail.setProviderWebsiteUrl}
+        onSetContactOnArrivalInstructions={detail.setContactOnArrivalInstructions}
       />
 
       <TransferImagesSection
