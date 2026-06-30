@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/http-client";
-import type { BookingRecord, BookingsApi, BookingsListResult } from "@/modules/bookings/contracts";
+import type { BookingRecord, BookingsApi, BookingsListResult, CompletionResult, NoShowReport } from "@/modules/bookings/contracts";
 
 type Envelope<T> = { data: T };
 
@@ -21,6 +21,22 @@ export const realBookingsApi: BookingsApi = {
   async getBooking(userId, bookingReference) {
     const response = await apiRequest<Envelope<BookingRecord>>(
       `/partners/${userId}/bookings/${bookingReference}`,
+    );
+    return response.data;
+  },
+
+  async reportNoShow(userId, bookingReference, reason = "") {
+    const response = await apiRequest<Envelope<NoShowReport>>(
+      `/partners/${userId}/bookings/${bookingReference}/no-show`,
+      { method: "POST", body: JSON.stringify({ reason }) },
+    );
+    return response.data;
+  },
+
+  async markComplete(userId, bookingReference) {
+    const response = await apiRequest<Envelope<CompletionResult>>(
+      `/partners/${userId}/bookings/${bookingReference}/complete`,
+      { method: "POST" },
     );
     return response.data;
   },

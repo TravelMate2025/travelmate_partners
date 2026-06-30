@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { use, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 
 import { PartnerShell } from "@/components/common/partner-shell";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
@@ -58,6 +58,42 @@ function formatCurrency(amount: number, currency: string) {
   }).format(amount);
 }
 
+function isServiceDatePassed(booking: BookingRecord): boolean {
+  const now = new Date();
+  if (booking.listingKind === "transfer") {
+    return !!booking.pickupAt && new Date(booking.pickupAt) <= now;
+  }
+  if (!booking.checkOutDate) return false;
+  const checkOut = new Date(booking.checkOutDate);
+  checkOut.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return checkOut <= today;
+}
+
+function isWithin24hWindow(booking: BookingRecord): boolean {
+  const now = new Date();
+  const msIn24h = 24 * 60 * 60 * 1000;
+  if (booking.listingKind === "transfer") {
+    if (!booking.pickupAt) return false;
+    const pickup = new Date(booking.pickupAt);
+    return pickup <= now && now.getTime() - pickup.getTime() <= msIn24h;
+  }
+  if (!booking.checkOutDate) return false;
+  const checkOut = new Date(booking.checkOutDate);
+  checkOut.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return checkOut <= today && today.getTime() - checkOut.getTime() <= msIn24h;
+}
+
+function canAct(booking: BookingRecord): boolean {
+  return (
+    (booking.operationalStatus === "confirmed" || booking.operationalStatus === "amended") &&
+    isServiceDatePassed(booking)
+  );
+}
+
 type Props = {
   params: Promise<{ bookingReference: string }>;
 };
@@ -68,19 +104,56 @@ export default function BookingDetailPage({ params }: Props) {
   const [booking, setBooking] = useState<BookingRecord | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [actionSuccess, setActionSuccess] = useState("");
 
-  useEffect(() => {
+  const loadBooking = useCallback(() => {
     if (!user || !bookingReference) return;
-    let active = true;
     setBusy(true);
     setError("");
     bookingsClient
       .getBooking(user.id, bookingReference)
-      .then((data) => { if (active) setBooking(data); })
-      .catch((err) => { if (active) setError(err instanceof Error ? err.message : "Failed to load booking."); })
-      .finally(() => { if (active) setBusy(false); });
-    return () => { active = false; };
+      .then((data) => setBooking(data))
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load booking."))
+      .finally(() => setBusy(false));
   }, [user, bookingReference]);
+
+  useEffect(() => {
+    loadBooking();
+  }, [loadBooking]);
+
+  async function handleMarkComplete() {
+    if (!user || !booking) return;
+    setActionBusy(true);
+    setActionError("");
+    setActionSuccess("");
+    try {
+      await bookingsClient.markComplete(user.id, booking.bookingReference);
+      setActionSuccess("Booking marked as completed.");
+      loadBooking();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to mark booking as completed.");
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  async function handleNoShow() {
+    if (!user || !booking) return;
+    setActionBusy(true);
+    setActionError("");
+    setActionSuccess("");
+    try {
+      await bookingsClient.reportNoShow(user.id, booking.bookingReference);
+      setActionSuccess("No-show reported successfully.");
+      loadBooking();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to report no-show.");
+    } finally {
+      setActionBusy(false);
+    }
+  }
 
   if (loading || busy) {
     return (
@@ -109,6 +182,9 @@ export default function BookingDetailPage({ params }: Props) {
 
   if (!booking) return null;
 
+  const showActions = canAct(booking);
+  const showNoShow = showActions && isWithin24hWindow(booking);
+
   return (
     <PartnerShell
       title={booking.bookingReference}
@@ -122,7 +198,7 @@ export default function BookingDetailPage({ params }: Props) {
       }
     >
       {/* Status banner */}
-        <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4">
+      <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4">
         <span className={`inline-block rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClass(booking.operationalStatus)}`}>
           {statusLabel(booking.operationalStatus)}
         </span>
@@ -130,6 +206,42 @@ export default function BookingDetailPage({ params }: Props) {
           Created {formatDateTime(booking.createdAt)}
         </span>
       </div>
+
+      {/* Partner actions */}
+      {showActions && (
+        <section className="tm-panel p-6">
+          <h2 className="tm-section-title">Actions</h2>
+          {actionSuccess && (
+            <p className="mt-3 rounded bg-green-50 px-4 py-2 text-sm text-green-700">{actionSuccess}</p>
+          )}
+          {actionError && (
+            <p className="mt-3 rounded bg-red-50 px-4 py-2 text-sm text-red-700">{actionError}</p>
+          )}
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              onClick={handleMarkComplete}
+              disabled={actionBusy}
+              className="tm-btn tm-btn-primary disabled:opacity-50"
+            >
+              {actionBusy ? "Processing…" : "Mark as completed"}
+            </button>
+            {showNoShow && (
+              <button
+                onClick={handleNoShow}
+                disabled={actionBusy}
+                className="tm-btn tm-btn-outline text-red-600 border-red-300 hover:bg-red-50 disabled:opacity-50"
+              >
+                Report no-show
+              </button>
+            )}
+          </div>
+          <p className="mt-3 text-xs text-slate-500">
+            {showNoShow
+              ? "No-show reporting is available for 24 hours after the service date."
+              : "Mark this booking as completed once you have confirmed service delivery."}
+          </p>
+        </section>
+      )}
 
       {/* Core details */}
       <section className="tm-panel p-6">
@@ -154,6 +266,12 @@ export default function BookingDetailPage({ params }: Props) {
             <div>
               <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Check-out</dt>
               <dd className="mt-1 text-sm text-slate-900">{formatDate(booking.checkOutDate)}</dd>
+            </div>
+          )}
+          {booking.pickupAt && (
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pickup</dt>
+              <dd className="mt-1 text-sm text-slate-900">{formatDateTime(booking.pickupAt)}</dd>
             </div>
           )}
           <div>

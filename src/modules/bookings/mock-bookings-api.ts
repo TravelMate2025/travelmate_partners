@@ -4,6 +4,8 @@ import type {
   BookingsApi,
   BookingsListResult,
   BookingStatus,
+  CompletionResult,
+  NoShowReport,
 } from "@/modules/bookings/contracts";
 
 const MOCK_STATUSES: BookingStatus[] = ["confirmed", "completed", "cancelled", "amended", "refunded"];
@@ -33,6 +35,7 @@ function mockRecord(index: number): BookingRecord {
     listingName: index % 3 === 0 ? `Airport Express ${index + 1}` : `Lekki Villa ${index + 1}`,
     checkInDate: index % 3 === 0 ? null : checkIn.toISOString().slice(0, 10),
     checkOutDate: index % 3 === 0 ? null : checkOut.toISOString().slice(0, 10),
+    pickupAt: index % 3 === 0 ? new Date(base.getTime() - 2 * 60 * 60 * 1000).toISOString() : null,
     guestCount: (index % 4) + 1,
     roomSelections: null,
     ratePlanSelection:
@@ -118,5 +121,21 @@ export const mockBookingsApi: BookingsApi = {
       throw new Error("Booking record was not found.");
     }
     return record;
+  },
+
+  async reportNoShow(_userId, bookingReference, _reason = ""): Promise<NoShowReport> {
+    return {
+      bookingReference,
+      reportedAt: new Date().toISOString(),
+      serviceDate: new Date().toISOString().slice(0, 10),
+    };
+  },
+
+  async markComplete(_userId, bookingReference): Promise<CompletionResult> {
+    return {
+      bookingReference,
+      completedAt: new Date().toISOString(),
+      serviceStatus: "completed",
+    };
   },
 };

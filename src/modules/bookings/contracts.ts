@@ -24,6 +24,18 @@ export type RoomSelection = {
   occupancy: number;
 };
 
+export type NoShowReport = {
+  bookingReference: string;
+  reportedAt: string;
+  serviceDate: string;
+};
+
+export type CompletionResult = {
+  bookingReference: string;
+  completedAt: string;
+  serviceStatus: "completed";
+};
+
 export type BookingRecord = {
   id: string;
   bookingReference: string;
@@ -32,6 +44,7 @@ export type BookingRecord = {
   listingName: string;
   checkInDate: string | null;
   checkOutDate: string | null;
+  pickupAt: string | null;
   guestCount: number;
   roomSelections: RoomSelection[] | null;
   ratePlanSelection: {
@@ -97,4 +110,6 @@ export type BookingsApi = {
     },
   ): Promise<BookingsListResult>;
   getBooking(userId: string, bookingReference: string): Promise<BookingRecord>;
+  reportNoShow(userId: string, bookingReference: string, reason?: string): Promise<NoShowReport>;
+  markComplete(userId: string, bookingReference: string): Promise<CompletionResult>;
 };
