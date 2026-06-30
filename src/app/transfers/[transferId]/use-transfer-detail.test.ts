@@ -140,6 +140,8 @@ describe("canSubmitTransferDetails", () => {
         selectedArea: "Lekki Phase 1",
         originAreaSuggestionPending: false,
         originAreaOptionsLoaded: true,
+        providerDisplayName: "Lagos Airport Transfers",
+        providerContactPhone: "+2348011223344",
         transferPricingSchedulingLoaded: true,
         transferPricingSchedulingConfigured: true,
         destinationRoutes: [
@@ -158,6 +160,8 @@ describe("canSubmitTransferDetails", () => {
         selectedArea: "Lekki Phase 1",
         originAreaOptionsLoaded: true,
         originAreaSuggestionPending: false,
+        providerDisplayName: "Lagos Airport Transfers",
+        providerContactPhone: "+2348011223344",
         transferPricingSchedulingLoaded: true,
         transferPricingSchedulingConfigured: true,
         destinationRoutes: [
@@ -170,6 +174,26 @@ describe("canSubmitTransferDetails", () => {
     ).toBe(true);
   });
 
+  it("blocks submission when provider contact fields are missing", () => {
+    expect(
+      canSubmitTransferDetails({
+        status: "draft",
+        selectedArea: "Lekki Phase 1",
+        originAreaOptionsLoaded: true,
+        originAreaSuggestionPending: false,
+        providerDisplayName: "",
+        providerContactPhone: "",
+        transferPricingSchedulingLoaded: true,
+        transferPricingSchedulingConfigured: true,
+        destinationRoutes: [
+          { id: "route-1", destinationCity: "Abuja", destinationArea: "Garki", destinationSubArea: "" },
+        ],
+        destinationRouteNeedsReviewById: {},
+        destinationRoutePendingById: {},
+      }),
+    ).toBe(false);
+  });
+
   it("blocks submission outside editable statuses", () => {
     expect(
       canSubmitTransferDetails({
@@ -177,6 +201,8 @@ describe("canSubmitTransferDetails", () => {
         selectedArea: "Lekki Phase 1",
         originAreaOptionsLoaded: true,
         originAreaSuggestionPending: false,
+        providerDisplayName: "Lagos Airport Transfers",
+        providerContactPhone: "+2348011223344",
         transferPricingSchedulingLoaded: true,
         transferPricingSchedulingConfigured: true,
         destinationRoutes: [
@@ -195,6 +221,8 @@ describe("canSubmitTransferDetails", () => {
         selectedArea: "Ajah",
         originAreaOptionsLoaded: false,
         originAreaSuggestionPending: false,
+        providerDisplayName: "Lagos Airport Transfers",
+        providerContactPhone: "+2348011223344",
         transferPricingSchedulingLoaded: true,
         transferPricingSchedulingConfigured: true,
         destinationRoutes: [
@@ -213,6 +241,8 @@ describe("canSubmitTransferDetails", () => {
         selectedArea: "Lekki Phase 1",
         originAreaOptionsLoaded: true,
         originAreaSuggestionPending: false,
+        providerDisplayName: "Lagos Airport Transfers",
+        providerContactPhone: "+2348011223344",
         transferPricingSchedulingLoaded: true,
         transferPricingSchedulingConfigured: false,
         destinationRoutes: [

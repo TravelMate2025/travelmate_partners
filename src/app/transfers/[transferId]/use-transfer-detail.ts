@@ -148,6 +148,8 @@ export function canSubmitTransferDetails(input: {
   selectedArea: string;
   originAreaOptionsLoaded: boolean;
   originAreaSuggestionPending: boolean;
+  providerDisplayName?: string;
+  providerContactPhone?: string;
   destinationRoutes: DestinationRouteDraft[];
   destinationRouteNeedsReviewById: Record<string, { area: boolean; subArea: boolean }>;
   destinationRoutePendingById: Record<string, { area: boolean; subArea: boolean }>;
@@ -156,6 +158,7 @@ export function canSubmitTransferDetails(input: {
 }): boolean {
   if (input.status !== "draft" && input.status !== "rejected") return false;
   if (!input.selectedArea || input.originAreaSuggestionPending) return false;
+  if (!input.providerDisplayName?.trim() || !input.providerContactPhone?.trim()) return false;
   if (!input.originAreaOptionsLoaded) return false;
   if (input.destinationRoutes.length < 1) return false;
   if (!input.transferPricingSchedulingLoaded || !input.transferPricingSchedulingConfigured) return false;
@@ -510,6 +513,8 @@ export function useTransferDetail(userId: string | undefined, transferId: string
       selectedArea,
       originAreaOptionsLoaded,
       originAreaSuggestionPending,
+      providerDisplayName,
+      providerContactPhone,
       destinationRoutes,
       destinationRouteNeedsReviewById,
       destinationRoutePendingById,
@@ -521,6 +526,8 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     selectedArea,
     originAreaOptionsLoaded,
     originAreaSuggestionPending,
+    providerDisplayName,
+    providerContactPhone,
     destinationRoutes,
     destinationRouteNeedsReviewById,
     destinationRoutePendingById,

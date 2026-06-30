@@ -78,11 +78,21 @@ export default function ApiAccessPage() {
     };
   }, [user]);
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <main className="tm-page">
         <div className="tm-shell tm-panel mx-auto max-w-5xl p-6">
           <p className="text-sm text-slate-600">Loading API access...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="tm-page">
+        <div className="tm-shell tm-panel mx-auto max-w-5xl p-6">
+          <p className="text-sm text-red-600">Unable to load account. Please refresh the page.</p>
         </div>
       </main>
     );

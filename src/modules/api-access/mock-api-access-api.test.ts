@@ -73,6 +73,27 @@ describe("mockApiAccessApi.getCatalog — payment contract (110.2b)", () => {
     expect(ep?.responseFields).toContain("nextAction");
   });
 
+  it("returns booking-quote endpoint with availabilitySummary in response fields", async () => {
+    seedApprovedApp();
+    const catalog = await mockApiAccessApi.getCatalog(USER_ID);
+    const ep = catalog.endpoints.find((e) => e.id === "bookings-quote");
+    expect(ep).toBeDefined();
+    expect(ep?.method).toBe("POST");
+    expect(ep?.requiredScope).toBe("bookings.write");
+    expect(ep?.responseFields).toContain("availabilitySummary");
+  });
+
+  it("returns stay rooms list endpoint with remaining inventory fields", async () => {
+    seedApprovedApp();
+    const catalog = await mockApiAccessApi.getCatalog(USER_ID);
+    const ep = catalog.endpoints.find((e) => e.id === "stays-rooms-list");
+    expect(ep).toBeDefined();
+    expect(ep?.method).toBe("GET");
+    expect(ep?.requiredScope).toBe("inventory.read");
+    expect(ep?.responseFields).toContain("remainingInventory");
+    expect(ep?.responseFields).toContain("isExhausted");
+  });
+
   it("returns payments-intents-confirm endpoint with correct shape", async () => {
     seedApprovedApp();
     const catalog = await mockApiAccessApi.getCatalog(USER_ID);

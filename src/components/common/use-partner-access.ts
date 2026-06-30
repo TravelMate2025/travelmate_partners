@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { authClient } from "@/modules/auth/auth-client";
@@ -21,6 +21,12 @@ export function usePartnerAccess(options?: UsePartnerAccessOptions) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  // Keep a ref so the effect always calls the latest router without being
+  // re-triggered by router reference changes (Next.js App Router can issue a
+  // new router object on internal navigation state updates, which would cause
+  // the auth check to loop if router were listed as a dependency).
+  const routerRef = useRef(router);
+  routerRef.current = router;
 
   useEffect(() => {
     let active = true;
@@ -28,44 +34,44 @@ export function usePartnerAccess(options?: UsePartnerAccessOptions) {
     authClient
       .me()
       .then(async (currentUser) => {
+        if (!active) return;
+
         if (requireCompletedOnboarding) {
           const onboarding = await profileClient.getOnboarding(currentUser.id);
+          if (!active) return;
           if (onboarding.status !== "completed") {
-            router.replace("/onboarding");
+            routerRef.current.replace("/onboarding");
             return;
           }
         }
 
         if (requireApprovedVerification) {
           const verification = await verificationClient.getVerification(currentUser.id);
+          if (!active) return;
           if (verification.status !== "approved") {
-            router.replace("/verification");
+            routerRef.current.replace("/verification");
             return;
           }
-        }
-
-        if (!active) {
-          return;
         }
 
         setUser(currentUser);
         setLoading(false);
       })
       .catch((err) => {
-        if (active) {
-          if (!isAuthenticationError(err)) {
-            setError(err instanceof Error ? err.message : "Failed to load account. Please refresh.");
-            setLoading(false);
-            return;
-          }
-          router.replace("/auth/login");
+        if (!active) return;
+        if (!isAuthenticationError(err)) {
+          setError(err instanceof Error ? err.message : "Failed to load account. Please refresh.");
+          setLoading(false);
+          return;
         }
+        routerRef.current.replace("/auth/login");
       });
 
     return () => {
       active = false;
     };
-  }, [requireApprovedVerification, requireCompletedOnboarding, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requireApprovedVerification, requireCompletedOnboarding]);
 
   return { user, loading, error };
 }
