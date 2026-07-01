@@ -44,7 +44,7 @@ describe("Flow 2.9 strict alignment (media and document management)", () => {
     });
     let transfer = await transfersClient.createTransfer(userId, {
       name: "Flow 2.9 Transfer",
-      transferType: "airport",
+      rideType: "private_hire",
       pickupPoint: "Airport",
       dropoffPoint: "Victoria Island",
       vehicleClass: "SUV",

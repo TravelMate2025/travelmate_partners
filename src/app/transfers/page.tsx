@@ -134,7 +134,7 @@ export default function TransfersPage() {
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900">{item.name || "Untitled transfer"}</h3>
                   <p className="text-sm text-slate-600">
-                    {item.transferType || "Transfer type not set"} • {item.pickupPoint || "Pickup"} to{" "}
+                    {item.rideType ? item.rideType.replace("_", " ") : "Ride type not set"} • {item.pickupPoint || "Pickup"} to{" "}
                     {routeSummary(item)}
                   </p>
                   <p className="tm-status-inline mt-2">

@@ -48,7 +48,7 @@ describe("Flow 2.10 strict alignment (data quality tools)", () => {
 
     let transfer = await transfersClient.createTransfer(userId, {
       name: "Airport Premium",
-      transferType: "airport",
+      rideType: "private_hire",
       pickupPoint: "MM2 Airport",
       dropoffPoint: "Victoria Island",
       vehicleClass: "SUV",
@@ -56,15 +56,15 @@ describe("Flow 2.10 strict alignment (data quality tools)", () => {
       luggageCapacity: 2,
       coverageArea: "Lagos",
     });
-    transfer = await transfersClient.updateTransfer(userId, transfer.id, { transferType: "" });
+    transfer = await transfersClient.updateTransfer(userId, transfer.id, { rideType: "" });
     await expect(transfersClient.updateStatus(userId, transfer.id, "pending")).rejects.toThrow(
       "Cannot submit transfer. Missing required fields: Transfer Type.",
     );
 
-    transfer = await transfersClient.updateTransfer(userId, transfer.id, { transferType: "airport" });
+    transfer = await transfersClient.updateTransfer(userId, transfer.id, { rideType: "private_hire" });
     let duplicateTransfer = await transfersClient.createTransfer(userId, {
       name: "Airport Premium 2",
-      transferType: "airport",
+      rideType: "private_hire",
       pickupPoint: "MM2 Airport",
       dropoffPoint: "Victoria Island",
       vehicleClass: "SUV",

@@ -15,7 +15,7 @@ function makeTransfer(status: TransferListing["status"]): TransferListing {
       status,
       name: "Airport Express",
       description: "",
-      transferType: "airport",
+      rideType: "private_hire",
       pickupPoint: "MM2 Airport",
       vehicleClass: "SUV",
       passengerCapacity: 4,

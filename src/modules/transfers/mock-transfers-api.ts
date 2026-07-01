@@ -126,7 +126,7 @@ function createFromInput(userId: string, input: CreateTransferInput): TransferLi
     status: "draft",
     name: input.name,
     description: "",
-    transferType: input.transferType,
+    rideType: input.rideType,
     pickupPoint: input.pickupPoint,
     vehicleClass: input.vehicleClass,
     passengerCapacity: input.passengerCapacity,

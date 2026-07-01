@@ -10,7 +10,7 @@ export type TransferStatus =
 
 export type { ListingAppeal, ListingAppealStatus, ListingAppealResolution } from "@/modules/stays/contracts";
 
-export type TransferType = "one_way" | "return" | "hourly" | "airport";
+export type RideType = "private_hire" | "shared";
 
 export type TransferImage = {
   id: string;
@@ -44,7 +44,7 @@ export type TransferListing = {
   status: TransferStatus;
   name: string;
   description: string;
-  transferType: TransferType | "";
+  rideType: RideType | "";
   pickupPoint: string;
   vehicleClass: string;
   passengerCapacity: number;
@@ -73,7 +73,7 @@ export type TransferListing = {
 export type CreateTransferInput = {
   name: string;
   baseFare?: number;
-  transferType: TransferType;
+  rideType: RideType;
   pickupPoint: string;
   vehicleClass: string;
   passengerCapacity: number;
@@ -97,7 +97,7 @@ export type UpdateTransferInput = Partial<
     TransferListing,
     | "name"
     | "description"
-    | "transferType"
+    | "rideType"
     | "pickupPoint"
     | "vehicleClass"
     | "passengerCapacity"

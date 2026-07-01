@@ -17,7 +17,7 @@ describe("mockTransfersApi", () => {
     const userId = "u1";
     const item = await mockTransfersApi.createTransfer(userId, {
       name: "City Airport Shuttle",
-      transferType: "airport",
+      rideType: "private_hire",
       pickupPoint: "MM2",
       vehicleClass: "SUV",
       passengerCapacity: 4,
@@ -44,7 +44,7 @@ describe("mockTransfersApi", () => {
     const userId = "u1";
     const item = await mockTransfersApi.createTransfer(userId, {
       name: "City Transfer",
-      transferType: "one_way",
+      rideType: "private_hire",
       pickupPoint: "Lekki",
       dropoffPoint: "Ikeja",
       vehicleClass: "Sedan",
@@ -67,7 +67,7 @@ describe("mockTransfersApi", () => {
     const userId = "u1";
     const item = await mockTransfersApi.createTransfer(userId, {
       name: "Image Transfer",
-      transferType: "one_way",
+      rideType: "private_hire",
       pickupPoint: "Lekki",
       dropoffPoint: "Ikeja",
       vehicleClass: "Sedan",

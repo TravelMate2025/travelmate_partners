@@ -54,7 +54,7 @@ describe("Transfer detail appeal flow", () => {
       id: "transfer-1",
       status: "paused_by_admin",
       name: "Airport Express",
-      transferType: "airport",
+      rideType: "private_hire",
       pickupPoint: "Airport",
       dropoffPoint: "Hotel",
       moderationFeedback: "Policy review",

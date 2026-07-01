@@ -78,7 +78,7 @@ export function buildTransferQualityReport(
 ): ListingQualityReport {
   const checks: QualityCheck[] = [
     { label: "Name", passed: hasText(transfer.name), required: true },
-    { label: "Transfer Type", passed: hasText(transfer.transferType), required: true },
+    { label: "Ride Type", passed: hasText(transfer.rideType), required: true },
     { label: "Pickup Point", passed: hasText(transfer.pickupPoint), required: true },
     { label: "Vehicle Class", passed: hasText(transfer.vehicleClass), required: true },
     { label: "Coverage Area", passed: hasText(transfer.coverageArea), required: true },
@@ -96,7 +96,7 @@ export function buildTransferQualityReport(
   const duplicates = allTransfers.filter(
     (item) =>
       item.id !== transfer.id &&
-      normalize(item.transferType) === normalize(transfer.transferType) &&
+      normalize(item.rideType) === normalize(transfer.rideType) &&
       normalize(item.pickupPoint) === normalize(transfer.pickupPoint) &&
       normalize(item.vehicleClass) === normalize(transfer.vehicleClass),
   );

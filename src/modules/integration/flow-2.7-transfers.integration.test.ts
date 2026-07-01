@@ -16,7 +16,7 @@ describe("Flow 2.7 transfer listing management integration", () => {
 
     let item = await transfersClient.createTransfer(userId, {
       name: "Island Airport Express",
-      transferType: "airport",
+      rideType: "private_hire",
       pickupPoint: "MM2 Airport",
       dropoffPoint: "Lekki",
       vehicleClass: "SUV",

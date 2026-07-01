@@ -14,7 +14,7 @@ import {
   operatingCountryOptions,
   operatingRegionOptionsByCountry,
 } from "@/modules/profile/location-options";
-import type { ListingAppeal, TransferListing, TransferStatus, TransferType } from "@/modules/transfers/contracts";
+import type { ListingAppeal, TransferListing, TransferStatus, RideType } from "@/modules/transfers/contracts";
 import { transfersClient } from "@/modules/transfers/transfers-client";
 import { normalizeTransferVehicleClass, transferVehicleClassOptions } from "@/modules/transfers/vehicle-options";
 import { stayTimeOptions } from "@/modules/stays/time-options";
@@ -204,7 +204,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
   const [selectedArea, setSelectedArea] = useState("");
   const [liveCities, setLiveCities] = useState<string[]>([]);
   const [selectedVehicleClass, setSelectedVehicleClass] = useState("");
-  const [selectedTransferType, setSelectedTransferType] = useState("");
+  const [selectedRideType, setSelectedRideType] = useState("");
   const [vehicleClassOptions, setVehicleClassOptions] = useState<Array<{ value: string; label: string }>>(
     [...transferVehicleClassOptions],
   );
@@ -442,7 +442,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         setSelectedAdminLevel1(normalizedResult.adminLevel1 ?? "");
         setSelectedArea(normalizedResult.area ?? "");
         setSelectedVehicleClass(normalizeTransferVehicleClass(normalizedResult.vehicleClass));
-        setSelectedTransferType(normalizedResult.transferType ?? "");
+        setSelectedRideType(normalizedResult.rideType ?? "");
         setProviderDisplayName(normalizedResult.provider?.displayName ?? "");
         setProviderContactPhone(normalizedResult.provider?.contactPhone ?? "");
         setProviderContactWhatsApp(normalizedResult.provider?.contactWhatsApp ?? "");
@@ -547,7 +547,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
   function syncTransfer(updated: TransferListing) {
     const normalized = normalizeTransferListing(updated);
     setSelectedVehicleClass(normalizeTransferVehicleClass(normalized.vehicleClass));
-    setSelectedTransferType(normalized.transferType ?? "");
+    setSelectedRideType(normalized.rideType ?? "");
     setDestinationRoutes(normalizeDestinationRouteDrafts(normalized));
     setDestinationRouteNeedsReviewById({});
     setDestinationRoutePendingById({});
@@ -577,7 +577,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
       const updated = await transfersClient.updateTransfer(userId, item.id, {
         name: String(form.get("name") ?? ""),
         description: String(form.get("description") ?? ""),
-        transferType: selectedTransferType as TransferType,
+        rideType: selectedRideType as RideType,
         pickupPoint: String(form.get("pickupPoint") ?? ""),
         vehicleClass: selectedVehicleClass,
         passengerCapacity: Number(form.get("passengerCapacity") ?? 0),
@@ -776,7 +776,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     liveCities,
     knownVehicleClassValues,
     knownFeatureValues,
-    selectedTransferType,
+    selectedRideType,
     destinationRoutes,
     destinationCityOptions,
     originAreaOptions,
@@ -801,7 +801,7 @@ export function useTransferDetail(userId: string | undefined, transferId: string
     setSelectedCity: setCitySelection,
     setSelectedArea,
     setSelectedVehicleClass,
-    setSelectedTransferType,
+    setSelectedRideType,
     addDestinationRoute,
     removeDestinationRoute,
     moveDestinationRoute,

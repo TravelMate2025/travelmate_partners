@@ -51,7 +51,7 @@ describe("Flow 2.4 dashboard aggregation", () => {
 
     await transfersClient.createTransfer(userId, {
       name: "Aggregation Transfer",
-      transferType: "one_way",
+      rideType: "private_hire",
       pickupPoint: "Airport",
       dropoffPoint: "Victoria Island",
       vehicleClass: "SUV",

@@ -10,7 +10,7 @@ import { fetchCatalogOptions } from "@/modules/catalog/catalog-options-client";
 import { profileClient } from "@/modules/profile/profile-client";
 import { mergeUniqueOptions, operatingCityOptionsByCountryRegion, operatingCountryOptions, operatingRegionOptionsByCountry } from "@/modules/profile/location-options";
 import { usePartnerAccess } from "@/components/common/use-partner-access";
-import type { TransferType } from "@/modules/transfers/contracts";
+import type { RideType } from "@/modules/transfers/contracts";
 import { fetchCatalogAreas, submitLocalitySuggestion } from "@/modules/transfers/geography-client";
 import { transfersClient } from "@/modules/transfers/transfers-client";
 import { transferVehicleClassOptions } from "@/modules/transfers/vehicle-options";
@@ -200,7 +200,7 @@ export default function NewTransferPage() {
       const item = await transfersClient.createTransfer(user.id, {
         name: String(form.get("name") ?? ""),
         baseFare: Number(form.get("baseFare") ?? 0),
-        transferType: String(form.get("transferType") ?? "") as TransferType,
+        rideType: String(form.get("rideType") ?? "") as RideType,
         pickupPoint: String(form.get("pickupPoint") ?? ""),
         vehicleClass: String(form.get("vehicleClass") ?? ""),
         passengerCapacity: Number(form.get("passengerCapacity") ?? 0),
@@ -259,15 +259,13 @@ export default function NewTransferPage() {
           </div>
 
           <label className="tm-field">
-            <span className="tm-field-label">Transfer Type</span>
-            <select className="tm-input" name="transferType" required defaultValue="">
+            <span className="tm-field-label">Ride Type</span>
+            <select className="tm-input" name="rideType" required defaultValue="">
               <option value="" disabled>
-                Select transfer type
+                Select ride type
               </option>
-              <option value="one_way">One-way</option>
-              <option value="return">Return</option>
-              <option value="hourly">Hourly</option>
-              <option value="airport">Airport transfer</option>
+              <option value="private_hire">Private Hire</option>
+              <option value="shared">Shared</option>
             </select>
           </label>
 

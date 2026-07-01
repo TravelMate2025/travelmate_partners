@@ -110,7 +110,7 @@ export default function TransferDetailPage() {
         cityOptions={detail.cityOptions}
         knownVehicleClassValues={detail.knownVehicleClassValues}
         knownFeatureValues={detail.knownFeatureValues}
-        selectedTransferType={detail.selectedTransferType}
+        selectedRideType={detail.selectedRideType}
         destinationRoutes={detail.destinationRoutes}
         destinationRouteNeedsReviewById={detail.destinationRouteNeedsReviewById}
         destinationRoutePendingById={detail.destinationRoutePendingById}
@@ -129,7 +129,7 @@ export default function TransferDetailPage() {
         onSetCity={detail.setSelectedCity}
         onSetArea={detail.setSelectedArea}
         onSetVehicleClass={detail.setSelectedVehicleClass}
-        onSetTransferType={detail.setSelectedTransferType}
+        onSetRideType={detail.setSelectedRideType}
         onSuggestOriginArea={detail.suggestOriginArea}
         onAddDestinationRoute={detail.addDestinationRoute}
         onRemoveDestinationRoute={detail.removeDestinationRoute}

@@ -32,7 +32,7 @@ describe("Flow 2.11 strict alignment (notifications and communication)", () => {
 
     const transfer = await transfersClient.createTransfer(userId, {
       name: "Flow 211 Transfer",
-      transferType: "airport",
+      rideType: "private_hire",
       pickupPoint: "Airport",
       dropoffPoint: "City",
       vehicleClass: "SUV",

@@ -16,7 +16,7 @@ describe("Flow 2.8 transfer pricing and scheduling integration", () => {
     const userId = "flow28-user";
     const transfer = await transfersClient.createTransfer(userId, {
       name: "Flow 2.8 Transfer",
-      transferType: "airport",
+      rideType: "private_hire",
       pickupPoint: "Airport",
       dropoffPoint: "City Center",
       vehicleClass: "SUV",

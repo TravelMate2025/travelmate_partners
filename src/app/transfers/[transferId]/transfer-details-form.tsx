@@ -32,7 +32,7 @@ type Props = {
   cityOptions: string[];
   knownVehicleClassValues: Set<string>;
   knownFeatureValues: Set<string>;
-  selectedTransferType: string;
+  selectedRideType: string;
   destinationRoutes: DestinationRouteDraft[];
   destinationRouteNeedsReviewById: Record<string, { area: boolean; subArea: boolean }>;
   destinationRoutePendingById: Record<string, { area: boolean; subArea: boolean }>;
@@ -51,7 +51,7 @@ type Props = {
   onSetCity: (v: string) => void;
   onSetArea: (v: string) => void;
   onSetVehicleClass: (v: string) => void;
-  onSetTransferType: (v: string) => void;
+  onSetRideType: (v: string) => void;
   onAddDestinationRoute: () => void;
   onRemoveDestinationRoute: (routeId: string) => void;
   onMoveDestinationRoute: (routeId: string, direction: "up" | "down") => void;
@@ -576,7 +576,7 @@ export function TransferDetailsForm({
   cityOptions,
   knownVehicleClassValues,
   knownFeatureValues,
-  selectedTransferType,
+  selectedRideType,
   destinationRoutes,
   destinationRouteNeedsReviewById,
   destinationRoutePendingById,
@@ -595,7 +595,7 @@ export function TransferDetailsForm({
   onSetCity,
   onSetArea,
   onSetVehicleClass,
-  onSetTransferType,
+  onSetRideType,
   onAddDestinationRoute,
   onRemoveDestinationRoute,
   onMoveDestinationRoute,
@@ -655,19 +655,17 @@ export function TransferDetailsForm({
           <input className="tm-input" name="baseFare" defaultValue={item.baseFare} disabled={disabled} placeholder="Base fare" type="number" />
         </label>
         <label className="tm-field">
-          <span className="tm-field-label">Transfer Type</span>
+          <span className="tm-field-label">Ride Type</span>
           <select
             className="tm-input"
-            name="transferType"
-            value={selectedTransferType}
+            name="rideType"
+            value={selectedRideType}
             disabled={disabled}
-            onChange={(e) => onSetTransferType(e.target.value)}
+            onChange={(e) => onSetRideType(e.target.value)}
           >
-            <option value="">Select transfer type</option>
-            <option value="one_way">One-way</option>
-            <option value="return">Return</option>
-            <option value="hourly">Hourly</option>
-            <option value="airport">Airport transfer</option>
+            <option value="">Select ride type</option>
+            <option value="private_hire">Private Hire</option>
+            <option value="shared">Shared</option>
           </select>
         </label>
         <label className="tm-field">
@@ -883,32 +881,6 @@ export function TransferDetailsForm({
           ))}
         </div>
       </div>
-
-      {selectedTransferType === "return" && destinationRoutes.length > 0 ? (
-        <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <h3 className="text-sm font-semibold text-slate-800">Return Route Summary</h3>
-          <p className="mt-1 text-xs text-slate-500">
-            Return transfers publish each destination route in both directions.
-          </p>
-          <ul className="mt-3 space-y-2 text-sm text-slate-700">
-            {destinationRoutes.map((route, index) => (
-              <li key={route.id} className="rounded-md bg-white px-3 py-2">
-                <span className="mr-2 rounded bg-slate-200 px-1.5 py-0.5 text-xs font-medium text-slate-600">
-                  {index + 1}
-                </span>
-                {selectedCity}
-                {selectedArea ? ` (${selectedArea})` : ""}
-                {" → "}
-                {[route.destinationCity, route.destinationArea].filter(Boolean).join(" / ") || "Unspecified"}
-                {route.destinationSubArea ? ` — ${route.destinationSubArea}` : ""}
-                {" → "}
-                {selectedCity}
-                {selectedArea ? ` (${selectedArea})` : ""}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
 
       <label className="tm-field mt-3 block">
         <span className="tm-field-label">Description</span>

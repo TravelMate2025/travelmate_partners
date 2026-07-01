@@ -19,7 +19,7 @@ export function validateTransferForSubmission(item: TransferListing) {
   const destinationRoutes = Array.isArray(item.destinationRoutes) ? item.destinationRoutes : [];
   const required = [
     item.name,
-    item.transferType,
+    item.rideType,
     item.pickupPoint,
     item.vehicleClass,
     item.coverageArea,

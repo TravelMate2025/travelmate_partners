@@ -37,7 +37,7 @@ function makeTransfer(overrides: Partial<TransferListing> = {}): TransferListing
     status: "draft",
     name: "Airport Express",
     description: "Comfort transfer",
-    transferType: "airport",
+    rideType: "private_hire",
     pickupPoint: "MM2 Airport",
     dropoffPoint: "Victoria Island",
     vehicleClass: "SUV",
@@ -76,10 +76,10 @@ describe("listing quality", () => {
   });
 
   it("computes transfer completeness and duplicate warning", () => {
-    const transfer = makeTransfer({ transferType: "" });
+    const transfer = makeTransfer({ rideType: "" });
     const duplicate = makeTransfer({ id: "transfer-2" });
     const report = buildTransferQualityReport(transfer, [transfer, duplicate]);
-    expect(report.missingRequiredFields).toContain("Transfer Type");
+    expect(report.missingRequiredFields).toContain("Ride Type");
     expect(report.duplicateWarnings.length).toBe(0);
 
     const duplicateReport = buildTransferQualityReport(duplicate, [duplicate, makeTransfer()]);
