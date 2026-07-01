@@ -65,7 +65,8 @@ export type PartnerApiScope =
   | "bookings.read"
   | "bookings.write"
   | "payments.read"
-  | "payments.write";
+  | "payments.write"
+  | "reviews.write";
 
 export type PartnerApiCatalogEndpoint = {
   id: string;
