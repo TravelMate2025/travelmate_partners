@@ -582,6 +582,8 @@ export function useTransferDetail(userId: string | undefined, transferId: string
         vehicleClass: selectedVehicleClass,
         passengerCapacity: Number(form.get("passengerCapacity") ?? 0),
         luggageCapacity: Number(form.get("luggageCapacity") ?? 0),
+        vehicleCount: Number(form.get("vehicleCount") ?? 1),
+        estimatedDurationMinutes: Number(form.get("estimatedDurationMinutes") ?? 60),
         features: selectedFeatures,
         coverageArea: `${selectedCity}, ${selectedCountry}`,
         country: selectedCountry,

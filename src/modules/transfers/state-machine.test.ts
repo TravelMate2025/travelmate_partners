@@ -20,6 +20,8 @@ function makeTransfer(status: TransferListing["status"]): TransferListing {
       vehicleClass: "SUV",
       passengerCapacity: 4,
       luggageCapacity: 3,
+      vehicleCount: 1,
+      estimatedDurationMinutes: 60,
       features: [],
       coverageArea: "Lagos Island",
       destinationRoutes: [

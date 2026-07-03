@@ -205,6 +205,8 @@ export default function NewTransferPage() {
         vehicleClass: String(form.get("vehicleClass") ?? ""),
         passengerCapacity: Number(form.get("passengerCapacity") ?? 0),
         luggageCapacity: Number(form.get("luggageCapacity") ?? 0),
+        vehicleCount: Number(form.get("vehicleCount") ?? 1),
+        estimatedDurationMinutes: Number(form.get("estimatedDurationMinutes") ?? 60),
         country: selectedCountry,
         adminLevel1: selectedAdminLevel1,
         city: selectedCity,
@@ -441,6 +443,33 @@ export default function NewTransferPage() {
                 type="number"
                 min={0}
                 placeholder="Luggage capacity"
+                required
+              />
+            </label>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="tm-field">
+              <span className="tm-field-label">Fleet Size (Vehicles)</span>
+              <input
+                className="tm-input"
+                name="vehicleCount"
+                type="number"
+                min={1}
+                defaultValue={1}
+                placeholder="Number of vehicles"
+                required
+              />
+            </label>
+            <label className="tm-field">
+              <span className="tm-field-label">Est. Journey Duration (min)</span>
+              <input
+                className="tm-input"
+                name="estimatedDurationMinutes"
+                type="number"
+                min={1}
+                defaultValue={60}
+                placeholder="Duration in minutes"
                 required
               />
             </label>

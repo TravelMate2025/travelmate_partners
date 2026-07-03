@@ -131,6 +131,8 @@ function createFromInput(userId: string, input: CreateTransferInput): TransferLi
     vehicleClass: input.vehicleClass,
     passengerCapacity: input.passengerCapacity,
     luggageCapacity: input.luggageCapacity,
+    vehicleCount: input.vehicleCount ?? 1,
+    estimatedDurationMinutes: input.estimatedDurationMinutes ?? 60,
     features: [],
     coverageArea,
     country: input.country ?? "",

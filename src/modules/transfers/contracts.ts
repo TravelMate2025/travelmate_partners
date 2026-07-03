@@ -49,6 +49,8 @@ export type TransferListing = {
   vehicleClass: string;
   passengerCapacity: number;
   luggageCapacity: number;
+  vehicleCount: number;
+  estimatedDurationMinutes: number;
   features: string[];
   coverageArea: string;
   country?: string;
@@ -78,6 +80,8 @@ export type CreateTransferInput = {
   vehicleClass: string;
   passengerCapacity: number;
   luggageCapacity: number;
+  vehicleCount?: number;
+  estimatedDurationMinutes?: number;
   coverageArea?: string;
   country?: string;
   adminLevel1?: string;
@@ -102,6 +106,8 @@ export type UpdateTransferInput = Partial<
     | "vehicleClass"
     | "passengerCapacity"
     | "luggageCapacity"
+    | "vehicleCount"
+    | "estimatedDurationMinutes"
     | "features"
     | "coverageArea"
     | "country"

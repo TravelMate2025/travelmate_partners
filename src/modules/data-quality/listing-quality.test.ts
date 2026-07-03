@@ -43,6 +43,8 @@ function makeTransfer(overrides: Partial<TransferListing> = {}): TransferListing
     vehicleClass: "SUV",
     passengerCapacity: 4,
     luggageCapacity: 2,
+    vehicleCount: 1,
+    estimatedDurationMinutes: 60,
     features: ["ac"],
     coverageArea: "Lagos",
     operatingHours: "06:00-23:00",

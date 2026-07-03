@@ -782,6 +782,14 @@ export function TransferDetailsForm({
           <span className="tm-field-label">Luggage Capacity</span>
           <input className="tm-input" name="luggageCapacity" defaultValue={item.luggageCapacity} disabled={disabled} placeholder="Luggage capacity" type="number" />
         </label>
+        <label className="tm-field">
+          <span className="tm-field-label">Fleet Size (Vehicles)</span>
+          <input className="tm-input" name="vehicleCount" defaultValue={item.vehicleCount ?? 1} disabled={disabled} placeholder="Number of vehicles" type="number" min={1} />
+        </label>
+        <label className="tm-field">
+          <span className="tm-field-label">Est. Journey Duration (min)</span>
+          <input className="tm-input" name="estimatedDurationMinutes" defaultValue={item.estimatedDurationMinutes ?? 60} disabled={disabled} placeholder="Duration in minutes" type="number" min={1} />
+        </label>
         <div className="tm-field">
           <span className="tm-field-label">Operating Hours</span>
           <div className="mt-1 flex items-center gap-2">
