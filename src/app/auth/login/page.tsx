@@ -8,6 +8,18 @@ import { AuthShell } from "@/components/common/auth-shell";
 import { showToast } from "@/components/common/toast";
 import { authClient } from "@/modules/auth/auth-client";
 
+function resolvePostLoginRedirect(rawRedirect: string | null): string {
+  if (!rawRedirect?.startsWith("/") || rawRedirect.startsWith("//")) {
+    return "/onboarding";
+  }
+
+  if (rawRedirect === "/auth/login" || rawRedirect.startsWith("/auth/login?")) {
+    return "/onboarding";
+  }
+
+  return rawRedirect;
+}
+
 function LoginPageInner() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -31,8 +43,15 @@ function LoginPageInner() {
         showToast({ message: "Signed in — new device detected on your account.", kind: "info" });
       }
 
-      const redirectPath = searchParams.get("redirect") || "/onboarding";
-      router.push(redirectPath);
+      const redirectPath = resolvePostLoginRedirect(searchParams.get("redirect"));
+      router.replace(redirectPath);
+      router.refresh();
+
+      // In staging/prod, protected routes are guarded by middleware that reads
+      // the client-side session marker cookie. A full same-origin navigation
+      // avoids App Router cache/prefetch races where middleware evaluates the
+      // next route before the freshly-written cookie is visible.
+      window.location.assign(redirectPath);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Login failed.";
       setErrorMessage(message);
