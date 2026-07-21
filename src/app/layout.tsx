@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { ToastCenter } from "@/components/common/toast-center";
+import { defaultMetadata } from "@/lib/seo";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "TravelMate Partner",
-  description: "Partner access portal for TravelMate stays and transfers.",
-};
+export const metadata: Metadata = defaultMetadata;
 
 export default function RootLayout({
   children,

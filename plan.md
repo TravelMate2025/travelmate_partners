@@ -150,6 +150,15 @@
 - Duplicate prevention: the "Submit Appeal" button is hidden when an active appeal (`pending` or `under_review`) already exists for the listing
 - Partner is notified of appeal resolution via in-app notification
 
+### 1.17 SEO, Metadata, and Share Preview
+- Root metadata defines the partner portal brand, production metadata base URL, canonical defaults, and consistent title template.
+- Public entry routes (`/`, `/auth/signup`, `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/verify-email`) expose distinct titles, descriptions, canonical URLs, and share-preview copy.
+- Authenticated console routes expose useful browser tab titles but are explicitly marked `noindex,nofollow`.
+- Open Graph and Twitter card metadata use a branded TravelMate Partner preview image sized for social sharing.
+- `robots` policy prevents indexing private console routes while allowing the intended public entry pages.
+- `sitemap` contains only indexable public partner-app URLs.
+- Metadata behavior is covered by automated tests that inspect rendered head tags or route metadata contracts.
+
 ## 2. Feature Flows (Partner App)
 
 ### 2.1 Authentication and Account Access Flow
@@ -271,6 +280,15 @@
 - If dismissed: partner receives notification; listing remains `paused_by_admin`; dismissal notice with resolution note shown on listing detail.
 - Backend API wiring (`/stays/{stayId}/appeal`, `/transfers/{transferId}/appeal`) is deferred to slice 62b in the backend phase.
 
+### 2.18 SEO, Metadata, and Share Preview Flow
+- A crawler or social scraper requests a public partner-app entry URL.
+- System returns route-specific metadata with canonical URL, Open Graph tags, Twitter card tags, and branded preview image.
+- A crawler requests an authenticated console URL.
+- System returns `noindex,nofollow` metadata while preserving a descriptive browser tab title for signed-in users.
+- Search engines request `robots.txt` and `sitemap.xml`.
+- System allows only intended public entry routes and excludes private operational routes from the sitemap.
+- QA verifies public share previews render meaningful title, description, and image in common validators.
+
 ## Project Status
 
 - Flow 2.1 Authentication and Account Access: `Completed`
@@ -289,6 +307,7 @@
 - Flow 2.14 Wallet, Earnings, and Booking Settlement: `Completed and strict-alignment confirmed (frontend/module-first)`
 - Flow 2.15 Settlement Account (Payout Method) Details and Verification: `Completed (frontend/module-first)`
 - Flow 2.16 Listing Suspension Appeal: `Not started` (backend API slice 62b required; frontend UI deferred to backend phase)
+- Flow 2.18 SEO, Metadata, and Share Preview: `Completed`
 
 Latest completion notes:
 - Auth flow includes signup OTP, email verification, login/logout, password reset, session management, and logout-all-devices.
@@ -334,6 +353,12 @@ Latest completion notes:
 - Flow 2.15 strict validation coverage is added via dedicated integration test (`flow-2.15-settlement-accounts-strict.integration.test.ts`) aligned to the feature flow in section 2.15.
 - Flow 2.15 dedicated E2E coverage is now added and passing (`e2e/flow-2.15-settlement-account.spec.ts`) for payout method submission, OTP verification, account updates, and re-verification.
 - Flow 2.15 implementation scope for this phase remains frontend/module-first with local/mock adapters; Django-backed verification and real payout rails will be wired in the backend phase.
+- Flow 2.18 SEO, metadata, and share preview is now implemented with a shared metadata policy (`src/lib/seo.ts`), production base URL fallback, canonical URLs, Open Graph/Twitter metadata, and a consistent TravelMate Partner title template.
+- Flow 2.18 public entry pages now have route-specific metadata for `/`, signup, login, forgot password, reset password, and email verification; signup/login/root are indexable, while auth utility pages are noindex.
+- Flow 2.18 authenticated console routes now expose descriptive browser titles while using `noindex,nofollow`; dynamic detail pages use safe generic metadata that avoids booking references, listing IDs, customer data, and settlement details.
+- Flow 2.18 share preview assets are implemented via generated app-router image routes (`opengraph-image` and `twitter-image`) with 1200x630 branded TravelMate Partner artwork.
+- Flow 2.18 crawler controls are implemented with `robots.txt` and `sitemap.xml`; the sitemap includes only intended public entry routes and excludes private operational routes/API rewrites.
+- Flow 2.18 verification is complete: `npm test -- seo` passes 7 tests, and `npm run build` passes with `robots.txt`, `sitemap.xml`, `opengraph-image`, and `twitter-image` routes generated successfully.
 
 ## 3. Flow-Based Implementation Plan
 
@@ -563,6 +588,102 @@ Alignment rule for this section:
   - Re-verification triggers correctly after account changes.
   - All settlement account tests pass in CI.
 
+### Flow 2.18: SEO, Metadata, and Share Preview
+
+#### Slice 2.18a: Metadata Strategy and Route Classification
+- Scope:
+  - Classify routes into public/indexable, public-auth utility, and authenticated/private console surfaces.
+  - Define the production partner-app base URL source for `metadataBase`.
+  - Define title template, default description, canonical policy, and private-route indexing policy.
+- Implementation steps:
+  - Add a shared metadata policy module or local route metadata constants.
+  - Decide which public auth routes should appear in `sitemap.xml`.
+  - Document environment variable expectations for production URL configuration.
+- Required tests:
+  - Unit: route classification returns expected indexing policy for every current app route.
+  - Unit: base metadata defaults are stable and do not expose private route content.
+- Success criteria:
+  - Every current route has an explicit SEO/indexing category.
+  - Private console routes are planned for `noindex,nofollow`.
+
+#### Slice 2.18b: Public Entry Metadata
+- Scope:
+  - Add route-specific metadata for `/`, signup, login, forgot/reset password, and email verification.
+  - Include title, description, canonical URL, Open Graph, and Twitter fields where appropriate.
+- Implementation steps:
+  - Add metadata exports for public pages or route-level layouts.
+  - Use consistent TravelMate Partner title template.
+  - Keep copy concise and partner-acquisition oriented.
+- Required tests:
+  - Unit/component: metadata contract for each public entry route.
+  - E2E or build-level check: rendered public pages expose expected title and description.
+- Success criteria:
+  - Public pages no longer share one generic title/description.
+  - Shared public links produce meaningful title and summary text.
+
+#### Slice 2.18c: Private Console Noindex Metadata
+- Scope:
+  - Add descriptive browser titles for dashboard, listings, pricing, bookings, reports, API access, wallet, notifications, settings, and detail pages.
+  - Mark authenticated/private operational routes as `noindex,nofollow`.
+- Implementation steps:
+  - Add route metadata or private route layout metadata.
+  - Ensure dynamic detail pages use safe generic titles when sensitive identifiers are present.
+  - Avoid placing booking references, customer data, or settlement details in social metadata.
+- Required tests:
+  - Unit: private metadata includes `robots.index=false` and `robots.follow=false`.
+  - E2E/build-level check: representative private pages render noindex robots tags.
+- Success criteria:
+  - Search crawlers are instructed not to index console URLs.
+  - Browser tabs remain useful for signed-in operators.
+
+#### Slice 2.18d: Share Preview Assets and App Icons
+- Scope:
+  - Add a branded Open Graph/Twitter preview image and validate icon/favicons.
+  - Remove reliance on default Next/Vercel public assets for share previews.
+- Implementation steps:
+  - Add `opengraph-image` and `twitter-image` assets or generated image routes.
+  - Ensure preview image dimensions are social-card appropriate.
+  - Confirm app icon and apple-touch icon behavior.
+- Required tests:
+  - Build-level check: preview image routes/assets resolve successfully.
+  - Visual/manual: share image is legible at common preview sizes.
+- Success criteria:
+  - Social platforms receive a branded image instead of a generic fallback.
+  - No default framework branding appears in partner-app share previews.
+
+#### Slice 2.18e: Robots and Sitemap
+- Scope:
+  - Add `robots.txt` and `sitemap.xml` behavior for the partner app.
+  - Include only intended public entry pages in the sitemap.
+  - Exclude authenticated console routes and API rewrites from indexing.
+- Implementation steps:
+  - Implement app-router `robots.ts` and `sitemap.ts`.
+  - Use production base URL from the same metadata configuration.
+  - Define disallow rules for private route prefixes.
+- Required tests:
+  - Unit/build-level: sitemap contains public URLs only.
+  - Unit/build-level: robots disallows private console prefixes.
+- Success criteria:
+  - Crawlers have an explicit indexing contract.
+  - Private operational paths are excluded from sitemap discovery.
+
+#### Slice 2.18f: Verification and Release Signoff
+- Scope:
+  - Validate metadata, robots, sitemap, and share previews before marking the flow complete.
+- Implementation steps:
+  - Run `npm run build`.
+  - Run metadata/unit tests.
+  - Manually inspect representative public and private pages.
+  - Validate share preview output with local HTML/head inspection and, where available, platform preview validators.
+- Required tests:
+  - Unit metadata tests.
+  - App build.
+  - Targeted E2E smoke for public head tags and private noindex tags.
+- Success criteria:
+  - Public share previews have title, description, canonical URL, and image.
+  - Private routes are noindex.
+  - Build and targeted tests pass before the flow status changes from `Not started`.
+
 ## 4. Test Strategy by Module
 
 ### Auth Module
@@ -594,6 +715,11 @@ Alignment rule for this section:
 - Unit: notification routing and report transforms.
 - Integration: event-driven notifications and report export.
 - E2E: trigger events and confirm user-visible outputs.
+
+### SEO, Metadata, and Share Preview
+- Unit: route metadata contracts, route indexing classification, sitemap URL list, robots policy.
+- Integration/build: rendered head tags for public pages and private noindex pages.
+- E2E/manual: share-preview image availability and representative social preview validation.
 
 ## 5. Global Release Success Criteria
 - All partner app features in scope are implemented per phase definition.

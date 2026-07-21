@@ -131,7 +131,7 @@ export const mockApiAccessApi: ApiAccessApi = {
                 id: "transfers-search",
                 productLane: "transfers",
                 method: "GET",
-                path: "/api/v1/catalog/transfers",
+                path: "/api/v1/public/catalog/transfers",
                 requiredScope: "inventory.read",
                 environments: ["sandbox", "production"],
                 description: "List transfer products for route pickup and drop-off coverage.",
