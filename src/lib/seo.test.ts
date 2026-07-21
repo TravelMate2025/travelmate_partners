@@ -4,6 +4,7 @@ import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
 import {
   DEFAULT_PARTNER_APP_URL,
+  COMPANY_NAME,
   INDEXABLE_PUBLIC_ROUTES,
   PRIVATE_ROUTE_METADATA,
   PRIVATE_ROUTE_PREFIXES,
@@ -39,9 +40,16 @@ describe("partner app SEO policy", () => {
       expect(metadata.alternates).toMatchObject({ canonical: absoluteUrl(route) });
       expect(metadata.openGraph).toMatchObject({
         url: absoluteUrl(route),
-        siteName: "TravelMate Partner",
+        siteName: COMPANY_NAME,
       });
       expect(metadata.twitter).toMatchObject({ card: "summary_large_image" });
+      expect(metadata).toMatchObject({
+        applicationName: "TravelMate Partner",
+        creator: COMPANY_NAME,
+        publisher: COMPANY_NAME,
+        category: "travel",
+      });
+      expect(metadata.icons).toBeTruthy();
     }
   });
 

@@ -1,7 +1,9 @@
 import { ImageResponse } from "next/og";
+import travelMateLogo from "../../public/travelmate-logo.png";
+import { absoluteUrl, COMPANY_NAME } from "@/lib/seo";
 
 export const runtime = "edge";
-export const alt = "TravelMate Partner console preview";
+export const alt = "TravelMate Global Limited partner console preview";
 export const size = {
   width: 1200,
   height: 630,
@@ -9,6 +11,8 @@ export const size = {
 export const contentType = "image/png";
 
 export default function OpenGraphImage() {
+  const logoUrl = absoluteUrl(travelMateLogo.src);
+
   return new ImageResponse(
     (
       <div
@@ -84,29 +88,34 @@ export default function OpenGraphImage() {
                   alignItems: "center",
                   background: "#ffffff",
                   borderRadius: 22,
-                  color: "#033d89",
                   display: "flex",
-                  fontSize: 32,
-                  fontWeight: 900,
                   height: 72,
                   justifyContent: "center",
                   width: 72,
                 }}
               >
-                TM
+                <img
+                  alt=""
+                  height={66}
+                  src={logoUrl}
+                  style={{
+                    objectFit: "contain",
+                  }}
+                  width={66}
+                />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <div style={{ color: "#ffffff", fontSize: 34, fontWeight: 800 }}>TravelMate Partner</div>
-                <div style={{ color: "#bdd3f5", fontSize: 22, fontWeight: 700 }}>Stays + Transfers</div>
+                <div style={{ color: "#bdd3f5", fontSize: 22, fontWeight: 700 }}>{COMPANY_NAME}</div>
               </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 26 }}>
               <div style={{ color: "#ffffff", fontSize: 72, fontWeight: 900, lineHeight: 1.03 }}>
-                Grow your travel business from one console.
+                Grow verified travel inventory from one console.
               </div>
               <div style={{ color: "#d9e7fb", fontSize: 30, fontWeight: 600, lineHeight: 1.34 }}>
-                Onboard, verify, publish inventory, track bookings, and manage settlements with TravelMate.
+                Publish stays and transfers, track bookings, and manage settlements with TravelMate Global Limited.
               </div>
             </div>
 

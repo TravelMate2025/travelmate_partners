@@ -10,8 +10,10 @@ export type RouteMetadataConfig = {
 };
 
 export const PARTNER_APP_NAME = "TravelMate Partner";
+export const COMPANY_NAME = "TravelMate Global Limited";
 export const DEFAULT_PARTNER_APP_URL = "https://partners.travelmateglo.com";
 export const DEFAULT_SHARE_IMAGE_PATH = "/opengraph-image";
+export const DEFAULT_ICON_PATH = "/travelmate-mark.png";
 
 export function getPartnerAppBaseUrl(): string {
   const raw = process.env.NEXT_PUBLIC_PARTNER_APP_URL || DEFAULT_PARTNER_APP_URL;
@@ -33,19 +35,22 @@ export const PUBLIC_METADATA: Record<string, RouteMetadataConfig> = {
   "/": {
     path: "/",
     title: "TravelMate Partner",
-    description: "Grow your travel business with one console for onboarding, verified inventory, bookings, and settlements.",
+    description:
+      "Partner with TravelMate Global Limited to publish verified stays and transfers, manage bookings, and track settlements from one secure console.",
     indexing: "index",
   },
   "/auth/signup": {
     path: "/auth/signup",
     title: "Create Partner Account",
-    description: "Apply for TravelMate Partner access and start onboarding your stay or transfer business.",
+    description:
+      "Apply to join TravelMate Global Limited as a stay or transfer partner and start onboarding verified travel inventory.",
     indexing: "index",
   },
   "/auth/login": {
     path: "/auth/login",
     title: "Sign In",
-    description: "Sign in to TravelMate Partner to manage listings, bookings, API access, reports, and settlements.",
+    description:
+      "Sign in to the TravelMate Partner console by TravelMate Global Limited to manage listings, bookings, reports, API access, and settlements.",
     indexing: "index",
   },
   "/auth/forgot-password": {
@@ -198,6 +203,7 @@ export const PRIVATE_ROUTE_PREFIXES = [
 export function buildRouteMetadata(config: RouteMetadataConfig): Metadata {
   const canonical = absoluteUrl(config.path);
   const imageUrl = absoluteUrl(DEFAULT_SHARE_IMAGE_PATH);
+  const iconUrl = absoluteUrl(DEFAULT_ICON_PATH);
   const title = config.title === PARTNER_APP_NAME ? config.title : `${config.title} | ${PARTNER_APP_NAME}`;
   const robots =
     config.indexing === "index"
@@ -206,23 +212,33 @@ export function buildRouteMetadata(config: RouteMetadataConfig): Metadata {
 
   return {
     metadataBase: new URL(getPartnerAppBaseUrl()),
+    applicationName: PARTNER_APP_NAME,
+    authors: [{ name: COMPANY_NAME }],
+    creator: COMPANY_NAME,
+    publisher: COMPANY_NAME,
+    category: "travel",
     title,
     description: config.description,
     alternates: {
       canonical,
     },
+    icons: {
+      icon: [{ url: iconUrl, type: "image/png" }],
+      apple: [{ url: iconUrl, type: "image/png" }],
+    },
     openGraph: {
       type: "website",
-      siteName: PARTNER_APP_NAME,
+      siteName: COMPANY_NAME,
       title,
       description: config.description,
       url: canonical,
+      locale: "en_US",
       images: [
         {
           url: imageUrl,
           width: 1200,
           height: 630,
-          alt: "TravelMate Partner console preview",
+          alt: "TravelMate Global Limited partner console preview",
         },
       ],
     },
