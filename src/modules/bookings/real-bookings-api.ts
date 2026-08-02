@@ -28,7 +28,7 @@ export const realBookingsApi: BookingsApi = {
   async reportNoShow(userId, bookingReference, reason = "") {
     const response = await apiRequest<Envelope<NoShowReport>>(
       `/partners/${userId}/bookings/${bookingReference}/no-show`,
-      { method: "POST", body: JSON.stringify({ reason }) },
+      { method: "POST", body: { reason } },
     );
     return response.data;
   },
