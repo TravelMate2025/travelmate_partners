@@ -155,7 +155,7 @@ export function createDefaultTransferPricingScheduling(
     blackoutDates: [],
     scheduleWindows: [],
     cancellationOptions: [
-      { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 9000 },
+      { optionId: "NON_CANCELLABLE", label: "Non-cancellable", amount: 9000 },
       { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 10000 },
     ],
     isConfigured: false,

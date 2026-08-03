@@ -248,7 +248,7 @@ export default function TransferPricingSchedulingPage() {
           cancellationOptions: [
             {
               optionId: "NON_CANCELLABLE",
-              label: "Non-refundable",
+              label: "Non-cancellable",
               amount: Number(nonCancellableAmount),
             },
             {
@@ -420,7 +420,10 @@ export default function TransferPricingSchedulingPage() {
             </label>
 
             <label className="tm-field">
-              <span className="mb-1 block text-sm font-medium text-slate-700">Non-refundable Amount</span>
+              <span className="mb-1 flex items-center justify-between text-sm font-medium text-slate-700">
+                <span>Non-cancellable Rate (60% refund)</span>
+                <InfoHint text="Lower price for guests who accept a 60% refund if they cancel, any time before pickup." />
+              </span>
               <input
                 className="tm-input"
                 type="number"

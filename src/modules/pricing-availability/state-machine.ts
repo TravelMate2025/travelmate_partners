@@ -193,7 +193,7 @@ export function createDefaultPricingAvailability(
     seasonalOverrides: [],
     blackoutDates: [],
     cancellationOptions: [
-      { optionId: "NON_CANCELLABLE", label: "Non-refundable", amount: 90 },
+      { optionId: "NON_CANCELLABLE", label: "Non-cancellable", amount: 90 },
       { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 100 },
     ],
     roomCancellationOptions: [],

@@ -303,7 +303,7 @@ export default function PricingAvailabilityPage() {
           ? [
               {
                 optionId: "NON_CANCELLABLE",
-                label: "Non-refundable",
+                label: "Non-cancellable",
                 amount: Number(nonCancellableAmount),
               },
               {
@@ -320,7 +320,7 @@ export default function PricingAvailabilityPage() {
               cancellationOptions: [
                 {
                   optionId: "NON_CANCELLABLE",
-                  label: "Non-refundable",
+                  label: "Non-cancellable",
                   amount: Number(room.nonCancellableAmount),
                 },
                 {
@@ -506,7 +506,7 @@ export default function PricingAvailabilityPage() {
           <section className="mt-6">
             <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
               Cancellation Pricing
-              <InfoHint text="Set the two amounts guests can choose: lower non-refundable price and higher free-cancellation price." />
+              <InfoHint text="Set the two amounts guests can choose: a lower non-cancellable price (60% refunded if the guest cancels) and a higher free-cancellation price (100% refunded before the cutoff)." />
             </h3>
             {selectedStaySaleMode === "room_level" ? (
               <div className="mt-3 space-y-3">
@@ -515,7 +515,7 @@ export default function PricingAvailabilityPage() {
                     <p className="text-sm font-semibold text-slate-900">{room.roomLabel}</p>
                     <div className="mt-2 grid gap-3 md:grid-cols-3">
                       <label className="tm-field">
-                        <span className="mb-1 block text-sm font-medium text-slate-700">Non-refundable Amount</span>
+                        <span className="mb-1 block text-sm font-medium text-slate-700">Non-cancellable Rate (60% refund)</span>
                         <input
                           className="tm-input"
                           type="number"
@@ -554,7 +554,7 @@ export default function PricingAvailabilityPage() {
             ) : (
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <label className="tm-field">
-                  <span className="mb-1 block text-sm font-medium text-slate-700">Non-refundable Amount</span>
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Non-cancellable Rate (60% refund)</span>
                   <input
                     className="tm-input"
                     type="number"
