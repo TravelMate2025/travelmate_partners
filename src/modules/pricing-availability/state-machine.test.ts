@@ -152,6 +152,49 @@ describe("pricing-availability state machine", () => {
     ).not.toThrow();
   });
 
+  it("accepts unit-level cancellation options without ratePlans", () => {
+    // Regression test: this is the exact shape the real pricing-availability
+    // form (src/app/pricing-availability/page.tsx) submits -- ratePlans is
+    // always empty; only cancellationOptions carries the pricing/policy data.
+    // Previously validateRatePlans([]) always threw here since it didn't
+    // account for cancellationOptions standing in for ratePlans, mirroring
+    // how the real backend auto-derives ratePlans from cancellationOptions.
+    expect(() =>
+      validatePricingAvailabilityInput({
+        saleMode: "unit_level",
+        currency: "NGN",
+        baseRate: 120,
+        weekdayRate: 120,
+        weekendRate: 150,
+        minStayNights: 1,
+        maxStayNights: 14,
+        seasonalOverrides: [],
+        blackoutDates: [],
+        ratePlans: [],
+        cancellationOptions: [
+          { optionId: "NON_CANCELLABLE", label: "Non-cancellable", amount: 100 },
+          { optionId: "FREE_CANCELLATION", label: "Free cancellation", amount: 120, cancelDeadlineHoursBeforeCheckIn: 24 },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it("still requires ratePlans when neither cancellationOptions nor roomCancellationOptions is provided", () => {
+    expect(() =>
+      validatePricingAvailabilityInput({
+        currency: "NGN",
+        baseRate: 120,
+        weekdayRate: 120,
+        weekendRate: 150,
+        minStayNights: 1,
+        maxStayNights: 14,
+        seasonalOverrides: [],
+        blackoutDates: [],
+        ratePlans: [],
+      }),
+    ).toThrow("At least one active rate plan is required.");
+  });
+
   it("rejects duplicate room cancellation entries", () => {
     expect(() =>
       validatePricingAvailabilityInput({

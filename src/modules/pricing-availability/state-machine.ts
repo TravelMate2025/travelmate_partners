@@ -148,6 +148,23 @@ function validateRoomCancellationOptions(options: UpsertPricingAvailabilityInput
   }
 }
 
+function hasValidCancellationOptions(options: CancellationOption[] | undefined): boolean {
+  if (!options || options.length !== 2) {
+    return false;
+  }
+  const ids = new Set(options.map((option) => option.optionId ?? option.id));
+  return ids.has("NON_CANCELLABLE") && ids.has("FREE_CANCELLATION");
+}
+
+function hasValidRoomCancellationOptions(
+  options: UpsertPricingAvailabilityInput["roomCancellationOptions"],
+): boolean {
+  if (!options || options.length === 0) {
+    return false;
+  }
+  return options.every((room) => hasValidCancellationOptions(room.cancellationOptions));
+}
+
 export function validatePricingAvailabilityInput(input: UpsertPricingAvailabilityInput) {
   if (!input.currency || input.currency.trim().length < 3) {
     throw new Error("Currency must be a valid code (e.g. NGN, USD).");
@@ -174,7 +191,21 @@ export function validatePricingAvailabilityInput(input: UpsertPricingAvailabilit
   validateBlackoutDates(input.blackoutDates);
   validateCancellationOptions(input.cancellationOptions);
   validateRoomCancellationOptions(input.roomCancellationOptions);
-  validateRatePlans(input.ratePlans);
+
+  const ratePlans = input.ratePlans ?? [];
+  // The real backend auto-derives ratePlans[] from cancellationOptions/
+  // roomCancellationOptions when ratePlans is omitted (see
+  // _derive_rate_plans_from_cancellation_options server-side) -- so an empty
+  // ratePlans[] is valid here too as long as one of those two is present and
+  // well-formed. Only fall back to requiring an explicit ratePlans[] when
+  // neither can stand in for it.
+  const canDeriveFromCancellationOptions =
+    ratePlans.length === 0
+    && (hasValidCancellationOptions(input.cancellationOptions) || hasValidRoomCancellationOptions(input.roomCancellationOptions));
+
+  if (!canDeriveFromCancellationOptions) {
+    validateRatePlans(ratePlans);
+  }
 }
 
 export function createDefaultPricingAvailability(
