@@ -6,6 +6,7 @@ import type {
   BookingStatus,
   CompletionResult,
   NoShowReport,
+  RefundTimelineEntry,
 } from "@/modules/bookings/contracts";
 
 const MOCK_STATUSES: BookingStatus[] = ["confirmed", "completed", "cancelled", "amended", "refunded"];
@@ -18,6 +19,28 @@ const MOCK_OPERATIONAL_STATUSES: BookingOperationalStatus[] = [
   "refunded",
   "payment_failed",
 ];
+
+function refundTimelineFor(status: BookingStatus, grossAmount: number): RefundTimelineEntry[] {
+  if (status === "cancelled") {
+    return [
+      {
+        status: "pending",
+        amount: Math.round(grossAmount * 0.6),
+        maxRefundableAmount: Math.round(grossAmount * 0.6),
+        currency: "NGN",
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+  }
+  if (status === "refunded") {
+    return [
+      { refundId: "rf_mock", status: "requested", amount: Math.round(grossAmount * 0.6), currency: "NGN", updatedAt: new Date().toISOString() },
+      { refundId: "rf_mock", status: "approved", amount: Math.round(grossAmount * 0.6), currency: "NGN", updatedAt: new Date().toISOString() },
+      { refundId: "rf_mock", status: "settled", amount: Math.round(grossAmount * 0.6), currency: "NGN", updatedAt: new Date().toISOString() },
+    ];
+  }
+  return [];
+}
 
 function mockRecord(index: number): BookingRecord {
   const status = MOCK_STATUSES[index % MOCK_STATUSES.length];
@@ -78,6 +101,7 @@ function mockRecord(index: number): BookingRecord {
         : null,
     grossAmount: (index + 1) * 35000,
     currency: "NGN",
+    refundTimeline: refundTimelineFor(status, (index + 1) * 35000),
     status,
     bookingStatus: operationalStatus === "payment_failed" ? "payment_failed" : status,
     paymentStatus:

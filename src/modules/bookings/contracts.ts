@@ -36,6 +36,24 @@ export type CompletionResult = {
   serviceStatus: "completed";
 };
 
+export type RefundTimelineStatus =
+  | "pending"
+  | "requested"
+  | "approved"
+  | "rejected"
+  | "settled"
+  | "not_required";
+
+export type RefundTimelineEntry = {
+  refundId?: string;
+  status: RefundTimelineStatus;
+  amount: number;
+  maxRefundableAmount?: number;
+  currency: string;
+  reason?: string | null;
+  updatedAt: string;
+};
+
 export type BookingRecord = {
   id: string;
   bookingReference: string;
@@ -82,6 +100,7 @@ export type BookingRecord = {
   paymentStatus: BookingPaymentStatus;
   serviceStatus?: BookingServiceStatus;
   operationalStatus: BookingOperationalStatus;
+  refundTimeline: RefundTimelineEntry[];
   createdAt: string;
   updatedAt: string;
 };
